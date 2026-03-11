@@ -1,0 +1,12 @@
+node_modules/
+out/
+dist/
+*.log
+.DS_Store
+Thumbs.db
+.ycide-session.json
+第三方相关文件/
+.vs/
+*.vsidx
+*.tsbuildinfo
+test-fne.mjs

@@ -1,0 +1,227 @@
+/* 新建项目对话框 */
+
+.np-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.np-dialog {
+  background: #252526;
+  border: 1px solid #454545;
+  border-radius: 6px;
+  width: 560px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.np-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.np-dialog-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #cccccc;
+}
+
+.np-dialog-close {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.np-dialog-close:hover {
+  color: #fff;
+}
+
+.np-dialog-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.np-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.np-field label {
+  font-size: 13px;
+  color: #cccccc;
+}
+
+.np-field input {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: #cccccc;
+  background: #3c3c3c;
+  border: 1px solid #3c3c3c;
+  border-radius: 3px;
+  outline: none;
+}
+.np-field input:focus {
+  border-color: #007fd4;
+}
+
+.np-path-row {
+  display: flex;
+  gap: 6px;
+}
+
+.np-path-row input {
+  flex: 1;
+}
+
+.np-path-row button {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: #cccccc;
+  background: #3c3c3c;
+  border: 1px solid #555;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.np-path-row button:hover {
+  background: #4c4c4c;
+}
+
+/* 项目类型列表 */
+.np-type-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #3c3c3c;
+  border-radius: 3px;
+  max-height: 160px;
+  overflow-y: auto;
+  background: #1e1e1e;
+}
+
+.np-type-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #cccccc;
+  cursor: pointer;
+  border: none;
+  background: none;
+  text-align: left;
+  width: 100%;
+}
+.np-type-item:hover {
+  background: #2a2d2e;
+}
+.np-type-item.selected {
+  background: #264f78;
+}
+
+.np-type-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #569cd6;
+  font-size: 16px;
+}
+
+.np-type-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.np-type-name {
+  font-size: 13px;
+  color: #cccccc;
+}
+
+.np-type-desc {
+  font-size: 11px;
+  color: #969696;
+}
+
+/* 平台选择 */
+.np-platform-row {
+  display: flex;
+  gap: 8px;
+}
+
+.np-platform-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: #cccccc;
+  background: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.np-platform-btn:hover {
+  background: #2a2d2e;
+}
+.np-platform-btn.selected {
+  background: #264f78;
+  border-color: #007fd4;
+}
+
+/* 底部按钮 */
+.np-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #3c3c3c;
+}
+
+.np-btn {
+  height: 28px;
+  padding: 0 16px;
+  font-size: 13px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.np-btn-primary {
+  background: #0078d4;
+  color: #fff;
+  border-color: #0078d4;
+}
+.np-btn-primary:hover {
+  background: #1a8dea;
+}
+.np-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.np-btn-secondary {
+  background: #3c3c3c;
+  color: #cccccc;
+  border-color: #555;
+}
+.np-btn-secondary:hover {
+  background: #4c4c4c;
+}

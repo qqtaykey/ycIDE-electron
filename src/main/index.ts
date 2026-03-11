@@ -1,0 +1,238 @@
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { join } from 'path'
+import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs'
+import { libraryManager } from './library-manager'
+
+const isDev = !app.isPackaged
+
+function createWindow(): void {
+  const mainWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    minWidth: 800,
+    minHeight: 600,
+    frame: false, // 无边框，使用自定义标题栏
+    titleBarStyle: 'hidden',
+    show: false,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  })
+
+  mainWindow.on('ready-to-show', () => {
+    mainWindow.show()
+  })
+
+  // 外部链接在系统浏览器打开
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    shell.openExternal(details.url)
+    return { action: 'deny' }
+  })
+
+  // 开发模式加载 dev server，生产模式加载打包文件
+  if (isDev && process.env['ELECTRON_RENDERER_URL']) {
+    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+}
+
+app.whenReady().then(() => {
+  // 窗口控制 IPC
+  ipcMain.on('window:minimize', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize()
+  })
+  ipcMain.on('window:maximize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (win) {
+      win.isMaximized() ? win.unmaximize() : win.maximize()
+    }
+  })
+  ipcMain.on('window:close', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close()
+  })
+
+  // 项目管理 IPC
+  ipcMain.handle('project:getDefaultPath', () => {
+    const docs = app.getPath('documents')
+    return join(docs, 'ycIDE Projects')
+  })
+
+  ipcMain.handle('project:selectDirectory', async () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      title: '选择项目保存位置',
+      properties: ['openDirectory'],
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle('project:create', (_event, info: { name: string; path: string; type: string; platform: string }) => {
+    const projectDir = join(info.path, info.name)
+    // 创建项目目录结构
+    mkdirSync(projectDir, { recursive: true })
+    mkdirSync(join(projectDir, 'logs'), { recursive: true })
+    mkdirSync(join(projectDir, 'output'), { recursive: true })
+    mkdirSync(join(projectDir, 'temp'), { recursive: true })
+
+    // 生成 OutputType
+    const outputTypeMap: Record<string, string> = {
+      'windows-app': 'WindowsApp',
+      'console': 'Console',
+      'dll': 'DynamicLibrary',
+    }
+    const outputType = outputTypeMap[info.type] || 'WindowsApp'
+
+    // 生成文件列表
+    const files: string[] = []
+    const isWindowsApp = info.type === 'windows-app'
+
+    if (isWindowsApp) {
+      // 窗口程序：创建窗口文件 + 代码文件
+      const efwData = JSON.stringify({
+        type: 'window',
+        name: '_启动窗口',
+        title: info.name,
+        width: 592,
+        height: 384,
+        controls: []
+      }, null, 2)
+      writeFileSync(join(projectDir, '_启动窗口.efw'), efwData, 'utf-8')
+
+      const eycData = '.\u7248\u672c 2\n.\u7a0b\u5e8f\u96c6 \u7a97\u53e3\u7a0b\u5e8f\u96c6_\u542f\u52a8\u7a97\u53e3\n\n.\u5b50\u7a0b\u5e8f __\u542f\u52a8\u7a97\u53e3_\u521b\u5efa\u5b8c\u6bd5\n\n'
+      writeFileSync(join(projectDir, '_启动窗口.eyc'), eycData, 'utf-8')
+
+      files.push('File=EFW|_启动窗口.efw|1')
+      files.push('File=EYC|_启动窗口.eyc|0')
+    } else {
+      // 控制台/DLL：只创建代码文件
+      const eycData = '.\u7248\u672c 2\n.\u7a0b\u5e8f\u96c6 \u7a0b\u5e8f\u96c6\n\n.\u5b50\u7a0b\u5e8f _\u542f\u52a8\u5b50\u7a0b\u5e8f\n\n'
+      writeFileSync(join(projectDir, `${info.name}.eyc`), eycData, 'utf-8')
+      files.push(`File=EYC|${info.name}.eyc|1`)
+    }
+
+    // 生成 .epp 项目文件
+    const eppLines = [
+      '# YiCode Project File',
+      'Version=1',
+      `ProjectName=${info.name}`,
+      `OutputType=${outputType}`,
+      `Platform=${info.platform}`,
+      '',
+      ...files
+    ]
+    const eppPath = join(projectDir, `${info.name}.epp`)
+    writeFileSync(eppPath, eppLines.join('\n'), 'utf-8')
+
+    return { projectDir, eppPath }
+  })
+
+  ipcMain.handle('project:readFile', (_event, filePath: string) => {
+    if (!existsSync(filePath)) return null
+    return readFileSync(filePath, 'utf-8')
+  })
+
+  // 解析 epp 项目文件，返回项目信息和关联文件列表
+  ipcMain.handle('project:parseEpp', (_event, eppPath: string) => {
+    if (!existsSync(eppPath)) return null
+    const content = readFileSync(eppPath, 'utf-8')
+    const lines = content.split('\n').map(l => l.trim())
+    const info: Record<string, string> = {}
+    const files: Array<{ type: string; fileName: string; flag: number }> = []
+    for (const line of lines) {
+      if (line.startsWith('#') || line === '') continue
+      if (line.startsWith('File=')) {
+        const parts = line.substring(5).split('|')
+        if (parts.length >= 2) {
+          files.push({
+            type: parts[0],
+            fileName: parts[1],
+            flag: parts[2] ? parseInt(parts[2], 10) : 0
+          })
+        }
+      } else {
+        const eqIdx = line.indexOf('=')
+        if (eqIdx > 0) {
+          info[line.substring(0, eqIdx)] = line.substring(eqIdx + 1)
+        }
+      }
+    }
+    const projectDir = join(eppPath, '..')
+    return { projectName: info['ProjectName'] || '', outputType: info['OutputType'] || '', platform: info['Platform'] || '', files, projectDir }
+  })
+
+  // 保存打开的标签页列表到项目目录
+  ipcMain.handle('project:saveOpenTabs', (_event, projectDir: string, tabPaths: string[]) => {
+    const sessionPath = join(projectDir, '.ycide-session.json')
+    writeFileSync(sessionPath, JSON.stringify({ openTabs: tabPaths }, null, 2), 'utf-8')
+  })
+
+  // 读取保存的标签页列表
+  ipcMain.handle('project:loadOpenTabs', (_event, projectDir: string) => {
+    const sessionPath = join(projectDir, '.ycide-session.json')
+    if (!existsSync(sessionPath)) return []
+    try {
+      const data = JSON.parse(readFileSync(sessionPath, 'utf-8'))
+      return data.openTabs || []
+    } catch { return [] }
+  })
+
+  // 支持库 IPC
+  ipcMain.handle('library:scan', (_event, folder?: string) => {
+    return libraryManager.scan(folder)
+  })
+  ipcMain.handle('library:scanFolder', async () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      title: '选择支持库文件夹',
+      properties: ['openDirectory'],
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return libraryManager.scan(result.filePaths[0])
+  })
+  ipcMain.handle('library:load', async (_event, name: string) => {
+    const result = libraryManager.load(name)
+    BrowserWindow.getAllWindows().forEach(w => w.webContents.send('library:loaded'))
+    return result
+  })
+  ipcMain.handle('library:loadAll', async () => {
+    const result = libraryManager.loadAll()
+    BrowserWindow.getAllWindows().forEach(w => w.webContents.send('library:loaded'))
+    return result
+  })
+  ipcMain.handle('library:getList', () => {
+    return libraryManager.getList()
+  })
+  ipcMain.handle('library:getInfo', (_event, name: string) => {
+    return libraryManager.getLibInfo(name)
+  })
+  ipcMain.handle('library:getAllCommands', () => {
+    return libraryManager.getAllCommands()
+  })
+  ipcMain.handle('library:getAllDataTypes', () => {
+    return libraryManager.getAllDataTypes()
+  })
+  ipcMain.handle('library:getWindowUnits', () => {
+    return libraryManager.getAllWindowUnits()
+  })
+
+  createWindow()
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow()
+    }
+  })
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})

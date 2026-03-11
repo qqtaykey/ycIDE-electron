@@ -1,0 +1,129 @@
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--titlebar-height);
+  background: var(--titlebar-bg);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.titlebar-drag {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  -webkit-app-region: drag;
+}
+
+.titlebar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 100%;
+  color: var(--accent);
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-menu {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-menu-item {
+  position: relative;
+  height: 100%;
+}
+
+.titlebar-menu button {
+  height: 100%;
+  padding: 0 var(--spacing-md);
+  font-size: var(--font-size);
+  color: var(--text-primary);
+  border-radius: 0;
+}
+.titlebar-menu button:hover,
+.titlebar-menu button.active {
+  background: var(--bg-hover);
+}
+
+/* 下拉菜单 */
+.titlebar-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  background: var(--panel-bg, #252526);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  padding: 4px 0;
+}
+
+.titlebar-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 24px 6px 12px;
+  font-size: var(--font-size);
+  color: var(--text-primary);
+  border-radius: 0;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+.titlebar-dropdown-item:hover {
+  background: var(--accent, #0078d4);
+  color: #fff;
+}
+.titlebar-dropdown-item:hover .titlebar-dropdown-shortcut {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.titlebar-dropdown-shortcut {
+  margin-left: 32px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.titlebar-dropdown-divider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border-color);
+}
+
+.titlebar-title {
+  flex: 1;
+  text-align: center;
+  font-size: var(--font-size);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titlebar-controls {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+  color: var(--text-primary);
+}
+.titlebar-btn:hover {
+  background: var(--bg-hover);
+}
+.titlebar-btn-close:hover {
+  background: #e81123;
+  color: #fff;
+}

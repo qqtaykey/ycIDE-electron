@@ -1,0 +1,125 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+/* 标签页 */
+.editor-tabs {
+  display: flex;
+  align-items: flex-end;
+  height: 36px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.editor-tabs::-webkit-scrollbar {
+  height: 3px;
+}
+
+.editor-tab {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 var(--spacing-lg);
+  gap: 6px;
+  background: var(--bg-tertiary);
+  border: none;
+  border-right: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: var(--font-size);
+  font-family: var(--font-family);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.1s;
+}
+.editor-tab.active {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--bg-primary);
+  margin-bottom: -1px;
+}
+.editor-tab:hover {
+  color: var(--text-primary);
+}
+
+.editor-tab-icon {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
+  min-width: 16px;
+  text-align: center;
+}
+
+.editor-tab-label {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-tab-modified {
+  color: var(--text-primary);
+  font-size: 10px;
+  margin-left: -2px;
+}
+
+.editor-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  font-size: 14px;
+  opacity: 0;
+  flex-shrink: 0;
+}
+.editor-tab:hover .editor-tab-close,
+.editor-tab.active .editor-tab-close {
+  opacity: 0.7;
+}
+.editor-tab-close:hover {
+  opacity: 1 !important;
+  background: var(--bg-hover);
+}
+
+/* 编辑区 - Monaco Editor 容器 */
+.editor-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 编辑器加载提示 */
+.editor-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* 无文件打开的空状态 */
+.editor-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+}
+.editor-empty-text {
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+.editor-empty-hint {
+  font-size: 13px;
+  color: var(--text-disabled);
+}

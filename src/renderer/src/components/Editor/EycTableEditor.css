@@ -1,0 +1,261 @@
+/* ========== 易语言表格编辑器样式 ========== */
+/* 基于 ecode PHP 插件的默认配色方案 (ebackcolor1) 改编为暗色IDE版 */
+
+.eyc-table-editor {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: "Microsoft YaHei", "SimSun", sans-serif;
+  font-size: 13px;
+  height: 100%;
+  min-height: 0;
+}
+
+.eyc-table-wrapper {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 8px 8px 0;
+}
+
+/* ===== 行号 ===== */
+.eyc-block-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.eyc-line-gutter {
+  width: 64px;
+  min-width: 64px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.eyc-gutter-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 16px;
+  color: #858585;
+  font-family: "Consolas", "Microsoft YaHei", monospace;
+  font-size: 14px;
+  min-height: 22px;
+  user-select: none;
+}
+
+.eyc-block-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===== 默认配色 (ebackcolor1 暗色适配) ===== */
+.ebackcolor1 {
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+/* ===== 声明表格 ===== */
+.eyc-decl-table {
+  border-collapse: collapse;
+  table-layout: auto;
+  border-width: 0;
+  margin-top: 4px;
+  width: 0px;
+}
+
+/* 行高与边框 — Rowheight */
+.Rowheight {
+  font-size: 12px;
+  line-height: 16px;
+  border: 1px solid #555;
+  white-space: nowrap;
+  padding: 4px 8px;
+}
+
+/* 表头行 */
+.eyc-hdr-row td {
+  cursor: default;
+}
+
+/* 数据行 */
+.eyc-data-row {
+  cursor: pointer;
+}
+.eyc-data-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ===== 表头背景色 ===== */
+/* 默认表头（子程序、常量、DLL等）— 灰绿色 */
+.eHeadercolor {
+  color: #e0e0e0;
+  background-color: #2d3a2d;
+}
+
+/* 变量表头 — 蓝色 */
+.eVariableheadcolor {
+  color: #e0e0e0;
+  background-color: #263545;
+}
+
+/* 程序集表头 — 深灰 */
+.eAssemblycolor {
+  color: #e0e0e0;
+  background-color: #333333;
+}
+
+/* ===== 单元格文字颜色 ===== */
+
+/* 自定义类型/子程序名称 — 藏蓝色 */
+.eProcolor {
+  color: #569cd6;
+}
+
+/* 变量名 — 白色 */
+.Variablescolor {
+  color: #d4d4d4;
+}
+
+/* 数据类型(整数型/文本型) — 蓝色 */
+.eTypecolor {
+  color: #4fc1ff;
+}
+
+/* 勾选标记 — 红色加粗 */
+.eTickcolor {
+  color: #f14c4c;
+  font-weight: bold;
+}
+
+/* 备注 — 绿色 */
+.Remarkscolor {
+  color: #6a9955;
+}
+
+/* 数组成员数 — 白色 */
+.eArraycolor {
+  color: #d4d4d4;
+}
+
+/* 常量值 — 青色 */
+.Constanttext {
+  color: #4ec9b0;
+}
+
+/* 错误/未填写 — 红色 */
+.Wrongcolor {
+  color: #f44747;
+}
+
+/* 声音/图片/常量等名称 — 藏蓝色 */
+.eOthercolor {
+  color: #569cd6;
+}
+
+/* API颜色 — 橙红 */
+.eAPIcolor {
+  color: #ce9178;
+}
+
+/* ===== 代码行着色 ===== */
+
+/* 代码行容器 */
+.eyc-code-line {
+  flex: 1;
+  min-height: 22px;
+  line-height: 22px;
+  padding: 0 8px 0 0;
+  cursor: text;
+  font-family: "Consolas", "Microsoft YaHei", monospace;
+  font-size: 13px;
+  white-space: pre;
+}
+.eyc-code-line:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.eyc-code-spans {
+  display: inline;
+}
+
+/* 流程控制关键字 如果真/判断/循环 — 蓝色 */
+.comecolor {
+  color: #569cd6;
+}
+
+/* 函数名（括号前的命令名） — 暗红 */
+.funccolor {
+  color: #dcdcaa;
+}
+
+/* 对象.方法 调用 — 对象颜色 */
+.cometwolr {
+  color: #ce9178;
+}
+
+/* 引号内的文字 — 青色 */
+.eTxtcolor {
+  color: #4ec9b0;
+}
+
+/* 常量引用 #常量名 — 蓝色 */
+.conscolor {
+  color: #569cd6;
+  font-weight: bold;
+}
+
+/* 树形线条 */
+.eTreeLine {
+  color: #555;
+  user-select: none;
+}
+
+/* ===== 行内编辑输入框 ===== */
+.eyc-inline-input {
+  width: 100%;
+  height: 22px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: #d4d4d4;
+  font-family: "Consolas", "Microsoft YaHei", monospace;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+  caret-color: #d4d4d4;
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: none;
+}
+.eyc-inline-input:focus,
+.eyc-inline-input:focus-visible {
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
+/* 单元格内编辑 — 透明融入 */
+.eyc-cell-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  caret-color: #d4d4d4;
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: none;
+}
+.eyc-cell-input:focus {
+  border: none;
+  outline: none;
+  box-shadow: none;
+}

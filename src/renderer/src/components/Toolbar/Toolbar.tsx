@@ -1,0 +1,136 @@
+import { useState } from 'react'
+import './Toolbar.css'
+import Icon from '../Icon/Icon'
+import '../Icon/Icon.css'
+import type { AlignAction } from '../Editor/VisualDesigner'
+
+interface ToolbarProps {
+  onOpenLibrary?: () => void
+  hasControlSelected?: boolean
+  onAlign?: (action: AlignAction) => void
+}
+
+function Toolbar({ onOpenLibrary, hasControlSelected = false, onAlign }: ToolbarProps): React.JSX.Element {
+  const [platform, setPlatform] = useState('windows')
+  const [arch, setArch] = useState('x64')
+
+  return (
+    <div className="toolbar" role="toolbar" aria-label="工具栏">
+      <div className="toolbar-group">
+        <button className="toolbar-btn" aria-label="新建" title="新建 (Ctrl+N)">
+          <Icon name="new-document" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="打开" title="打开 (Ctrl+O)">
+          <Icon name="open-folder" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="保存" title="保存 (Ctrl+S)">
+          <Icon name="save" size={16} />
+        </button>
+      </div>
+
+      <div className="toolbar-separator" aria-hidden="true" />
+
+      <div className="toolbar-group">
+        <button className="toolbar-btn" aria-label="撤销" title="撤销 (Ctrl+Z)">
+          <Icon name="undo" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="重做" title="重做 (Ctrl+Y)">
+          <Icon name="redo" size={16} />
+        </button>
+      </div>
+
+      <div className="toolbar-separator" aria-hidden="true" />
+
+      <div className="toolbar-group">
+        <select
+          className="toolbar-select"
+          value={platform}
+          onChange={e => setPlatform(e.target.value)}
+          title="目标平台"
+        >
+          <option value="windows">Windows</option>
+          <option value="linux">Linux</option>
+          <option value="macos">macOS</option>
+        </select>
+        <select
+          className="toolbar-select"
+          value={arch}
+          onChange={e => setArch(e.target.value)}
+          title="目标架构"
+        >
+          <option value="x64">x64</option>
+          <option value="x86">x86</option>
+          <option value="arm64">arm64</option>
+        </select>
+      </div>
+
+      <div className="toolbar-group">
+        <button className="toolbar-btn toolbar-btn-run" aria-label="编译运行" title="编译运行 (F5)">
+          <Icon name="run" size={16} />
+        </button>
+        <button className="toolbar-btn toolbar-btn-stop" aria-label="停止" title="停止">
+          <Icon name="stop" size={16} />
+        </button>
+      </div>
+
+      <div className="toolbar-separator" aria-hidden="true" />
+
+      <div className="toolbar-group">
+        <button className="toolbar-btn" aria-label="单步" title="单步 (F10)">
+          <Icon name="step-over" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="跟踪" title="跟踪 (F11)">
+          <Icon name="step-into" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="跟踪返回" title="跟踪返回 (Shift+F11)">
+          <Icon name="step-out" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="运行到光标处" title="运行到光标处 (Ctrl+F10)">
+          <Icon name="run-to-cursor" size={16} />
+        </button>
+      </div>
+
+      <div className="toolbar-separator" aria-hidden="true" />
+
+      <div className="toolbar-group">
+        <button className="toolbar-btn" aria-label="左对齐" title="左对齐" disabled={!hasControlSelected} onClick={() => onAlign?.('align-left')}>
+          <Icon name="align-left" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="右对齐" title="右对齐" disabled={!hasControlSelected} onClick={() => onAlign?.('align-right')}>
+          <Icon name="align-right" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="顶端对齐" title="顶端对齐" disabled={!hasControlSelected} onClick={() => onAlign?.('align-top')}>
+          <Icon name="align-top" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="底端对齐" title="底端对齐" disabled={!hasControlSelected} onClick={() => onAlign?.('align-bottom')}>
+          <Icon name="align-bottom" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="水平居中" title="水平居中" disabled={!hasControlSelected} onClick={() => onAlign?.('center-h')}>
+          <Icon name="center-h" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="垂直居中" title="垂直居中" disabled={!hasControlSelected} onClick={() => onAlign?.('center-v')}>
+          <Icon name="center-v" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="相同宽度" title="相同宽度" disabled={!hasControlSelected} onClick={() => onAlign?.('same-width')}>
+          <Icon name="same-width" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="相同高度" title="相同高度" disabled={!hasControlSelected} onClick={() => onAlign?.('same-height')}>
+          <Icon name="same-height" size={16} />
+        </button>
+        <button className="toolbar-btn" aria-label="相同大小" title="相同大小" disabled={!hasControlSelected} onClick={() => onAlign?.('same-size')}>
+          <Icon name="same-size" size={16} />
+        </button>
+      </div>
+
+      <div className="toolbar-spacer" />
+
+      <div className="toolbar-group">
+        <button className="toolbar-btn" aria-label="支持库" title="支持库管理" onClick={onOpenLibrary}>
+          <Icon name="library" size={16} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default Toolbar

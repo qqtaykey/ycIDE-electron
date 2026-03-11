@@ -1,0 +1,246 @@
+/**
+ * SVG Icon component using VS 2022 Image Library icons.
+ * Adapts light-theme SVGs for dark theme by CSS filter/class overrides.
+ */
+
+// Toolbar icons
+import NewDocumentSvg from '../../assets/icons/NewDocument.svg?raw'
+import OpenFolderSvg from '../../assets/icons/OpenFolder.svg?raw'
+import SaveSvg from '../../assets/icons/Save.svg?raw'
+import UndoSvg from '../../assets/icons/Undo.svg?raw'
+import RedoSvg from '../../assets/icons/Redo.svg?raw'
+import RunSvg from '../../assets/icons/Run.svg?raw'
+import LibrarySvg from '../../assets/icons/Library.svg?raw'
+import ToolboxSvg from '../../assets/icons/Toolbox.svg?raw'
+
+// Debug icons
+import StopSvg from '../../assets/icons/Stop.svg?raw'
+import PauseSvg from '../../assets/icons/Pause.svg?raw'
+import StepIntoSvg from '../../assets/icons/StepInto.svg?raw'
+import StepOverSvg from '../../assets/icons/StepOver.svg?raw'
+import StepOutSvg from '../../assets/icons/StepOut.svg?raw'
+import GoToCurrentLineSvg from '../../assets/icons/GoToCurrentLine.svg?raw'
+
+// Alignment icons
+import AlignLeftSvg from '../../assets/icons/AlignLeft.svg?raw'
+import AlignRightSvg from '../../assets/icons/AlignRight.svg?raw'
+import AlignTopSvg from '../../assets/icons/AlignTop.svg?raw'
+import AlignBottomSvg from '../../assets/icons/AlignBottom.svg?raw'
+import CenterHorizontallySvg from '../../assets/icons/CenterHorizontally.svg?raw'
+import CenterVerticallySvg from '../../assets/icons/CenterVertically.svg?raw'
+import AlignHorizontalStretchSvg from '../../assets/icons/AlignHorizontalStretch.svg?raw'
+import AlignVerticalStretchSvg from '../../assets/icons/AlignVerticalStretch.svg?raw'
+import MakeSameHeightSvg from '../../assets/icons/MakeSameHeight.svg?raw'
+
+// Tree / sidebar icons
+import FolderClosedSvg from '../../assets/icons/FolderClosed.svg?raw'
+import FolderOpenedSvg from '../../assets/icons/FolderOpened.svg?raw'
+import ModuleSvg from '../../assets/icons/Module.svg?raw'
+import MethodSvg from '../../assets/icons/Method.svg?raw'
+import WindowsFormSvg from '../../assets/icons/WindowsForm.svg?raw'
+import ProcedureSvg from '../../assets/icons/Procedure.svg?raw'
+import ClassSvg from '../../assets/icons/Class.svg?raw'
+import ResourceViewSvg from '../../assets/icons/ResourceView.svg?raw'
+import EventSvg from '../../assets/icons/Event.svg?raw'
+import PropertySvg from '../../assets/icons/Property.svg?raw'
+
+// Toolbox / control icons
+import TextBoxSvg from '../../assets/icons/TextBox.svg?raw'
+import LabelSvg from '../../assets/icons/Label.svg?raw'
+import ListBoxSvg from '../../assets/icons/ListBox.svg?raw'
+import GroupBoxSvg from '../../assets/icons/GroupBox.svg?raw'
+import ProgressBarSvg from '../../assets/icons/ProgressBar.svg?raw'
+import TimerSvg from '../../assets/icons/Timer.svg?raw'
+import RadioButtonSvg from '../../assets/icons/RadioButton.svg?raw'
+import MonthCalendarSvg from '../../assets/icons/MonthCalendar.svg?raw'
+import DateTimePickerSvg from '../../assets/icons/DateTimePicker.svg?raw'
+import SliderSvg from '../../assets/icons/Slider.svg?raw'
+import TabSvg from '../../assets/icons/Tab.svg?raw'
+import MutuallExclusiveCheckboxSvg from '../../assets/icons/MutuallExclusiveCheckbox.svg?raw'
+import ImageButtonSvg from '../../assets/icons/ImageButton.svg?raw'
+import CursorSvg from '../../assets/icons/Cursor.svg?raw'
+import HorizontalScrollBarSvg from '../../assets/icons/HorizontalScrollBar.svg?raw'
+import VerticalScrollBarSvg from '../../assets/icons/VerticalScrollBar.svg?raw'
+import DataGridSvg from '../../assets/icons/DataGrid.svg?raw'
+import DataSourceSvg from '../../assets/icons/DataSource.svg?raw'
+import SerialPortSvg from '../../assets/icons/SerialPort.svg?raw'
+import ServerSvg from '../../assets/icons/Server.svg?raw'
+import CustomControlSvg from '../../assets/icons/CustomControl.svg?raw'
+import SelectObjectSvg from '../../assets/icons/SelectObject.svg?raw'
+import DialogSvg from '../../assets/icons/Dialog.svg?raw'
+import PanelSvg from '../../assets/icons/Panel.svg?raw'
+import NetworkSvg from '../../assets/icons/Network.svg?raw'
+import ImageSvg from '../../assets/icons/Image.svg?raw'
+import ColorPickerSvg from '../../assets/icons/ColorPicker.svg?raw'
+import SpinnerSvg from '../../assets/icons/Spinner.svg?raw'
+import HyperLinkSvg from '../../assets/icons/HyperLink.svg?raw'
+import EditSvg from '../../assets/icons/Edit.svg?raw'
+
+/** Icon name registry */
+export const ICON_MAP: Record<string, string> = {
+  // Toolbar
+  'new-document': NewDocumentSvg,
+  'open-folder': OpenFolderSvg,
+  'save': SaveSvg,
+  'undo': UndoSvg,
+  'redo': RedoSvg,
+  'run': RunSvg,
+  'stop': StopSvg,
+  'pause': PauseSvg,
+  'step-into': StepIntoSvg,
+  'step-over': StepOverSvg,
+  'step-out': StepOutSvg,
+  'run-to-cursor': GoToCurrentLineSvg,
+  'library': LibrarySvg,
+  'toolbox': ToolboxSvg,
+
+  // Alignment
+  'align-left': AlignLeftSvg,
+  'align-right': AlignRightSvg,
+  'align-top': AlignTopSvg,
+  'align-bottom': AlignBottomSvg,
+  'center-h': CenterHorizontallySvg,
+  'center-v': CenterVerticallySvg,
+  'same-width': AlignHorizontalStretchSvg,
+  'same-height': AlignVerticalStretchSvg,
+  'same-size': MakeSameHeightSvg,
+
+  // Tree
+  'folder-closed': FolderClosedSvg,
+  'folder-opened': FolderOpenedSvg,
+  'module': ModuleSvg,
+  'method': MethodSvg,
+  'windows-form': WindowsFormSvg,
+  'procedure': ProcedureSvg,
+  'class': ClassSvg,
+  'resource-view': ResourceViewSvg,
+  'event': EventSvg,
+  'property': PropertySvg,
+
+  // Toolbox controls
+  'textbox': TextBoxSvg,
+  'label': LabelSvg,
+  'listbox': ListBoxSvg,
+  'groupbox': GroupBoxSvg,
+  'progressbar': ProgressBarSvg,
+  'timer': TimerSvg,
+  'radiobutton': RadioButtonSvg,
+  'month-calendar': MonthCalendarSvg,
+  'date-picker': DateTimePickerSvg,
+  'slider': SliderSvg,
+  'tab': TabSvg,
+  'checkbox': MutuallExclusiveCheckboxSvg,
+  'image-button': ImageButtonSvg,
+  'cursor': CursorSvg,
+  'hscrollbar': HorizontalScrollBarSvg,
+  'vscrollbar': VerticalScrollBarSvg,
+  'datagrid': DataGridSvg,
+  'datasource': DataSourceSvg,
+  'serialport': SerialPortSvg,
+  'server': ServerSvg,
+  'custom-control': CustomControlSvg,
+  'select-object': SelectObjectSvg,
+  'dialog': DialogSvg,
+  'panel': PanelSvg,
+  'network': NetworkSvg,
+  'image': ImageSvg,
+  'color-picker': ColorPickerSvg,
+  'spinner': SpinnerSvg,
+  'hyperlink': HyperLinkSvg,
+  'edit': EditSvg,
+}
+
+/** Adapt light-theme SVG for dark theme  */
+function adaptForDarkTheme(raw: string): string {
+  return raw
+    // Replace light-theme default grey (#212121) with light grey
+    .replace(/fill:\s*#212121/g, 'fill: #cccccc')
+    // Replace light-theme blue (#005dba) with brighter blue
+    .replace(/fill:\s*#005dba/g, 'fill: #3794ff')
+    // Replace light-theme yellow (#996f00) with brighter yellow
+    .replace(/fill:\s*#996f00/g, 'fill: #e8ab53')
+    // Replace light-theme green (#1f801f) with brighter green
+    .replace(/fill:\s*#1f801f/g, 'fill: #89d185')
+    // Replace light-theme purple (#6936aa) with brighter purple
+    .replace(/fill:\s*#6936aa/g, 'fill: #b180d7')
+    // Replace light-theme red (#b30900) with brighter red
+    .replace(/fill:\s*#b30900/g, 'fill: #f14c4c')
+    // Replace light-theme teal (#007f7f) with brighter teal
+    .replace(/fill:\s*#007f7f/g, 'fill: #4ec9b0')
+}
+
+interface IconProps {
+  name: string
+  size?: number
+  className?: string
+  style?: React.CSSProperties
+  title?: string
+}
+
+export default function Icon({ name, size = 16, className = '', style, title }: IconProps): React.JSX.Element | null {
+  const raw = ICON_MAP[name]
+  if (!raw) return null
+  const adapted = adaptForDarkTheme(raw)
+  return (
+    <span
+      className={`vs-icon ${className}`}
+      style={{ display: 'inline-flex', width: size, height: size, ...style }}
+      title={title}
+      dangerouslySetInnerHTML={{ __html: adapted }}
+    />
+  )
+}
+
+/**
+ * Map a 易语言 component type name to an icon name for the toolbox.
+ */
+export const UNIT_ICON_MAP: Record<string, string> = {
+  '窗口': 'windows-form',
+  '按钮': 'image-button',
+  '编辑框': 'textbox',
+  '标签': 'label',
+  '图片框': 'image',
+  '列表框': 'listbox',
+  '组合框': 'listbox',
+  '选择框': 'checkbox',
+  '单选框': 'radiobutton',
+  '分组框': 'groupbox',
+  '进度条': 'progressbar',
+  '时钟': 'timer',
+  '选择列表框': 'listbox',
+  '横向滚动条': 'hscrollbar',
+  '纵向滚动条': 'vscrollbar',
+  '通用对话框': 'dialog',
+  '画板': 'panel',
+  '超级列表框': 'datagrid',
+  '选择夹': 'tab',
+  '影像框': 'image',
+  '日期框': 'date-picker',
+  '月历': 'month-calendar',
+  '驱动器框': 'custom-control',
+  '目录框': 'folder-closed',
+  '文件框': 'custom-control',
+  '颜色选择器': 'color-picker',
+  '超级编辑框': 'edit',
+  '状态条': 'custom-control',
+  '工具条': 'toolbox',
+  '树型框': 'custom-control',
+  '数据报表': 'datagrid',
+  '图片组': 'image',
+  '外形框': 'custom-control',
+  '超级链接框': 'hyperlink',
+  '调节器': 'spinner',
+  '滑块条': 'slider',
+  '数据报': 'network',
+  '客户': 'network',
+  '服务器': 'server',
+  '端口': 'serialport',
+  '表格': 'datagrid',
+  '数据源': 'datasource',
+  '图形按钮': 'image-button',
+  '打印机': 'custom-control',
+  '通用提供者': 'custom-control',
+  '数据库提供者': 'datasource',
+  '外部数据库': 'datasource',
+  '外部数据提供者': 'datasource',
+}

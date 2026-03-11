@@ -1,0 +1,136 @@
+:root {
+  /* 颜色系统 - VS Code 风格暗色主题 */
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary: #2d2d2d;
+  --bg-hover: #2a2d2e;
+  --bg-active: #37373d;
+  --bg-selection: #264f78;
+  --bg-input: #3c3c3c;
+
+  --border-color: #3c3c3c;
+  --border-focus: #007fd4;
+
+  --text-primary: #cccccc;
+  --text-secondary: #969696;
+  --text-disabled: #5a5a5a;
+  --text-accent: #4fc1ff;
+  --text-link: #3794ff;
+
+  --accent: #0078d4;
+  --accent-hover: #1a8dea;
+  --accent-active: #005a9e;
+
+  --error: #f44747;
+  --warning: #cca700;
+  --success: #89d185;
+  --info: #75beff;
+
+  /* 标题栏 */
+  --titlebar-height: 32px;
+  --titlebar-bg: #323233;
+
+  /* 工具栏 */
+  --toolbar-height: 36px;
+
+  /* 状态栏 */
+  --statusbar-height: 24px;
+  --statusbar-bg: #007acc;
+
+  /* 字体 */
+  --font-family: "Microsoft YaHei UI", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", "Consolas", "Courier New", monospace;
+  --font-size: 13px;
+  --font-size-small: 11px;
+
+  /* 间距 */
+  --spacing-xs: 2px;
+  --spacing-sm: 4px;
+  --spacing-md: 8px;
+  --spacing-lg: 12px;
+  --spacing-xl: 16px;
+
+  /* 滚动条 */
+  --scrollbar-size: 10px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(121, 121, 121, 0.4);
+  --scrollbar-thumb-hover: rgba(100, 100, 100, 0.7);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* 全局滚动条样式 */
+::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 焦点样式 - Accessibility */
+:focus-visible {
+  outline: 1px solid var(--border-focus);
+  outline-offset: -1px;
+}
+
+/* WAI-ARIA 隐藏文本 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 通用按钮重置 */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  outline: none;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--border-focus);
+}
