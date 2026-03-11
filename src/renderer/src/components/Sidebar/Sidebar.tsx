@@ -8,6 +8,7 @@ type SidebarTab = 'project' | 'library' | 'property'
 
 const TREE_ICON_MAP: Record<string, string> = {
   folder: 'folder-closed',
+  'folder-expanded': 'folder-opened',
   module: 'module',
   class: 'class',
   sub: 'procedure',
@@ -24,6 +25,8 @@ interface SidebarProps {
   onTabChange: (tab: SidebarTab) => void
   onSelectControl?: (target: SelectionTarget) => void
   projectTree?: TreeNode[]
+  onOpenFile?: (fileId: string, fileName: string) => void
+  activeFileId?: string | null
 }
 
 interface LibItem {
@@ -43,21 +46,27 @@ export interface TreeNode {
   expanded?: boolean
 }
 
-function TreeItem({ node, depth = 0 }: { node: TreeNode; depth?: number }): React.JSX.Element {
+function TreeItem({ node, depth = 0, onOpenFile, activeFileId }: { node: TreeNode; depth?: number; onOpenFile?: (fileId: string, fileName: string) => void; activeFileId?: string | null }): React.JSX.Element {
   const [expanded, setExpanded] = useState(node.expanded ?? false)
   const hasChildren = node.children && node.children.length > 0
 
   return (
     <li role="treeitem" aria-expanded={hasChildren ? expanded : undefined}>
       <div
-        className={`tree-item ${hasChildren ? 'tree-branch' : 'tree-leaf'}`}
+        className={`tree-item ${hasChildren ? 'tree-branch' : 'tree-leaf'}${!hasChildren && activeFileId && activeFileId === node.id ? ' tree-item-active' : ''}`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => hasChildren && setExpanded(!expanded)}
+        onDoubleClick={() => {
+          if (!hasChildren && onOpenFile) {
+            onOpenFile(node.id, node.label)
+          }
+        }}
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             if (hasChildren) setExpanded(!expanded)
+            else if (onOpenFile) onOpenFile(node.id, node.label)
           }
         }}
       >
@@ -65,13 +74,13 @@ function TreeItem({ node, depth = 0 }: { node: TreeNode; depth?: number }): Reac
           <span className={`tree-arrow ${expanded ? 'expanded' : ''}`} aria-hidden="true">▶</span>
         )}
         {!hasChildren && <span className="tree-arrow-placeholder" aria-hidden="true" />}
-        <Icon name={TREE_ICON_MAP[node.type] || 'custom-control'} size={16} />
+        <Icon name={(node.type === 'folder' ? (expanded ? TREE_ICON_MAP['folder-expanded'] : TREE_ICON_MAP['folder']) : TREE_ICON_MAP[node.type]) || 'custom-control'} size={16} />
         <span className="tree-label">{node.label}</span>
       </div>
       {hasChildren && expanded && (
         <ul role="group">
           {node.children!.map((child) => (
-            <TreeItem key={child.id} node={child} depth={depth + 1} />
+            <TreeItem key={child.id} node={child} depth={depth + 1} onOpenFile={onOpenFile} activeFileId={activeFileId} />
           ))}
         </ul>
       )}
@@ -97,12 +106,9 @@ function LibraryPanel(): React.JSX.Element {
 
   useEffect(() => {
     if (!loaded) {
-      window.api.library.scan().then((list: LibItem[]) => {
+      window.api.library.getList().then((list: LibItem[]) => {
         setLibs(list)
         setLoaded(true)
-        window.api.library.loadAll().then(() => {
-          window.api.library.getList().then((l: LibItem[]) => setLibs(l))
-        })
       })
     }
   }, [loaded])
@@ -403,7 +409,7 @@ function PropertyPanel({ selection, windowUnits, onSelectControl }: { selection?
   )
 }
 
-function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectControl, projectTree }: SidebarProps): React.JSX.Element {
+function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectControl, projectTree, onOpenFile, activeFileId }: SidebarProps): React.JSX.Element {
   const [windowUnits, setWindowUnits] = useState<LibWindowUnit[]>([])
 
   // 从支持库加载窗口组件信息，并在支持库加载后刷新
@@ -489,7 +495,7 @@ function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectC
           projectTree && projectTree.length > 0 ? (
             <ul className="tree" role="tree" aria-label="项目结构">
               {projectTree.map((node) => (
-                <TreeItem key={node.id} node={node} />
+                <TreeItem key={node.id} node={node} onOpenFile={onOpenFile} activeFileId={activeFileId} />
               ))}
             </ul>
           ) : (

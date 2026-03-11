@@ -28,25 +28,37 @@ const api = {
     } | null>,
     saveOpenTabs: (projectDir: string, tabPaths: string[]) => ipcRenderer.invoke('project:saveOpenTabs', projectDir, tabPaths),
     loadOpenTabs: (projectDir: string) => ipcRenderer.invoke('project:loadOpenTabs', projectDir) as Promise<string[]>,
+    openEpp: () => ipcRenderer.invoke('project:openEpp') as Promise<string | null>,
+    addFile: (projectDir: string, fileName: string, fileType: string, content: string) =>
+      ipcRenderer.invoke('project:addFile', projectDir, fileName, fileType, content) as Promise<string>,
   },
   // 编译
   compiler: {
-    compile: (projectPath: string) => ipcRenderer.invoke('compiler:compile', projectPath),
-    onOutput: (callback: (data: string) => void) => {
-      ipcRenderer.on('compiler:output', (_event, data) => callback(data))
-    }
+    compile: (projectDir: string, editorFiles?: Record<string, string>) =>
+      ipcRenderer.invoke('compiler:compile', projectDir, editorFiles),
+    run: (projectDir: string, editorFiles?: Record<string, string>) =>
+      ipcRenderer.invoke('compiler:run', projectDir, editorFiles),
+    stop: () => ipcRenderer.invoke('compiler:stop'),
+    isRunning: () => ipcRenderer.invoke('compiler:isRunning') as Promise<boolean>,
   },
   // 支持库管理
   library: {
     scan: (folder?: string) => ipcRenderer.invoke('library:scan', folder),
-    scanFolder: () => ipcRenderer.invoke('library:scanFolder'),
     load: (name: string) => ipcRenderer.invoke('library:load', name),
+    unload: (name: string) => ipcRenderer.invoke('library:unload', name),
     loadAll: () => ipcRenderer.invoke('library:loadAll'),
     getList: () => ipcRenderer.invoke('library:getList'),
     getInfo: (name: string) => ipcRenderer.invoke('library:getInfo', name),
     getAllCommands: () => ipcRenderer.invoke('library:getAllCommands'),
     getAllDataTypes: () => ipcRenderer.invoke('library:getAllDataTypes'),
     getWindowUnits: () => ipcRenderer.invoke('library:getWindowUnits'),
+  },
+  // 主题管理
+  theme: {
+    getList: () => ipcRenderer.invoke('theme:getList') as Promise<string[]>,
+    load: (name: string) => ipcRenderer.invoke('theme:load', name) as Promise<{ name: string; colors: Record<string, string> } | null>,
+    getCurrent: () => ipcRenderer.invoke('theme:getCurrent') as Promise<string>,
+    setCurrent: (name: string) => ipcRenderer.invoke('theme:setCurrent', name),
   },
   // 通用 IPC
   on: (channel: string, callback: (...args: unknown[]) => void) => {

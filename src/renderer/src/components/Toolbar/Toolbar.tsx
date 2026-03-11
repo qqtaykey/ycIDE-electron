@@ -8,9 +8,11 @@ interface ToolbarProps {
   onOpenLibrary?: () => void
   hasControlSelected?: boolean
   onAlign?: (action: AlignAction) => void
+  onCompileRun?: () => void
+  onStop?: () => void
 }
 
-function Toolbar({ onOpenLibrary, hasControlSelected = false, onAlign }: ToolbarProps): React.JSX.Element {
+function Toolbar({ onOpenLibrary, hasControlSelected = false, onAlign, onCompileRun, onStop }: ToolbarProps): React.JSX.Element {
   const [platform, setPlatform] = useState('windows')
   const [arch, setArch] = useState('x64')
 
@@ -65,10 +67,10 @@ function Toolbar({ onOpenLibrary, hasControlSelected = false, onAlign }: Toolbar
       </div>
 
       <div className="toolbar-group">
-        <button className="toolbar-btn toolbar-btn-run" aria-label="编译运行" title="编译运行 (F5)">
+        <button className="toolbar-btn toolbar-btn-run" aria-label="编译运行" title="编译运行 (F5)" onClick={onCompileRun}>
           <Icon name="run" size={16} />
         </button>
-        <button className="toolbar-btn toolbar-btn-stop" aria-label="停止" title="停止">
+        <button className="toolbar-btn toolbar-btn-stop" aria-label="停止" title="停止" onClick={onStop}>
           <Icon name="stop" size={16} />
         </button>
       </div>

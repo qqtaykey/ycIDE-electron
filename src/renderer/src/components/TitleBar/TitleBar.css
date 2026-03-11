@@ -68,20 +68,25 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 6px 24px 6px 12px;
+  padding: 8px 24px 8px 12px;
   font-size: var(--font-size);
   color: var(--text-primary);
   border-radius: 0;
   text-align: left;
   white-space: nowrap;
-  line-height: 1.6;
+  line-height: 1.8;
+  min-height: 18px;
 }
-.titlebar-dropdown-item:hover {
+.titlebar-dropdown-item:hover:not(:disabled) {
   background: var(--accent, #0078d4);
   color: #fff;
 }
-.titlebar-dropdown-item:hover .titlebar-dropdown-shortcut {
+.titlebar-dropdown-item:hover:not(:disabled) .titlebar-dropdown-shortcut {
   color: rgba(255, 255, 255, 0.8);
+}
+.titlebar-dropdown-item.disabled {
+  color: var(--text-secondary, #999);
+  cursor: default;
 }
 
 .titlebar-dropdown-shortcut {
@@ -94,6 +99,41 @@
   height: 1px;
   margin: 4px 0;
   background: var(--border-color);
+}
+
+/* 二级菜单 */
+.titlebar-dropdown-submenu-wrapper {
+  position: relative;
+}
+.titlebar-has-submenu {
+  padding-right: 24px;
+}
+.titlebar-submenu-arrow {
+  font-size: 8px;
+  margin-left: 12px;
+  color: var(--text-secondary);
+}
+.titlebar-dropdown-submenu-wrapper:hover > .titlebar-has-submenu {
+  background: var(--accent, #0078d4);
+  color: #fff;
+}
+.titlebar-dropdown-submenu-wrapper:hover > .titlebar-has-submenu .titlebar-submenu-arrow {
+  color: rgba(255, 255, 255, 0.8);
+}
+.titlebar-submenu {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  min-width: 180px;
+  background: var(--panel-bg, #252526);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 10000;
+  padding: 4px 0;
+}
+.titlebar-dropdown-submenu-wrapper:hover > .titlebar-submenu {
+  display: block;
 }
 
 .titlebar-title {

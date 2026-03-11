@@ -1,7 +1,8 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join } from 'path'
-import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'fs'
 import { libraryManager } from './library-manager'
+import { compileProject, runExecutable, stopExecutable, isRunning } from './compiler'
 
 const isDev = !app.isPackaged
 
@@ -182,22 +183,52 @@ app.whenReady().then(() => {
     } catch { return [] }
   })
 
+  // 打开项目文件对话框（选择 .epp 文件）
+  ipcMain.handle('project:openEpp', async () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      title: '打开项目',
+      filters: [{ name: '易语言项目', extensions: ['epp'] }],
+      properties: ['openFile'],
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
+  // 保存文件内容
+  ipcMain.handle('file:save', (_event, filePath: string, content: string) => {
+    writeFileSync(filePath, content, 'utf-8')
+    return true
+  })
+
+  // 向项目添加文件（创建文件 + 更新 .epp）
+  ipcMain.handle('project:addFile', (_event, projectDir: string, fileName: string, fileType: string, content: string) => {
+    const filePath = join(projectDir, fileName)
+    writeFileSync(filePath, content, 'utf-8')
+    // 更新 .epp 文件
+    const eppFiles = readdirSync(projectDir).filter(f => f.endsWith('.epp'))
+    if (eppFiles.length > 0) {
+      const eppPath = join(projectDir, eppFiles[0])
+      const eppContent = readFileSync(eppPath, 'utf-8')
+      const flag = fileType === 'EFW' ? '1' : '0'
+      const newLine = `File=${fileType}|${fileName}|${flag}`
+      writeFileSync(eppPath, eppContent.trimEnd() + '\n' + newLine + '\n', 'utf-8')
+    }
+    return filePath
+  })
+
   // 支持库 IPC
   ipcMain.handle('library:scan', (_event, folder?: string) => {
     return libraryManager.scan(folder)
   })
-  ipcMain.handle('library:scanFolder', async () => {
-    const win = BrowserWindow.getFocusedWindow()
-    if (!win) return null
-    const result = await dialog.showOpenDialog(win, {
-      title: '选择支持库文件夹',
-      properties: ['openDirectory'],
-    })
-    if (result.canceled || result.filePaths.length === 0) return null
-    return libraryManager.scan(result.filePaths[0])
-  })
   ipcMain.handle('library:load', async (_event, name: string) => {
     const result = libraryManager.load(name)
+    BrowserWindow.getAllWindows().forEach(w => w.webContents.send('library:loaded'))
+    return result
+  })
+  ipcMain.handle('library:unload', (_event, name: string) => {
+    const result = libraryManager.unload(name)
     BrowserWindow.getAllWindows().forEach(w => w.webContents.send('library:loaded'))
     return result
   })
@@ -221,6 +252,66 @@ app.whenReady().then(() => {
   ipcMain.handle('library:getWindowUnits', () => {
     return libraryManager.getAllWindowUnits()
   })
+
+  // 主题 IPC
+  ipcMain.handle('theme:getList', () => {
+    const themesDir = isDev ? join(app.getAppPath(), 'themes') : join(process.resourcesPath, 'themes')
+    if (!existsSync(themesDir)) return []
+    try {
+      return readdirSync(themesDir)
+        .filter(f => f.endsWith('.json'))
+        .map(f => f.replace('.json', ''))
+    } catch { return [] }
+  })
+
+  ipcMain.handle('theme:load', (_event, name: string) => {
+    const themesDir = isDev ? join(app.getAppPath(), 'themes') : join(process.resourcesPath, 'themes')
+    const filePath = join(themesDir, `${name}.json`)
+    if (!existsSync(filePath)) return null
+    try {
+      return JSON.parse(readFileSync(filePath, 'utf-8'))
+    } catch { return null }
+  })
+
+  ipcMain.handle('theme:getCurrent', () => {
+    const configPath = join(app.getPath('userData'), 'theme-config.json')
+    if (!existsSync(configPath)) return '默认深色'
+    try {
+      const data = JSON.parse(readFileSync(configPath, 'utf-8'))
+      return data.currentTheme || '默认深色'
+    } catch { return '默认深色' }
+  })
+
+  ipcMain.handle('theme:setCurrent', (_event, name: string) => {
+    const configPath = join(app.getPath('userData'), 'theme-config.json')
+    writeFileSync(configPath, JSON.stringify({ currentTheme: name }), 'utf-8')
+  })
+
+  // 编译器 IPC
+  ipcMain.handle('compiler:compile', async (_event, projectDir: string, editorFilesObj?: Record<string, string>) => {
+    const editorFiles = editorFilesObj ? new Map(Object.entries(editorFilesObj)) : undefined
+    return compileProject({ projectDir, debug: true }, editorFiles)
+  })
+
+  ipcMain.handle('compiler:run', async (_event, projectDir: string, editorFilesObj?: Record<string, string>) => {
+    const editorFiles = editorFilesObj ? new Map(Object.entries(editorFilesObj)) : undefined
+    const result = await compileProject({ projectDir, debug: true }, editorFiles)
+    if (result.success && result.outputFile) {
+      runExecutable(result.outputFile)
+    }
+    return result
+  })
+
+  ipcMain.handle('compiler:stop', () => {
+    return stopExecutable()
+  })
+
+  ipcMain.handle('compiler:isRunning', () => {
+    return isRunning()
+  })
+
+  // 启动时自动扫描并加载上次已加载的支持库
+  libraryManager.scanAndAutoLoad()
 
   createWindow()
 

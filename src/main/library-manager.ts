@@ -2,7 +2,7 @@
  * 支持库管理器
  * 扫描 lib 文件夹、加载 .fne 文件、管理已加载的支持库信息。
  */
-import { readdirSync, existsSync } from 'fs'
+import { readdirSync, existsSync, readFileSync, writeFileSync } from 'fs'
 import { join, basename, extname } from 'path'
 import { app } from 'electron'
 import { parseFneFile, type LibInfo, type LibWindowUnit } from './fne-parser'
@@ -16,6 +16,38 @@ export interface LibraryItem {
 
 class LibraryManager {
   private libraries: LibraryItem[] = []
+
+  /** 获取持久化配置文件路径 */
+  private getConfigPath(): string {
+    return join(app.getPath('userData'), 'library-state.json')
+  }
+
+  /** 保存已加载的支持库名称列表 */
+  saveLoadedState(): void {
+    const loaded = this.libraries.filter(l => l.loaded).map(l => l.name)
+    try {
+      writeFileSync(this.getConfigPath(), JSON.stringify({ loadedLibs: loaded }, null, 2), 'utf-8')
+    } catch { /* ignore */ }
+  }
+
+  /** 读取上次保存的已加载支持库名称列表 */
+  private getSavedLoadedNames(): string[] {
+    try {
+      const configPath = this.getConfigPath()
+      if (!existsSync(configPath)) return []
+      const data = JSON.parse(readFileSync(configPath, 'utf-8'))
+      return Array.isArray(data.loadedLibs) ? data.loadedLibs : []
+    } catch { return [] }
+  }
+
+  /** 启动时自动扫描并加载上次已加载的支持库 */
+  scanAndAutoLoad(): void {
+    this.scan()
+    const savedNames = this.getSavedLoadedNames()
+    for (const name of savedNames) {
+      this.load(name)
+    }
+  }
 
   /** 获取 lib 文件夹路径 */
   getLibFolder(): string {
@@ -72,8 +104,19 @@ class LibraryManager {
     if (info) {
       item.loaded = true
       item.libInfo = info
+      this.saveLoadedState()
     }
     return info
+  }
+
+  /** 卸载指定支持库 */
+  unload(name: string): boolean {
+    const item = this.libraries.find(l => l.name === name)
+    if (!item || !item.loaded) return false
+    item.loaded = false
+    item.libInfo = null
+    this.saveLoadedState()
+    return true
   }
 
   /** 加载所有已扫描的支持库 */
@@ -89,6 +132,7 @@ class LibraryManager {
         }
       }
     }
+    this.saveLoadedState()
     return count
   }
 

@@ -1,13 +1,28 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import './OutputPanel.css'
+
+export interface OutputMessage {
+  type: 'info' | 'success' | 'error' | 'warning'
+  text: string
+}
 
 interface OutputPanelProps {
   height: number
   onResize: (height: number) => void
   onClose: () => void
+  messages?: OutputMessage[]
 }
 
-function OutputPanel({ height, onResize, onClose }: OutputPanelProps): React.JSX.Element {
+function OutputPanel({ height, onResize, onClose, messages = [] }: OutputPanelProps): React.JSX.Element {
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // 自动滚动到底部
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTop = contentRef.current.scrollHeight
+    }
+  }, [messages])
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     const startY = e.clientY
@@ -37,17 +52,13 @@ function OutputPanel({ height, onResize, onClose }: OutputPanelProps): React.JSX
       <div className="output-header">
         <div className="output-tabs" role="tablist">
           <button className="output-tab active" role="tab" aria-selected>编译输出</button>
-          <button className="output-tab" role="tab">调试信息</button>
-          <button className="output-tab" role="tab">查找结果</button>
         </div>
         <button className="output-close" onClick={onClose} aria-label="关闭输出面板">×</button>
       </div>
-      <div className="output-content" role="log" aria-live="polite" tabIndex={0}>
-        <div className="output-line info">编译开始...</div>
-        <div className="output-line">正在检查语法...</div>
-        <div className="output-line">正在链接支持库...</div>
-        <div className="output-line success">编译成功！生成文件: output.exe</div>
-        <div className="output-line info">共 1 个文件, 0 个错误, 0 个警告</div>
+      <div className="output-content" ref={contentRef} role="log" aria-live="polite" tabIndex={0}>
+        {messages.map((msg, i) => (
+          <div key={i} className={`output-line ${msg.type}`}>{msg.text}</div>
+        ))}
       </div>
     </div>
   )

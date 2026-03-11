@@ -59,6 +59,9 @@
 .tree-item:hover {
   background: var(--bg-hover);
 }
+.tree-item-active {
+  background: var(--bg-active);
+}
 .tree-item:focus-visible {
   background: var(--bg-active);
 }

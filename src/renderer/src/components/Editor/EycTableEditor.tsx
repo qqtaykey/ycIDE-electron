@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
 import './EycTableEditor.css'
 
 // ========== 数据结构 ==========
@@ -20,6 +20,7 @@ interface RenderBlock {
   rows: TblRow[]
   codeLine?: string
   lineIndex: number
+  isVirtual?: boolean  // 自动生成的空代码行（子程序下保底行）
 }
 
 interface TblRow {
@@ -124,6 +125,8 @@ function buildBlocks(text: string): RenderBlock[] {
     if (ln.type === 'version' || ln.type === 'supportLib') continue
 
     if (ln.type === 'blank') {
+      // 子程序声明区后的空行：视为代码区域过渡
+      if (he === 1 || he === 2 || he === 11) { flush(); he = 0 }
       if (he === 0) blocks.push({ kind: 'codeline', rows: [], codeLine: '', lineIndex: i })
       continue
     }
@@ -375,7 +378,28 @@ function buildBlocks(text: string): RenderBlock[] {
   }
 
   flush()
-  return blocks
+
+  // 后处理：确保每个子程序表格后至少有一个代码行
+  const processed: RenderBlock[] = []
+  for (let i = 0; i < blocks.length; i++) {
+    processed.push(blocks[i])
+    if (blocks[i].kind === 'table' && blocks[i].tableType === 'sub') {
+      const next = blocks[i + 1]
+      if (!next || next.kind !== 'codeline') {
+        // 找到子程序表格最后一行的 lineIndex
+        const lastRow = blocks[i].rows[blocks[i].rows.length - 1]
+        const afterLine = lastRow ? lastRow.lineIndex : blocks[i].lineIndex
+        processed.push({
+          kind: 'codeline',
+          rows: [],
+          codeLine: '',
+          lineIndex: afterLine,
+          isVirtual: true,
+        })
+      }
+    }
+  }
+  return processed
 }
 
 // ========== 代码行着色 ==========
@@ -527,6 +551,10 @@ function rebuildLineField(rawLine: string, fieldIdx: number, newValue: string, i
 
 // ========== 组件 ==========
 
+export interface EycTableEditorHandle {
+  insertSubroutine: () => void
+}
+
 interface EycTableEditorProps {
   value: string
   onChange: (value: string) => void
@@ -537,14 +565,16 @@ interface EditState {
   cellIndex: number
   fieldIdx: number    // -1 表示无字段映射（代码行编辑整行）
   sliceField: boolean
+  isVirtual?: boolean // 虚拟代码行（编辑时插入而非替换）
 }
 
-function EycTableEditor({ value, onChange }: EycTableEditorProps): React.JSX.Element {
+const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(function EycTableEditor({ value, onChange }, ref) {
   const [editCell, setEditCell] = useState<EditState | null>(null)
   const [editVal, setEditVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const prevRef = useRef(value)
   const [currentText, setCurrentText] = useState(value)
+  const lastFocusedLine = useRef<number>(-1)
 
   useEffect(() => {
     if (value !== prevRef.current) { setCurrentText(value); prevRef.current = value }
@@ -556,6 +586,14 @@ function EycTableEditor({ value, onChange }: EycTableEditorProps): React.JSX.Ele
   const commit = useCallback(() => {
     if (!editCell) return
     if (editCell.cellIndex < 0) {
+      if (editCell.isVirtual) {
+        // 虚拟代码行：插入新行而非替换
+        const nl = [...lines]
+        nl.splice(editCell.lineIndex + 1, 0, editVal)
+        const nt = nl.join('\n')
+        setCurrentText(nt); prevRef.current = nt; onChange(nt); setEditCell(null)
+        return
+      }
       // 代码行编辑：直接替换整行
       const nl = [...lines]; nl[editCell.lineIndex] = editVal
       const nt = nl.join('\n')
@@ -577,14 +615,16 @@ function EycTableEditor({ value, onChange }: EycTableEditorProps): React.JSX.Ele
 
   const startEditCell = useCallback((li: number, ci: number, cellText: string, fieldIdx?: number, sliceField?: boolean) => {
     if (fieldIdx === undefined) return // 无字段映射（tick 单元格等），不可编辑
+    lastFocusedLine.current = li
     setEditCell({ lineIndex: li, cellIndex: ci, fieldIdx, sliceField: sliceField || false })
     setEditVal(cellText || '')
     setTimeout(() => { inputRef.current?.focus() }, 0)
   }, [])
 
-  const startEditLine = useCallback((li: number, clientX?: number, containerLeft?: number) => {
-    const text = lines[li] || ''
-    setEditCell({ lineIndex: li, cellIndex: -1, fieldIdx: -1, sliceField: false }); setEditVal(text)
+  const startEditLine = useCallback((li: number, clientX?: number, containerLeft?: number, isVirtual?: boolean) => {
+    const text = isVirtual ? '' : (lines[li] || '')
+    lastFocusedLine.current = li
+    setEditCell({ lineIndex: li, cellIndex: -1, fieldIdx: -1, sliceField: false, isVirtual }); setEditVal(text)
     setTimeout(() => {
       if (!inputRef.current) return
       inputRef.current.focus()
@@ -614,19 +654,29 @@ function EycTableEditor({ value, onChange }: EycTableEditorProps): React.JSX.Ele
     if (e.key === 'Enter') {
       e.preventDefault()
       if (editCell && editCell.cellIndex < 0) {
-        // 代码行：在光标位置拆行，插入新行
         const cur = e.currentTarget
         const pos = cur.selectionStart ?? editVal.length
         const before = editVal.slice(0, pos)
         const after = editVal.slice(pos)
         const nl = [...lines]
-        nl[editCell.lineIndex] = before
-        nl.splice(editCell.lineIndex + 1, 0, after)
-        const nt = nl.join('\n')
-        setCurrentText(nt); prevRef.current = nt; onChange(nt)
-        const newLi = editCell.lineIndex + 1
-        setEditCell({ lineIndex: newLi, cellIndex: -1, fieldIdx: -1, sliceField: false })
-        setEditVal(after)
+        if (editCell.isVirtual) {
+          // 虚拟代码行：插入两行（光标前/后）
+          nl.splice(editCell.lineIndex + 1, 0, before, after)
+          const nt = nl.join('\n')
+          setCurrentText(nt); prevRef.current = nt; onChange(nt)
+          const newLi = editCell.lineIndex + 2
+          setEditCell({ lineIndex: newLi, cellIndex: -1, fieldIdx: -1, sliceField: false })
+          setEditVal(after)
+        } else {
+          // 代码行：在光标位置拆行，插入新行
+          nl[editCell.lineIndex] = before
+          nl.splice(editCell.lineIndex + 1, 0, after)
+          const nt = nl.join('\n')
+          setCurrentText(nt); prevRef.current = nt; onChange(nt)
+          const newLi = editCell.lineIndex + 1
+          setEditCell({ lineIndex: newLi, cellIndex: -1, fieldIdx: -1, sliceField: false })
+          setEditVal(after)
+        }
         setTimeout(() => {
           if (inputRef.current) {
             inputRef.current.focus()
@@ -678,6 +728,60 @@ function EycTableEditor({ value, onChange }: EycTableEditorProps): React.JSX.Ele
       }
     } else if (e.key === 'Escape') setEditCell(null)
   }, [commit, editCell, editVal, lines, onChange])
+
+  // 插入子程序：在当前光标所处子程序后方插入，无光标时插入到末尾
+  useImperativeHandle(ref, () => ({
+    insertSubroutine: () => {
+      const curLines = currentText.split('\n')
+      const focusLi = lastFocusedLine.current
+
+      // 收集已有子程序名，生成唯一名称
+      const existingNames = new Set<string>()
+      for (const ln of curLines) {
+        const t = ln.replace(/[\r\t]/g, '').trim()
+        if (t.startsWith('.子程序 ')) {
+          const name = splitCSV(t.slice('.子程序 '.length))[0]
+          if (name) existingNames.add(name)
+        }
+      }
+      let num = 1
+      while (existingNames.has('子程序' + num)) num++
+      const newName = '子程序' + num
+
+      let insertAt: number
+
+      if (focusLi < 0) {
+        // 无光标焦点：插入到文件末尾
+        insertAt = curLines.length
+      } else {
+        // 先找光标所在或上方最近的 .子程序 声明行
+        let curSubStart = -1
+        for (let i = Math.min(focusLi, curLines.length - 1); i >= 0; i--) {
+          const t = curLines[i].replace(/[\r\t]/g, '').trim()
+          if (t.startsWith('.子程序 ')) { curSubStart = i; break }
+          // 碰到程序集声明就停止（程序集表格始终在最上方）
+          if (t.startsWith('.程序集 ')) break
+        }
+
+        // 找下一个子程序/程序集的起始行（即当前子程序的结束后）
+        insertAt = curLines.length
+        const searchStart = curSubStart >= 0 ? curSubStart + 1 : Math.max(focusLi + 1, 0)
+        for (let i = searchStart; i < curLines.length; i++) {
+          const t = curLines[i].replace(/[\r\t]/g, '').trim()
+          if (t.startsWith('.子程序 ') || t.startsWith('.程序集 ')) {
+            insertAt = i
+            break
+          }
+        }
+      }
+
+      const newSubText = '\n.子程序 ' + newName + ', , , '
+      const nl = [...curLines]
+      nl.splice(insertAt, 0, newSubText)
+      const nt = nl.join('\n')
+      setCurrentText(nt); prevRef.current = nt; onChange(nt)
+    }
+  }), [currentText, onChange])
 
   return (
     <div className="eyc-table-editor ebackcolor1">
@@ -741,15 +845,15 @@ function EycTableEditor({ value, onChange }: EycTableEditorProps): React.JSX.Ele
               className="eyc-block-row"
             >
               <div className="eyc-line-gutter">
-                <div className="eyc-gutter-cell">{blk.lineIndex + 1}</div>
+                <div className="eyc-gutter-cell">{blk.isVirtual ? '' : blk.lineIndex + 1}</div>
               </div>
               <div
                 className="eyc-code-line"
                 onClick={(e) => {
-                  startEditLine(blk.lineIndex, e.clientX, e.currentTarget.getBoundingClientRect().left)
+                  startEditLine(blk.lineIndex, e.clientX, e.currentTarget.getBoundingClientRect().left, blk.isVirtual)
                 }}
               >
-              {editCell && editCell.lineIndex === blk.lineIndex ? (
+              {editCell && editCell.lineIndex === blk.lineIndex && editCell.isVirtual === blk.isVirtual ? (
                 <input
                   ref={inputRef}
                   className="eyc-inline-input"
@@ -773,6 +877,6 @@ function EycTableEditor({ value, onChange }: EycTableEditorProps): React.JSX.Ele
       </div>
     </div>
   )
-}
+})
 
 export default EycTableEditor

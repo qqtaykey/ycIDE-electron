@@ -6,112 +6,110 @@ interface MenuItem {
   shortcut?: string
   divider?: boolean
   action?: string
+  disabled?: boolean
+  submenu?: MenuItem[]
+  checked?: boolean
 }
-
-const FILE_MENU: MenuItem[] = [
-  { label: '新建项目(N)', shortcut: 'Ctrl+Shift+N', action: 'file:newProject' },
-  { label: '', divider: true },
-  { label: '打开项目(P)', shortcut: 'Ctrl+Shift+O', action: 'file:openProject' },
-  { label: '打开文件(O)', shortcut: 'Ctrl+O', action: 'file:openFile' },
-  { label: '', divider: true },
-  { label: '保存(S)', shortcut: 'Ctrl+S' },
-  { label: '保存全部(L)', shortcut: 'Ctrl+Shift+S' },
-  { label: '另存为(A)' },
-  { label: '', divider: true },
-  { label: '关闭文件(C)', shortcut: 'Ctrl+W' },
-  { label: '关闭项目' },
-  { label: '', divider: true },
-  { label: '最近打开的项目' },
-  { label: '', divider: true },
-  { label: '退出(X)', shortcut: 'Alt+F4' },
-]
-
-const EDIT_MENU: MenuItem[] = [
-  { label: '撤销(U)', shortcut: 'Ctrl+Z' },
-  { label: '重做(R)', shortcut: 'Ctrl+Y' },
-  { label: '', divider: true },
-  { label: '剪切(T)', shortcut: 'Ctrl+X' },
-  { label: '复制(C)', shortcut: 'Ctrl+C' },
-  { label: '粘贴(P)', shortcut: 'Ctrl+V' },
-  { label: '删除(D)', shortcut: 'Delete' },
-  { label: '', divider: true },
-  { label: '全选(A)', shortcut: 'Ctrl+A' },
-  { label: '查找(F)', shortcut: 'Ctrl+F' },
-  { label: '替换(H)', shortcut: 'Ctrl+H' },
-]
-
-const VIEW_MENU: MenuItem[] = [
-  { label: '属性面板' },
-  { label: '输出面板' },
-  { label: '工具箱' },
-  { label: '', divider: true },
-  { label: '状态栏' },
-]
-
-const INSERT_MENU: MenuItem[] = [
-  { label: '全局变量(G)' },
-  { label: '自定义数据类型(T)' },
-  { label: 'DLL命令(D)' },
-  { label: '', divider: true },
-  { label: '程序集(M)' },
-  { label: '子程序(S)' },
-  { label: '', divider: true },
-  { label: '窗口(W)' },
-  { label: '模块(U)' },
-  { label: '资源(R)' },
-]
-
-const BUILD_MENU: MenuItem[] = [
-  { label: '编译(C)', shortcut: 'Ctrl+F7' },
-  { label: '生成(B)', shortcut: 'F7' },
-  { label: '', divider: true },
-  { label: '编译运行(R)', shortcut: 'F5' },
-  { label: '生成安装包' },
-]
-
-const DEBUG_MENU: MenuItem[] = [
-  { label: '运行(R)', shortcut: 'F5' },
-  { label: '停止(S)', shortcut: 'Shift+F5' },
-  { label: '', divider: true },
-  { label: '逐过程(O)', shortcut: 'F10' },
-  { label: '逐语句(I)', shortcut: 'F11' },
-  { label: '跳出(U)', shortcut: 'Shift+F11' },
-  { label: '运行到光标处(C)', shortcut: 'Ctrl+F10' },
-  { label: '', divider: true },
-  { label: '切换断点(B)', shortcut: 'F9' },
-  { label: '清除所有断点' },
-]
-
-const TOOLS_MENU: MenuItem[] = [
-  { label: '支持库配置(L)' },
-  { label: '系统配置(O)' },
-  { label: '', divider: true },
-  { label: '窗口组件管理' },
-]
-
-const HELP_MENU: MenuItem[] = [
-  { label: '帮助主题(H)', shortcut: 'F1' },
-  { label: '', divider: true },
-  { label: '关于(A)' },
-]
 
 interface MenuDef {
   label: string
   items: MenuItem[]
 }
 
-const MENUS: MenuDef[] = [
-  { label: '文件(F)', items: FILE_MENU },
-  { label: '编辑(E)', items: EDIT_MENU },
-  { label: '查看(V)', items: VIEW_MENU },
-  { label: '插入(I)', items: INSERT_MENU },
-  { label: '编译(B)', items: BUILD_MENU },
-  { label: '调试(D)', items: DEBUG_MENU },
-  { label: '工具(T)', items: TOOLS_MENU },
-  { label: '帮助(H)', items: HELP_MENU },
-]
+function buildMenus(hasProject: boolean, hasOpenFile: boolean, themes: string[], currentTheme: string): MenuDef[] {
+  const np = !hasProject
+  const nf = !hasOpenFile
+  return [
+    { label: '文件(F)', items: [
+      { label: '新建项目(N)', shortcut: 'Ctrl+Shift+N', action: 'file:newProject' },
+      { label: '', divider: true },
+      { label: '打开项目(P)', shortcut: 'Ctrl+Shift+O', action: 'file:openProject' },
+      { label: '', divider: true },
+      { label: '保存(S)', shortcut: 'Ctrl+S', action: 'file:save', disabled: nf },
+      { label: '保存全部(L)', shortcut: 'Ctrl+Shift+S', action: 'file:saveAll', disabled: nf },
+      { label: '', divider: true },
+      { label: '关闭文件(C)', shortcut: 'Ctrl+W', action: 'file:closeFile', disabled: nf },
+      { label: '关闭项目', action: 'file:closeProject', disabled: np },
+      { label: '', divider: true },
+      { label: '退出(X)', shortcut: 'Alt+F4', action: 'file:exit' },
+    ]},
+    { label: '编辑(E)', items: [
+      { label: '撤销(U)', shortcut: 'Ctrl+Z', action: 'edit:undo', disabled: nf },
+      { label: '重做(R)', shortcut: 'Ctrl+Y', action: 'edit:redo', disabled: nf },
+      { label: '', divider: true },
+      { label: '剪切(T)', shortcut: 'Ctrl+X', action: 'edit:cut', disabled: nf },
+      { label: '复制(C)', shortcut: 'Ctrl+C', action: 'edit:copy', disabled: nf },
+      { label: '粘贴(P)', shortcut: 'Ctrl+V', action: 'edit:paste', disabled: nf },
+      { label: '删除(D)', shortcut: 'Delete', action: 'edit:delete', disabled: nf },
+      { label: '', divider: true },
+      { label: '全选(A)', shortcut: 'Ctrl+A', action: 'edit:selectAll', disabled: nf },
+      { label: '查找(F)', shortcut: 'Ctrl+F', action: 'edit:find', disabled: nf },
+      { label: '替换(H)', shortcut: 'Ctrl+H', action: 'edit:replace', disabled: nf },
+    ]},
+    { label: '查看(V)', items: [
+      { label: '属性面板', action: 'view:property' },
+      { label: '输出面板', action: 'view:output' },
+      { label: '支持库', action: 'view:library' },
+      { label: '', divider: true },
+      { label: '项目管理器', action: 'view:project' },
+      { label: '', divider: true },
+      { label: '主题', submenu: themes.map(t => ({
+        label: t,
+        action: `theme:${t}`,
+        checked: t === currentTheme,
+      })) },
+    ]},
+    { label: '插入(I)', items: [
+      { label: '全局变量(G)', action: 'insert:globalVar', disabled: np },
+      { label: '自定义数据类型(T)', action: 'insert:dataType', disabled: np },
+      { label: 'DLL命令(D)', action: 'insert:dllCmd', disabled: np },
+      { label: '', divider: true },
+      { label: '程序集(M)', action: 'insert:module', disabled: np },
+      { label: '子程序(S)', action: 'insert:sub', disabled: np },
+      { label: '', divider: true },
+      { label: '窗口(W)', action: 'insert:window', disabled: np },
+      { label: '资源(R)', action: 'insert:resource', disabled: np },
+    ]},
+    { label: '编译(B)', items: [
+      { label: '编译(C)', shortcut: 'Ctrl+F7', action: 'build:compile', disabled: np },
+      { label: '生成(B)', shortcut: 'F7', action: 'build:build', disabled: np },
+      { label: '', divider: true },
+      { label: '编译运行(R)', shortcut: 'F5', action: 'build:run', disabled: np },
+    ]},
+    { label: '调试(D)', items: [
+      { label: '运行(R)', shortcut: 'F5', action: 'debug:run', disabled: np },
+      { label: '停止(S)', shortcut: 'Shift+F5', action: 'debug:stop', disabled: np },
+      { label: '', divider: true },
+      { label: '逐过程(O)', shortcut: 'F10', action: 'debug:stepOver', disabled: np },
+      { label: '逐语句(I)', shortcut: 'F11', action: 'debug:stepInto', disabled: np },
+      { label: '跳出(U)', shortcut: 'Shift+F11', action: 'debug:stepOut', disabled: np },
+      { label: '运行到光标处(C)', shortcut: 'Ctrl+F10', action: 'debug:runToCursor', disabled: np },
+      { label: '', divider: true },
+      { label: '切换断点(B)', shortcut: 'F9', action: 'debug:toggleBreakpoint', disabled: np },
+      { label: '清除所有断点', action: 'debug:clearBreakpoints', disabled: np },
+    ]},
+    { label: '工具(T)', items: [
+      { label: '支持库配置(L)', action: 'tools:library' },
+      { label: '系统配置(O)', action: 'tools:settings' },
+    ]},
+    { label: '帮助(H)', items: [
+      { label: '帮助主题(H)', shortcut: 'F1', action: 'help:topics' },
+      { label: '', divider: true },
+      { label: '关于(A)', action: 'help:about' },
+    ]},
+  ]
+}
 
-function TitleBar({ onMenuAction }: { onMenuAction?: (action: string) => void }): React.JSX.Element {
+interface TitleBarProps {
+  onMenuAction?: (action: string) => void
+  hasProject?: boolean
+  hasOpenFile?: boolean
+  themes?: string[]
+  currentTheme?: string
+}
+
+function TitleBar({ onMenuAction, hasProject = false, hasOpenFile = false, themes = [], currentTheme = '' }: TitleBarProps): React.JSX.Element {
+  const menus = buildMenus(hasProject, hasOpenFile, themes, currentTheme)
   const [openMenu, setOpenMenu] = useState<number | null>(null)
   const menuBarRef = useRef<HTMLDivElement>(null)
 
@@ -145,7 +143,7 @@ function TitleBar({ onMenuAction }: { onMenuAction?: (action: string) => void })
           </svg>
         </div>
         <nav className="titlebar-menu" role="menubar" aria-label="主菜单" ref={menuBarRef}>
-          {MENUS.map((menu, idx) => (
+          {menus.map((menu, idx) => (
             <div key={menu.label} className="titlebar-menu-item">
               <button
                 role="menuitem"
@@ -161,12 +159,41 @@ function TitleBar({ onMenuAction }: { onMenuAction?: (action: string) => void })
                   {menu.items.map((item, i) =>
                     item.divider ? (
                       <div key={i} className="titlebar-dropdown-divider" />
+                    ) : item.submenu ? (
+                      <div key={i} className="titlebar-dropdown-submenu-wrapper">
+                        <button
+                          role="menuitem"
+                          className="titlebar-dropdown-item titlebar-has-submenu"
+                        >
+                          <span>{item.label}</span>
+                          <span className="titlebar-submenu-arrow">▶</span>
+                        </button>
+                        <div className="titlebar-submenu" role="menu">
+                          {item.submenu.map((sub, si) =>
+                            sub.divider ? (
+                              <div key={si} className="titlebar-dropdown-divider" />
+                            ) : (
+                              <button
+                                key={si}
+                                role="menuitem"
+                                className={`titlebar-dropdown-item${sub.disabled ? ' disabled' : ''}`}
+                                disabled={sub.disabled}
+                                onClick={() => { if (sub.disabled) return; closeMenu(); if (sub.action) onMenuAction?.(sub.action) }}
+                              >
+                                <span>{sub.checked ? '✓ ' : '    '}{sub.label}</span>
+                                {sub.shortcut && <span className="titlebar-dropdown-shortcut">{sub.shortcut}</span>}
+                              </button>
+                            )
+                          )}
+                        </div>
+                      </div>
                     ) : (
                       <button
                         key={i}
                         role="menuitem"
-                        className="titlebar-dropdown-item"
-                        onClick={() => { closeMenu(); if (item.action) onMenuAction?.(item.action) }}
+                        className={`titlebar-dropdown-item${item.disabled ? ' disabled' : ''}`}
+                        disabled={item.disabled}
+                        onClick={() => { if (item.disabled) return; closeMenu(); if (item.action) onMenuAction?.(item.action) }}
                       >
                         <span>{item.label}</span>
                         {item.shortcut && <span className="titlebar-dropdown-shortcut">{item.shortcut}</span>}

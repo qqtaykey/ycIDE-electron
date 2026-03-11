@@ -29,37 +29,6 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
     if (open) refreshList()
   }, [open, refreshList])
 
-  const handleScan = async (): Promise<void> => {
-    setLoading(true)
-    setStatus('正在扫描...')
-    const result = await window.api.library.scan()
-    setLibs(result)
-    setStatus(`扫描完成，找到 ${result.length} 个支持库`)
-    setLoading(false)
-  }
-
-  const handleScanFolder = async (): Promise<void> => {
-    setLoading(true)
-    setStatus('选择文件夹...')
-    const result = await window.api.library.scanFolder()
-    if (result) {
-      setLibs(result)
-      setStatus(`扫描完成，找到 ${result.length} 个支持库`)
-    } else {
-      setStatus('已取消')
-    }
-    setLoading(false)
-  }
-
-  const handleLoadAll = async (): Promise<void> => {
-    setLoading(true)
-    setStatus('正在加载所有支持库...')
-    const count = await window.api.library.loadAll()
-    setStatus(`成功加载 ${count} 个支持库`)
-    await refreshList()
-    setLoading(false)
-  }
-
   const handleLoad = async (name: string): Promise<void> => {
     setLoading(true)
     setStatus(`正在加载 ${name}...`)
@@ -73,6 +42,15 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
     setLoading(false)
   }
 
+  const handleUnload = async (name: string): Promise<void> => {
+    setLoading(true)
+    setStatus(`正在卸载 ${name}...`)
+    await window.api.library.unload(name)
+    setStatus(`已卸载 ${name}`)
+    await refreshList()
+    setLoading(false)
+  }
+
   if (!open) return null
 
   return (
@@ -81,18 +59,6 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
         <div className="lib-dialog-header">
           <span className="lib-dialog-title">支持库管理</span>
           <button className="lib-dialog-close" onClick={onClose}>×</button>
-        </div>
-
-        <div className="lib-dialog-toolbar">
-          <button className="lib-btn" onClick={handleScan} disabled={loading}>
-            扫描默认目录
-          </button>
-          <button className="lib-btn" onClick={handleScanFolder} disabled={loading}>
-            选择文件夹...
-          </button>
-          <button className="lib-btn lib-btn-primary" onClick={handleLoadAll} disabled={loading || libs.length === 0}>
-            全部加载
-          </button>
         </div>
 
         <div className="lib-dialog-list">
@@ -111,7 +77,7 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
               {libs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="lib-empty">
-                    暂无支持库，请先扫描文件夹
+                    未找到支持库，请将 .fne 文件放入 lib 文件夹
                   </td>
                 </tr>
               ) : (
@@ -127,7 +93,15 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
                       </span>
                     </td>
                     <td>
-                      {!lib.loaded && (
+                      {lib.loaded ? (
+                        <button
+                          className="lib-btn lib-btn-sm"
+                          onClick={() => handleUnload(lib.name)}
+                          disabled={loading}
+                        >
+                          卸载
+                        </button>
+                      ) : (
                         <button
                           className="lib-btn lib-btn-sm"
                           onClick={() => handleLoad(lib.name)}

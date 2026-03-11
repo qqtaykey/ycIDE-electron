@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useImperativeHandle, forwardRef } from 'react'
 import MonacoEditor, { OnMount, OnChange, type Monaco } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
-import EycTableEditor from './EycTableEditor'
+import EycTableEditor, { type EycTableEditorHandle } from './EycTableEditor'
 import VisualDesigner, { type DesignForm, type SelectionTarget, type LibWindowUnit, type AlignAction } from './VisualDesigner'
 import Icon from '../Icon/Icon'
 import '../Icon/Icon.css'
@@ -187,11 +187,120 @@ export interface EditorTab {
   formData?: DesignForm // 可视化设计器的窗口数据
 }
 
-function Editor({ onSelectControl, onSidebarTab, selection, alignAction, onAlignDone, onMultiSelectChange, openProjectFiles, onOpenTabsChange }: { onSelectControl?: (target: SelectionTarget) => void; onSidebarTab?: (tab: 'project' | 'library' | 'property') => void; selection?: SelectionTarget; alignAction?: AlignAction; onAlignDone?: () => void; onMultiSelectChange?: (count: number) => void; openProjectFiles?: EditorTab[]; onOpenTabsChange?: (tabs: EditorTab[]) => void }): React.JSX.Element {
+export interface EditorHandle {
+  save: () => void
+  saveAll: () => void
+  closeActiveTab: () => void
+  editorAction: (action: string) => void
+  getEditorFiles: () => Record<string, string>
+  openFile: (tab: EditorTab) => void
+  insertDeclaration: () => void
+}
+
+const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTarget) => void; onSidebarTab?: (tab: 'project' | 'library' | 'property') => void; selection?: SelectionTarget; alignAction?: AlignAction; onAlignDone?: () => void; onMultiSelectChange?: (count: number) => void; openProjectFiles?: EditorTab[]; onOpenTabsChange?: (tabs: EditorTab[]) => void; onActiveTabChange?: (tabId: string | null) => void }>(function Editor({ onSelectControl, onSidebarTab, selection, alignAction, onAlignDone, onMultiSelectChange, openProjectFiles, onOpenTabsChange, onActiveTabChange }, ref) {
   const [tabs, setTabs] = useState<EditorTab[]>([])
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const eycEditorRef = useRef<EycTableEditorHandle | null>(null)
   const [windowUnits, setWindowUnits] = useState<LibWindowUnit[]>([])
+
+  // 保存当前文件
+  const saveCurrentFile = useCallback(() => {
+    setTabs(prev => {
+      const tab = prev.find(t => t.id === activeTabId)
+      if (!tab || !tab.filePath) return prev
+      if (tab.language === 'efw' && tab.formData) {
+        window.api?.file?.save(tab.filePath, JSON.stringify(tab.formData, null, 2))
+      } else {
+        window.api?.file?.save(tab.filePath, tab.value)
+      }
+      return prev.map(t => t.id === activeTabId ? { ...t, savedValue: t.value } : t)
+    })
+  }, [activeTabId])
+
+  // 保存所有文件
+  const saveAllFiles = useCallback(() => {
+    setTabs(prev =>
+      prev.map(t => {
+        if (t.filePath && t.value !== t.savedValue) {
+          if (t.language === 'efw' && t.formData) {
+            window.api?.file?.save(t.filePath, JSON.stringify(t.formData, null, 2))
+          } else {
+            window.api?.file?.save(t.filePath, t.value)
+          }
+          return { ...t, savedValue: t.value }
+        }
+        return t
+      })
+    )
+  }, [])
+
+  // 关闭当前标签页
+  const closeActiveFile = useCallback(() => {
+    if (!activeTabId) return
+    setTabs(prev => {
+      const newTabs = prev.filter(t => t.id !== activeTabId)
+      if (newTabs.length === 0) {
+        setActiveTabId(null)
+      } else {
+        const idx = prev.findIndex(t => t.id === activeTabId)
+        const newActive = newTabs[Math.min(idx, newTabs.length - 1)]
+        setActiveTabId(newActive.id)
+      }
+      onOpenTabsChange?.(newTabs)
+      return newTabs
+    })
+  }, [activeTabId, onOpenTabsChange])
+
+  // 暴露给父组件的方法
+  useImperativeHandle(ref, () => ({
+    save: saveCurrentFile,
+    saveAll: saveAllFiles,
+    closeActiveTab: closeActiveFile,
+    editorAction: (action: string) => {
+      const ed = editorRef.current
+      if (!ed) return
+      switch (action) {
+        case 'undo': ed.trigger('menu', 'undo', null); break
+        case 'redo': ed.trigger('menu', 'redo', null); break
+        case 'cut': ed.trigger('menu', 'editor.action.clipboardCutAction', null); break
+        case 'copy': ed.trigger('menu', 'editor.action.clipboardCopyAction', null); break
+        case 'paste': ed.trigger('menu', 'editor.action.clipboardPasteAction', null); break
+        case 'delete': ed.trigger('menu', 'deleteRight', null); break
+        case 'selectAll': ed.trigger('menu', 'editor.action.selectAll', null); break
+        case 'find': ed.trigger('menu', 'actions.find', null); break
+        case 'replace': ed.trigger('menu', 'editor.action.startFindReplaceAction', null); break
+      }
+    },
+    getEditorFiles: () => {
+      const files: Record<string, string> = {}
+      for (const t of tabs) {
+        const fileName = t.filePath?.replace(/^.*[\\/]/, '') || t.label
+        if (t.language === 'efw' && t.formData) {
+          files[fileName] = JSON.stringify(t.formData, null, 2)
+        } else {
+          files[fileName] = t.value
+        }
+      }
+      return files
+    },
+    openFile: (tab: EditorTab) => {
+      setTabs(prev => {
+        if (prev.some(t => t.id === tab.id)) {
+          setActiveTabId(tab.id)
+          return prev
+        }
+        const merged = [...prev, tab]
+        onOpenTabsChange?.(merged)
+        setActiveTabId(tab.id)
+        return merged
+      })
+      if (tab.language === 'efw') onSidebarTab?.('property')
+    },
+    insertDeclaration: () => {
+      eycEditorRef.current?.insertSubroutine()
+    }
+  }), [saveCurrentFile, saveAllFiles, closeActiveFile, tabs, activeTabId, onOpenTabsChange, onSidebarTab])
 
   // 接收外部打开的项目文件
   useEffect(() => {
@@ -221,6 +330,10 @@ function Editor({ onSelectControl, onSidebarTab, selection, alignAction, onAlign
     window.api.on('library:loaded', loadWindowUnits)
     return () => { window.api.off('library:loaded') }
   }, [loadWindowUnits])
+
+  useEffect(() => {
+    onActiveTabChange?.(activeTabId)
+  }, [activeTabId])
 
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0] || null
 
@@ -349,6 +462,7 @@ function Editor({ onSelectControl, onSidebarTab, selection, alignAction, onAlign
           />
         ) : activeTab.language === 'eyc' ? (
           <EycTableEditor
+            ref={eycEditorRef}
             value={activeTab.value}
             onChange={handleEycChange}
           />
@@ -438,7 +552,7 @@ function Editor({ onSelectControl, onSidebarTab, selection, alignAction, onAlign
       </div>
     </div>
   )
-}
+})
 
 /** 根据语言返回文件图标 */
 function getFileIcon(language: string): React.ReactNode {
