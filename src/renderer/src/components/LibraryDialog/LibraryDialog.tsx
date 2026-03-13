@@ -5,6 +5,7 @@ interface LibItem {
   name: string
   filePath: string
   loaded: boolean
+  isCore: boolean
   libName?: string
   cmdCount?: number
   dtCount?: number
@@ -32,11 +33,11 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
   const handleLoad = async (name: string): Promise<void> => {
     setLoading(true)
     setStatus(`正在加载 ${name}...`)
-    const info = await window.api.library.load(name)
-    if (info) {
-      setStatus(`已加载 ${info.name}：${info.commands.length} 个命令，${info.dataTypes.length} 个数据类型`)
+    const result = await window.api.library.load(name)
+    if (result.success && result.info) {
+      setStatus(`已加载 ${result.info.name}：${result.info.commands.length} 个命令，${result.info.dataTypes.length} 个数据类型`)
     } else {
-      setStatus(`加载 ${name} 失败`)
+      setStatus(result.error || `加载 ${name} 失败`)
     }
     await refreshList()
     setLoading(false)
@@ -45,8 +46,12 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
   const handleUnload = async (name: string): Promise<void> => {
     setLoading(true)
     setStatus(`正在卸载 ${name}...`)
-    await window.api.library.unload(name)
-    setStatus(`已卸载 ${name}`)
+    const result = await window.api.library.unload(name)
+    if (result.success) {
+      setStatus(`已卸载 ${name}`)
+    } else {
+      setStatus(result.error || `卸载 ${name} 失败`)
+    }
     await refreshList()
     setLoading(false)
   }
@@ -84,7 +89,7 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
                 libs.map(lib => (
                   <tr key={lib.name} className={lib.loaded ? 'lib-loaded' : ''}>
                     <td>{lib.name}.fne</td>
-                    <td>{lib.libName || '-'}</td>
+                    <td>{lib.libName || '-'}{lib.isCore ? ' (核心)' : ''}</td>
                     <td>{lib.cmdCount ?? '-'}</td>
                     <td>{lib.dtCount ?? '-'}</td>
                     <td>
@@ -93,7 +98,9 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
                       </span>
                     </td>
                     <td>
-                      {lib.loaded ? (
+                      {lib.isCore ? (
+                        <span className="lib-status lib-status-ok">默认</span>
+                      ) : lib.loaded ? (
                         <button
                           className="lib-btn lib-btn-sm"
                           onClick={() => handleUnload(lib.name)}

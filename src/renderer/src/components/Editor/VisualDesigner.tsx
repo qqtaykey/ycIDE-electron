@@ -76,6 +76,7 @@ interface VisualDesignerProps {
   alignAction?: AlignAction
   onAlignDone?: () => void
   onMultiSelectChange?: (count: number) => void
+  onControlDoubleClick?: (control: DesignControl, defaultEvent: LibUnitEvent | null) => void
 }
 
 // ========== 内置默认尺寸 ==========
@@ -105,7 +106,7 @@ let nextControlId = 1
 // 记住上次选中的 id（跨重渲染保持）
 let lastSelectedId: string = '__form__'
 
-function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], externalSelectedId, alignAction, onAlignDone, onMultiSelectChange }: VisualDesignerProps): React.JSX.Element {
+function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], externalSelectedId, alignAction, onAlignDone, onMultiSelectChange, onControlDoubleClick }: VisualDesignerProps): React.JSX.Element {
   // '__form__' 表示选中窗口自身，null 表示无选中
   const [selectedId, setSelectedId] = useState<string | null>(lastSelectedId)
   // 多选支持
@@ -311,6 +312,15 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
   }, [form, onChange])
+
+  // 控件双击 — 跳转到默认事件子程序
+  const handleControlDblClick = useCallback((e: React.MouseEvent, ctrl: DesignControl) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const unitInfo = windowUnits.find(u => u.name === ctrl.type)
+    const defaultEvent = unitInfo?.events?.[0] ?? null
+    onControlDoubleClick?.(ctrl, defaultEvent)
+  }, [windowUnits, onControlDoubleClick])
 
   // 控件鼠标按下 — 开始移动（支持 Shift 多选）
   const handleControlMouseDown = useCallback((e: React.MouseEvent, ctrl: DesignControl) => {
@@ -759,6 +769,7 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
                     height: ctrl.height,
                   }}
                   onMouseDown={(e) => handleControlMouseDown(e, ctrl)}
+                  onDoubleClick={(e) => handleControlDblClick(e, ctrl)}
                 >
                   {renderControlPreview(ctrl)}
 

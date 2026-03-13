@@ -1,7 +1,9 @@
 import { join, dirname, basename } from 'path'
-import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, copyFileSync } from 'fs'
 import { execFile, ChildProcess } from 'child_process'
 import { app, BrowserWindow } from 'electron'
+import { libraryManager } from './library-manager'
+import type { LibCommand } from './fne-parser'
 
 // 编译消息类型
 export interface CompileMessage {
@@ -13,6 +15,8 @@ export interface CompileMessage {
 export interface CompileOptions {
   projectDir: string
   debug?: boolean
+  linkMode?: 'static' | 'normal'  // 静态编译 | 普通编译（默认普通）
+  arch?: string                    // 目标架构（优先于 .epp 中的 platform）
 }
 
 // 编译结果
@@ -263,9 +267,190 @@ function mapTypeToCType(type: string): string {
   return map[type] || 'int'
 }
 
-// 简易 .eyc 转 C 代码转译器
+// ========== 基于支持库的命令解析系统 ==========
+
+// 从已加载的支持库构建命令查找表
+// 命令名 → 支持库命令信息（来源完全由 .fne 决定，不硬编码归属）
+function buildCommandMap(): Map<string, LibCommand & { libraryName: string }> {
+  const map = new Map<string, LibCommand & { libraryName: string }>()
+  const allCommands = libraryManager.getAllCommands()
+
+  for (const cmd of allCommands) {
+    if (cmd.isHidden) continue
+    // 同名命令后加载的覆盖先加载的（与自动补全行为一致）
+    map.set(cmd.name, cmd)
+  }
+  return map
+}
+
+// 从行中提取命令名称（括号或空格之前的部分）
+function extractCommandName(line: string): string {
+  let end = line.length
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === ' ' || ch === '(' || ch === '\uff08' || ch === '\t') {
+      end = i
+      break
+    }
+  }
+  return line.substring(0, end)
+}
+
+// 解析命令调用行，提取名称和参数
+function parseCommandCall(line: string): { name: string; args: string[] } | null {
+  const trimmed = line.trim()
+  // 查找第一个括号（中文或英文）
+  let openIdx = -1
+  for (let i = 0; i < trimmed.length; i++) {
+    const ch = trimmed[i]
+    if (ch === '(' || ch === '\uff08') {
+      openIdx = i
+      break
+    }
+  }
+
+  if (openIdx < 0) {
+    // 没有括号 - 无参数的命令调用
+    return { name: trimmed, args: [] }
+  }
+
+  const name = trimmed.substring(0, openIdx).trim()
+  if (!name) return null
+
+  // 查找匹配的右括号
+  let depth = 1
+  let closeIdx = -1
+  for (let i = openIdx + 1; i < trimmed.length; i++) {
+    const ch = trimmed[i]
+    if (ch === '(' || ch === '\uff08') depth++
+    else if (ch === ')' || ch === '\uff09') {
+      depth--
+      if (depth === 0) { closeIdx = i; break }
+    }
+  }
+
+  if (closeIdx < 0) return null
+
+  const argsStr = trimmed.substring(openIdx + 1, closeIdx)
+  const args = splitArguments(argsStr)
+  return { name, args }
+}
+
+// 分割参数列表（处理嵌套括号和字符串字面量）
+function splitArguments(argsStr: string): string[] {
+  const args: string[] = []
+  let current = ''
+  let depth = 0
+  let inString = false
+  let stringChar = ''
+
+  for (let i = 0; i < argsStr.length; i++) {
+    const ch = argsStr[i]
+    if (inString) {
+      current += ch
+      if ((stringChar === '"' && ch === '"') || (stringChar === '\u201c' && ch === '\u201d')) {
+        inString = false
+      }
+      continue
+    }
+    if (ch === '"' || ch === '\u201c') {
+      inString = true
+      stringChar = ch
+      current += ch
+      continue
+    }
+    if (ch === '(' || ch === '\uff08') { depth++; current += ch; continue }
+    if (ch === ')' || ch === '\uff09') { depth--; current += ch; continue }
+
+    if ((ch === ',' || ch === '\uff0c') && depth === 0) {
+      args.push(current.trim())
+      current = ''
+      continue
+    }
+    current += ch
+  }
+
+  if (current.trim()) args.push(current.trim())
+  return args
+}
+
+// 将易语言参数格式化为C语言参数
+function formatArgForC(arg: string): string {
+  if (!arg) return '0'
+  const trimmed = arg.trim()
+  // 中文引号字符串 → C宽字符串
+  const chineseStrMatch = trimmed.match(/^\u201c(.*)\u201d$/)
+  if (chineseStrMatch) {
+    const content = chineseStrMatch[1].replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+    return `L"${content}"`
+  }
+  // 英文引号字符串 → C宽字符串
+  const englishStrMatch = trimmed.match(/^"(.*)"$/)
+  if (englishStrMatch) {
+    const content = englishStrMatch[1].replace(/\\/g, '\\\\')
+    return `L"${content}"`
+  }
+  // 布尔值
+  if (trimmed === '真') return '1'
+  if (trimmed === '假') return '0'
+  // 数值直接传递
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return trimmed
+  // 变量名或表达式直接传递
+  return trimmed
+}
+
+// 命令 → C代码生成器（直接按命令名索引，不按库名分组）
+// 命令属于哪个支持库由 buildCommandMap() 从 .fne 自动获取
+// 这里只定义命令的C代码翻译规则
+type CommandCodeGenerator = (args: string[]) => string
+
+const COMMAND_CODE_GENERATORS: Record<string, CommandCodeGenerator> = {
+  '信息框': (args) => {
+    const msg = formatArgForC(args[0] || '')
+    const flags = args[1] || '0'
+    const title = args.length > 2 ? formatArgForC(args[2]) : 'L"提示"'
+    return `MessageBoxW(NULL, ${msg}, ${title}, ${flags});`
+  },
+  '标准输出': (args) => {
+    const arg = args[0] || ''
+    if (/^[\u201c"]/.test(arg)) {
+      return `wprintf(L"%s\\n", ${formatArgForC(arg)});`
+    }
+    return `printf("%lld\\n", (long long)(${formatArgForC(arg)}));`
+  },
+  '调试输出': (args) => {
+    const arg = args[0] || ''
+    if (/^[\u201c"]/.test(arg)) {
+      return `wprintf(L"%s\\n", ${formatArgForC(arg)});`
+    }
+    return `printf("%lld\\n", (long long)(${arg}));`
+  },
+  '输出调试文本': (args) => {
+    return COMMAND_CODE_GENERATORS['调试输出'](args)
+  },
+}
+
+// 为支持库命令生成C代码
+function generateCCodeForCommand(cmd: LibCommand & { libraryName: string }, args: string[]): string {
+  // 查找已注册的代码生成器
+  const generator = COMMAND_CODE_GENERATORS[cmd.name]
+  if (generator) {
+    return generator(args)
+  }
+
+  // 没有已注册的生成器：暂时生成注释占位，后续接入支持库的实际调用机制
+  const funcName = cmd.englishName || cmd.name
+  const cArgs = args.map(a => formatArgForC(a)).join(', ')
+  return `/* TODO: ${cmd.libraryName}.${cmd.name}(${funcName}) 尚未实现C代码生成 */ (void)0;`
+}
+
+// .eyc 转 C 代码转译器
 // 将易语言源代码中的子程序转译成 C 函数
+// 命令识别基于已加载的支持库，支持第三方支持库扩展
 function transpileEycContent(eycContent: string, fileName: string): string {
+  // 从已加载的支持库构建命令查找表
+  const commandMap = buildCommandMap()
+
   const lines = eycContent.split('\n')
   let result = `/* 由 ycIDE 自动从 ${fileName} 生成 */\n`
   result += '#include <windows.h>\n#include <stdio.h>\n\n'
@@ -299,17 +484,30 @@ function transpileEycContent(eycContent: string, fileName: string): string {
     }
 
     if (inSub) {
-      // 简单的命令映射
-      if (line.startsWith('信息框')) {
-        const match = line.match(/信息框\s*[（(](.+?)[,，]/)
-        const msg = match ? match[1].replace(/[""]/g, '"').replace(/^"|"$/g, '') : '消息'
-        subBody += `    MessageBoxW(NULL, L"${msg}", L"提示", MB_OK);\n`
-      } else if (line.startsWith('标准输出')) {
-        const match = line.match(/标准输出\s*[（(](.+?)[)）]/)
-        const msg = match ? match[1].replace(/[""]/g, '"').replace(/^"|"$/g, '') : ''
-        subBody += `    wprintf(L"${msg}\\n");\n`
+      // 声明行跳过
+      if (line.startsWith('.参数 ') || line.startsWith('.支持库 ')) {
+        continue
+      }
+
+      // 提取命令名并在支持库中查找
+      const cmdName = extractCommandName(line)
+      const resolved = commandMap.get(cmdName)
+
+      if (resolved) {
+        // 命令在支持库中找到 - 解析参数并生成C代码
+        const call = parseCommandCall(line)
+        const args = call ? call.args : []
+        const cCode = generateCCodeForCommand(resolved, args)
+        subBody += `    ${cCode}\n`
       } else {
-        subBody += `    /* ${line} */\n`
+        // 非支持库命令 - 尝试作为用户自定义子程序调用
+        const call = parseCommandCall(line)
+        if (call && call.name) {
+          const cArgs = call.args.map(a => formatArgForC(a)).join(', ')
+          subBody += `    ${call.name}(${cArgs});\n`
+        } else {
+          subBody += `    /* ${line} */\n`
+        }
       }
     }
   }
@@ -329,7 +527,7 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
 
   let mainCode = '/* 由 ycIDE 自动生成 */\n'
   mainCode += `/* 项目名称: ${project.projectName} */\n\n`
-  mainCode += '#include <windows.h>\n#include <stdio.h>\n\n'
+  mainCode += '#include <windows.h>\n#include <stdio.h>\n#include <io.h>\n#include <fcntl.h>\n\n'
 
   const isWindowsApp = project.outputType === 'WindowsApp'
 
@@ -424,7 +622,7 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
     mainCode += '#define WEAK_FUNC __attribute__((weak))\n'
     for (const ctrl of winInfo.controls) {
       if (ctrl.type === 'Button' || ctrl.type === '按钮') {
-        mainCode += `WEAK_FUNC void _${ctrl.name}_被单击(void) { }\n`
+        mainCode += `WEAK_FUNC void ${ctrl.name}_被单击(void) { }\n`
       }
     }
     mainCode += 'WEAK_FUNC void __启动窗口_创建完毕(void) { }\n\n'
@@ -447,7 +645,7 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
       if (ctrl.type === 'Button' || ctrl.type === '按钮') {
         mainCode += `        case IDC_${ctrl.name.toUpperCase()}:\n`
         mainCode += '            if (wmEvent == BN_CLICKED) {\n'
-        mainCode += `                _${ctrl.name}_被单击();\n`
+        mainCode += `                ${ctrl.name}_被单击();\n`
         mainCode += '            }\n'
         mainCode += '            break;\n'
       }
@@ -477,6 +675,15 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
     // WinMain
     mainCode += 'int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,\n'
     mainCode += '                   LPSTR lpCmdLine, int nCmdShow) {\n'
+    mainCode += '    /* 重定向 stdout 到父进程管道（使调试输出可被 IDE 捕获） */\n'
+    mainCode += '    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);\n'
+    mainCode += '    if (hOut && hOut != INVALID_HANDLE_VALUE) {\n'
+    mainCode += '        int fd = _open_osfhandle((intptr_t)hOut, _O_TEXT);\n'
+    mainCode += '        if (fd >= 0) {\n'
+    mainCode += '            FILE* fp = _fdopen(fd, "w");\n'
+    mainCode += '            if (fp) { *stdout = *fp; setvbuf(stdout, NULL, _IONBF, 0); }\n'
+    mainCode += '        }\n'
+    mainCode += '    }\n'
     mainCode += '    g_hInstance = hInstance;\n'
     mainCode += '    WNDCLASSEXW wcex;\n'
     mainCode += '    wcex.cbSize = sizeof(WNDCLASSEXW);\n'
@@ -598,8 +805,8 @@ export async function compileProject(options: CompileOptions, editorFiles?: Map<
 
     sendMessage({ type: 'info', text: `正在编译项目: ${project.projectName}` })
 
-    // 确定架构
-    const arch = project.platform || 'x64'
+    // 确定架构：优先使用工具栏选择的架构，其次是项目文件中的配置
+    const arch = options.arch || project.platform || 'x64'
 
     // 查找编译器
     const clangPath = findClangCompiler()
@@ -654,6 +861,49 @@ export async function compileProject(options: CompileOptions, editorFiles?: Map<
 
     // 链接 Windows API 库
     args.push('-lkernel32', '-luser32', '-lgdi32', '-lmsvcrt', '-lucrt', '-lvcruntime')
+
+    // ========== 支持库链接 ==========
+    const linkMode = options.linkMode || 'normal'
+    const loadedLibs = libraryManager.getLoadedLibraryFiles()
+    sendMessage({ type: 'info', text: `编译模式: ${linkMode === 'static' ? '静态编译' : '普通编译'}` })
+
+    if (loadedLibs.length > 0) {
+      sendMessage({ type: 'info', text: `已加载 ${loadedLibs.length} 个支持库，正在处理链接依赖...` })
+    }
+
+    let linkFailed = false
+    const fnesToCopy: Array<{ name: string; fnePath: string; libName: string }> = []
+
+    for (const lib of loadedLibs) {
+      const staticLib = libraryManager.findStaticLib(lib.name, arch)
+
+      if (linkMode === 'static') {
+        // 静态编译：只使用 .lib，没有则报错
+        if (staticLib) {
+          args.push(staticLib)
+          sendMessage({ type: 'info', text: `  ✓ ${lib.libName} (${lib.name}) - 静态链接: ${basename(staticLib)}` })
+        } else {
+          sendMessage({ type: 'error', text: `错误: 支持库「${lib.libName}」(${lib.name}) 没有静态库(.lib)，无法进行静态编译` })
+          result.errorCount++
+          linkFailed = true
+        }
+      } else {
+        // 普通编译：优先 .lib，没有则复制 .fne 到输出目录
+        if (staticLib) {
+          args.push(staticLib)
+          sendMessage({ type: 'info', text: `  ✓ ${lib.libName} (${lib.name}) - 静态链接: ${basename(staticLib)}` })
+        } else {
+          fnesToCopy.push(lib)
+          sendMessage({ type: 'info', text: `  ○ ${lib.libName} (${lib.name}) - 动态依赖，将复制 .fne 到输出目录` })
+        }
+      }
+    }
+
+    if (linkFailed) {
+      sendMessage({ type: 'error', text: '静态编译失败: 缺少必要的静态库文件' })
+      result.elapsedMs = Date.now() - startTime
+      return result
+    }
 
     // 目标架构
     if (arch === 'x86') {
@@ -736,6 +986,21 @@ export async function compileProject(options: CompileOptions, editorFiles?: Map<
 
     sendMessage({ type: 'success', text: `编译成功 (${result.elapsedMs} 毫秒)` })
     sendMessage({ type: 'info', text: `输出文件: ${outputExe}` })
+
+    // 普通编译模式: 复制动态依赖的 .fne 到输出目录的 lib 子目录
+    if (fnesToCopy.length > 0) {
+      const libOutputDir = join(outputDir, 'lib')
+      mkdirSync(libOutputDir, { recursive: true })
+      for (const lib of fnesToCopy) {
+        const destPath = join(libOutputDir, basename(lib.fnePath))
+        try {
+          copyFileSync(lib.fnePath, destPath)
+          sendMessage({ type: 'info', text: `已复制动态支持库: ${basename(lib.fnePath)} -> lib/` })
+        } catch (e) {
+          sendMessage({ type: 'warning', text: `复制支持库失败: ${basename(lib.fnePath)} - ${e instanceof Error ? e.message : String(e)}` })
+        }
+      }
+    }
 
   } catch (e) {
     sendMessage({ type: 'error', text: `编译异常: ${e instanceof Error ? e.message : String(e)}` })

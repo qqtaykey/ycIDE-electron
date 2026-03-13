@@ -4,7 +4,7 @@ import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
 import type { TreeNode } from './components/Sidebar/Sidebar'
 import Editor, { type EditorTab, type EditorHandle } from './components/Editor/Editor'
-import OutputPanel, { type OutputMessage } from './components/OutputPanel/OutputPanel'
+import OutputPanel, { type OutputMessage, type CommandDetail, type FileProblem } from './components/OutputPanel/OutputPanel'
 import StatusBar from './components/StatusBar/StatusBar'
 import LibraryDialog from './components/LibraryDialog/LibraryDialog'
 import NewProjectDialog from './components/NewProjectDialog/NewProjectDialog'
@@ -30,7 +30,13 @@ function App(): React.JSX.Element {
   const [currentTheme, setCurrentTheme] = useState<string>('')
   const [activeFileId, setActiveFileId] = useState<string | null>(null)
   const [outputMessages, setOutputMessages] = useState<OutputMessage[]>([])
-
+  const [commandDetail, setCommandDetail] = useState<CommandDetail | null>(null)
+  const commandCacheRef = useRef<Map<string, CommandDetail | null>>(new Map())
+  const [fileProblems, setFileProblems] = useState<FileProblem[]>([])
+  const [isCompiling, setIsCompiling] = useState(false)
+  const [isRunning, setIsRunning] = useState(false)
+  const [forceOutputTab, setForceOutputTab] = useState<'compile' | null>(null)
+  const [targetArch, setTargetArch] = useState('x64')
   // 监听编译器输出
   useEffect(() => {
     const handleOutput = (msg: OutputMessage) => {
@@ -40,30 +46,119 @@ function App(): React.JSX.Element {
     return () => { window.api.off('compiler:output') }
   }, [])
 
+  // 监听程序退出
+  useEffect(() => {
+    const handleExit = () => {
+      setIsRunning(false)
+    }
+    window.api.on('compiler:processExit', handleExit)
+    return () => { window.api.off('compiler:processExit') }
+  }, [])
+
   // 编译运行
   const handleCompileRun = useCallback(async () => {
-    if (!currentProjectDir) return
-    // 先保存所有文件
+    if (!currentProjectDir || isCompiling) return
+    // 有无效命令时阻断运行，切换到问题面板
+    if (fileProblems.length > 0) {
+      setShowOutput(true)
+      setForceOutputTab('problems')
+      setTimeout(() => setForceOutputTab(null), 100)
+      return
+    }
+    setIsCompiling(true)
     editorRef.current?.save()
     setOutputMessages([])
     setShowOutput(true)
+    setForceOutputTab('compile')
     const editorFiles = editorRef.current?.getEditorFiles()
-    await window.api.compiler.run(currentProjectDir, editorFiles)
-  }, [currentProjectDir])
+    const result = await window.api.compiler.run(currentProjectDir, editorFiles, targetArch)
+    setIsCompiling(false)
+    setForceOutputTab(null)
+    if (result?.success) setIsRunning(true)
+  }, [currentProjectDir, isCompiling, targetArch, fileProblems])
 
-  // 仅编译
+  // 普通编译
   const handleCompile = useCallback(async () => {
-    if (!currentProjectDir) return
+    if (!currentProjectDir || isCompiling) return
+    if (fileProblems.length > 0) {
+      setShowOutput(true)
+      setForceOutputTab('problems')
+      setTimeout(() => setForceOutputTab(null), 100)
+      return
+    }
+    setIsCompiling(true)
     editorRef.current?.save()
     setOutputMessages([])
     setShowOutput(true)
+    setForceOutputTab('compile')
     const editorFiles = editorRef.current?.getEditorFiles()
-    await window.api.compiler.compile(currentProjectDir, editorFiles)
-  }, [currentProjectDir])
+    await window.api.compiler.compile(currentProjectDir, editorFiles, 'normal', targetArch)
+    setIsCompiling(false)
+    setForceOutputTab(null)
+  }, [currentProjectDir, isCompiling, targetArch, fileProblems])
+
+  // 静态编译
+  const handleCompileStatic = useCallback(async () => {
+    if (!currentProjectDir || isCompiling) return
+    if (fileProblems.length > 0) {
+      setShowOutput(true)
+      setForceOutputTab('problems')
+      setTimeout(() => setForceOutputTab(null), 100)
+      return
+    }
+    setIsCompiling(true)
+    editorRef.current?.save()
+    setOutputMessages([])
+    setShowOutput(true)
+    setForceOutputTab('compile')
+    const editorFiles = editorRef.current?.getEditorFiles()
+    await window.api.compiler.compile(currentProjectDir, editorFiles, 'static', targetArch)
+    setIsCompiling(false)
+    setForceOutputTab(null)
+  }, [currentProjectDir, isCompiling, fileProblems])
 
   // 停止运行
   const handleStop = useCallback(() => {
     window.api.compiler.stop()
+    setIsRunning(false)
+  }, [])
+
+  // 命令点击：查找命令详情
+  const handleCommandClick = useCallback(async (commandName: string) => {
+    // 对象.方法 形式，取方法名
+    const name = commandName.includes('.') ? commandName.split('.').pop()! : commandName
+
+    // 先查缓存
+    if (commandCacheRef.current.has(name)) {
+      const cached = commandCacheRef.current.get(name)!
+      setCommandDetail(cached)
+      setShowOutput(true)
+      return
+    }
+
+    // 从支持库加载全部命令并查找
+    const allCommands = await window.api.library.getAllCommands()
+    const cmd = allCommands.find((c: CommandDetail) => c.name === name)
+    if (cmd) {
+      const detail: CommandDetail = {
+        name: cmd.name,
+        englishName: cmd.englishName,
+        description: cmd.description,
+        returnType: cmd.returnType,
+        category: cmd.category,
+        libraryName: cmd.libraryName || '',
+        params: cmd.params,
+      }
+      commandCacheRef.current.set(name, detail)
+      setCommandDetail(detail)
+    } else {
+      setCommandDetail({ name, englishName: '', description: '未在已加载的支持库中找到此命令', returnType: '', category: '', libraryName: '', params: [] })
+    }
+    setShowOutput(true)
+  }, [])
+
+  const handleCommandClear = useCallback(() => {
+    setCommandDetail(null)
   }, [])
 
   // 加载主题列表和当前主题
@@ -142,6 +237,7 @@ function App(): React.JSX.Element {
         if (!eppInfo) return
         const dir = eppPath.replace(/\\[^\\]+$/, '')
         setCurrentProjectDir(dir)
+        if (eppInfo.platform) setTargetArch(eppInfo.platform)
         setProjectTree(buildProjectTreeFromEpp(eppInfo.projectName, eppInfo.files))
         // 恢复之前打开的标签页
         const savedPaths = await window.api?.project?.loadOpenTabs(dir)
@@ -230,6 +326,9 @@ function App(): React.JSX.Element {
       case 'build:compile':
         handleCompile()
         break
+      case 'build:compile-static':
+        handleCompileStatic()
+        break
       case 'build:build':
         handleCompile()
         break
@@ -248,6 +347,9 @@ function App(): React.JSX.Element {
       // 插入菜单
       case 'insert:sub':
         editorRef.current?.insertDeclaration()
+        break
+      case 'insert:localVar':
+        editorRef.current?.insertLocalVariable()
         break
       case 'insert:module': {
         const dir = currentProjectDirRef.current
@@ -290,7 +392,7 @@ function App(): React.JSX.Element {
         }
         break
     }
-  }, [buildProjectTreeFromEpp, applyTheme, handleCompile, handleCompileRun, handleStop])
+  }, [buildProjectTreeFromEpp, applyTheme, handleCompile, handleCompileStatic, handleCompileRun, handleStop])
 
   // 双击资源管理器文件时打开
   const handleOpenFile = useCallback(async (fileId: string, fileName: string) => {
@@ -330,6 +432,7 @@ function App(): React.JSX.Element {
       if (!result) return
 
       setCurrentProjectDir(result.projectDir)
+      if (info.platform) setTargetArch(info.platform)
 
       // 通过解析 epp 文件获取所有关联文件并构建项目树
       const eppInfo = await window.api?.project?.parseEpp(result.eppPath)
@@ -393,6 +496,66 @@ function App(): React.JSX.Element {
     }
   }, [buildProjectTreeFromEpp])
 
+  // 全局快捷键
+  useEffect(() => {
+    const handler = (e: KeyboardEvent): void => {
+      // 已被子组件处理
+      if (e.defaultPrevented) return
+      // 弹窗打开时不处理快捷键
+      if (showLibrary || showNewProject) return
+
+      const ctrl = e.ctrlKey || e.metaKey
+      const shift = e.shiftKey
+      const code = e.code
+      const key = e.key
+
+      let action: string | null = null
+
+      // 文件菜单
+      if (ctrl && shift && code === 'KeyN') action = 'file:newProject'
+      else if (ctrl && shift && code === 'KeyO') action = 'file:openProject'
+      else if (ctrl && shift && code === 'KeyS') action = 'file:saveAll'
+      else if (ctrl && !shift && code === 'KeyS') action = 'file:save'
+      else if (ctrl && !shift && code === 'KeyW') action = 'file:closeFile'
+      // 编辑菜单
+      else if (ctrl && !shift && code === 'KeyZ') action = 'edit:undo'
+      else if (ctrl && !shift && code === 'KeyY') action = 'edit:redo'
+      else if (ctrl && !shift && code === 'KeyX') action = 'edit:cut'
+      else if (ctrl && !shift && code === 'KeyC') action = 'edit:copy'
+      else if (ctrl && !shift && code === 'KeyV') action = 'edit:paste'
+      else if (ctrl && !shift && code === 'KeyF') action = 'edit:find'
+      else if (ctrl && !shift && code === 'KeyH') action = 'edit:replace'
+      // 编译菜单
+      else if (ctrl && !shift && key === 'F7') action = 'build:compile'
+      else if (!ctrl && !shift && key === 'F7') action = 'build:build'
+      // 调试菜单
+      else if (!ctrl && !shift && key === 'F5') action = 'build:run'
+      else if (!ctrl && shift && key === 'F5') action = 'debug:stop'
+      else if (!ctrl && !shift && key === 'F9') action = 'debug:toggleBreakpoint'
+      else if (!ctrl && !shift && key === 'F10') action = 'debug:stepOver'
+      else if (ctrl && !shift && key === 'F10') action = 'debug:runToCursor'
+      else if (!ctrl && !shift && key === 'F11') action = 'debug:stepInto'
+      else if (!ctrl && shift && key === 'F11') action = 'debug:stepOut'
+      // 帮助
+      // 插入菜单
+      else if (ctrl && !shift && code === 'KeyL') action = 'insert:localVar'
+      else if (!ctrl && !shift && key === 'F1') action = 'help:topics'
+
+      if (action) {
+        // 编辑类快捷键在原生输入框中时让浏览器处理
+        const tag = (document.activeElement as HTMLElement)?.tagName
+        if (action.startsWith('edit:') && action !== 'edit:find' && action !== 'edit:replace'
+          && (tag === 'INPUT' || tag === 'TEXTAREA')) return
+        // 有浏览器原生文本选中时，让浏览器处理复制/剪切/全选
+        if ((action === 'edit:copy' || action === 'edit:cut' || action === 'edit:selectAll') && window.getSelection()?.toString()) return
+        e.preventDefault()
+        handleMenuAction(action)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [handleMenuAction, showLibrary, showNewProject])
+
   return (
     <div className="app">
       <TitleBar onMenuAction={handleMenuAction} hasProject={!!currentProjectDir} hasOpenFile={(openProjectFiles?.length ?? 0) > 0} themes={themeList} currentTheme={currentTheme} />
@@ -402,6 +565,14 @@ function App(): React.JSX.Element {
         onAlign={setAlignAction}
         onCompileRun={handleCompileRun}
         onStop={handleStop}
+        hasProject={!!currentProjectDir}
+        isCompiling={isCompiling}
+        isRunning={isRunning}
+        arch={targetArch}
+        onArchChange={(arch: string) => {
+          setTargetArch(arch)
+          if (currentProjectDir) window.api?.project?.updatePlatform(currentProjectDir, arch)
+        }}
       />
       <div className="app-body">
         <Sidebar width={sidebarWidth} onResize={setSidebarWidth} selection={selection} activeTab={sidebarTab} onTabChange={setSidebarTab} onSelectControl={setSelection} projectTree={projectTree} onOpenFile={handleOpenFile} activeFileId={activeFileId ? activeFileId.replace(/^.*[\\/]/, '') : null} />
@@ -417,6 +588,9 @@ function App(): React.JSX.Element {
             openProjectFiles={openProjectFiles}
             onOpenTabsChange={handleOpenTabsChange}
             onActiveTabChange={setActiveFileId}
+            onCommandClick={handleCommandClick}
+            onCommandClear={handleCommandClear}
+            onProblemsChange={setFileProblems}
           />
           {showOutput && (
             <OutputPanel
@@ -424,6 +598,10 @@ function App(): React.JSX.Element {
               onResize={setOutputHeight}
               onClose={() => setShowOutput(false)}
               messages={outputMessages}
+              commandDetail={commandDetail}
+              problems={fileProblems}
+              forceTab={forceOutputTab}
+              onProblemClick={(p) => editorRef.current?.navigateToLine(p.line)}
             />
           )}
         </div>

@@ -3,9 +3,12 @@
  * 扫描 lib 文件夹、加载 .fne 文件、管理已加载的支持库信息。
  */
 import { readdirSync, existsSync, readFileSync, writeFileSync } from 'fs'
-import { join, basename, extname } from 'path'
+import { join, basename, extname, dirname } from 'path'
 import { app } from 'electron'
-import { parseFneFile, type LibInfo, type LibWindowUnit } from './fne-parser'
+import { parseFneFile, type LibInfo, type LibCommand, type LibWindowUnit } from './fne-parser'
+
+/** 核心支持库文件名（不含扩展名） */
+const CORE_LIB_NAME = 'krnln'
 
 export interface LibraryItem {
   name: string         // 文件名（不含扩展名，如 krnln）
@@ -14,8 +17,20 @@ export interface LibraryItem {
   libInfo: LibInfo | null  // 加载后的信息
 }
 
+/** 加载结果（用于 load 方法返回冲突信息） */
+export interface LoadResult {
+  success: boolean
+  info: LibInfo | null
+  error?: string  // 冲突或错误信息
+}
+
 class LibraryManager {
   private libraries: LibraryItem[] = []
+
+  /** 判断是否为核心支持库 */
+  isCore(name: string): boolean {
+    return name === CORE_LIB_NAME
+  }
 
   /** 获取持久化配置文件路径 */
   private getConfigPath(): string {
@@ -43,9 +58,14 @@ class LibraryManager {
   /** 启动时自动扫描并加载上次已加载的支持库 */
   scanAndAutoLoad(): void {
     this.scan()
+    // 核心库始终加载
+    this.loadInternal(CORE_LIB_NAME)
+    // 加载上次保存的其他支持库
     const savedNames = this.getSavedLoadedNames()
     for (const name of savedNames) {
-      this.load(name)
+      if (name !== CORE_LIB_NAME) {
+        this.load(name)
+      }
     }
   }
 
@@ -53,11 +73,9 @@ class LibraryManager {
   getLibFolder(): string {
     const isDev = !app.isPackaged
     if (isDev) {
-      // 开发模式：项目根目录下的 lib 文件夹
       return join(app.getAppPath(), 'lib')
     }
-    // 生产模式：exe 所在目录下的 lib 文件夹
-    return join(process.resourcesPath, 'lib')
+    return join(dirname(process.execPath), 'lib')
   }
 
   /** 扫描支持库文件夹，查找所有 .fne 文件 */
@@ -94,8 +112,8 @@ class LibraryManager {
     return this.getList()
   }
 
-  /** 加载指定支持库 */
-  load(name: string): LibInfo | null {
+  /** 内部加载（无冲突检查，用于核心库或已确认安全的加载） */
+  private loadInternal(name: string): LibInfo | null {
     const item = this.libraries.find(l => l.name === name)
     if (!item) return null
     if (item.loaded && item.libInfo) return item.libInfo
@@ -109,14 +127,73 @@ class LibraryManager {
     return info
   }
 
-  /** 卸载指定支持库 */
-  unload(name: string): boolean {
+  /** 检查 GUID 冲突 */
+  private checkGuidConflict(newInfo: LibInfo, excludeName: string): string | null {
+    for (const item of this.libraries) {
+      if (!item.loaded || !item.libInfo || item.name === excludeName) continue
+      if (item.libInfo.guid && newInfo.guid && item.libInfo.guid === newInfo.guid) {
+        return `支持库 GUID 冲突：「${newInfo.name}」与已加载的「${item.libInfo.name}」(${item.name}.fne) 具有相同的 GUID`
+      }
+    }
+    return null
+  }
+
+  /** 检查命令名冲突（仅检查非成员命令） */
+  private checkCommandConflict(newInfo: LibInfo, excludeName: string): string | null {
+    // 收集已加载库的所有独立函数命令名
+    const existingCmds = new Map<string, string>() // cmdName → libName
+    for (const item of this.libraries) {
+      if (!item.loaded || !item.libInfo || item.name === excludeName) continue
+      for (const cmd of item.libInfo.commands) {
+        if (cmd.name && !cmd.isHidden && !cmd.isMember) {
+          existingCmds.set(cmd.name, item.libInfo.name || item.name)
+        }
+      }
+    }
+    // 检查新库的独立函数命令是否与已有命令重名
+    for (const cmd of newInfo.commands) {
+      if (cmd.name && !cmd.isHidden && !cmd.isMember && existingCmds.has(cmd.name)) {
+        const existingLib = existingCmds.get(cmd.name)!
+        return `支持库命令冲突：「${newInfo.name}」的命令「${cmd.name}」与已加载的「${existingLib}」中的同名命令冲突`
+      }
+    }
+    return null
+  }
+
+  /** 加载指定支持库（带冲突检测） */
+  load(name: string): LoadResult {
     const item = this.libraries.find(l => l.name === name)
-    if (!item || !item.loaded) return false
+    if (!item) return { success: false, info: null, error: `未找到支持库 ${name}` }
+    if (item.loaded && item.libInfo) return { success: true, info: item.libInfo }
+
+    const info = parseFneFile(item.filePath)
+    if (!info) return { success: false, info: null, error: `解析支持库 ${name} 失败` }
+
+    // GUID 冲突检查
+    const guidConflict = this.checkGuidConflict(info, name)
+    if (guidConflict) return { success: false, info: null, error: guidConflict }
+
+    // 命令名冲突检查
+    const cmdConflict = this.checkCommandConflict(info, name)
+    if (cmdConflict) return { success: false, info: null, error: cmdConflict }
+
+    item.loaded = true
+    item.libInfo = info
+    this.saveLoadedState()
+    return { success: true, info }
+  }
+
+  /** 卸载指定支持库（核心库不可卸载） */
+  unload(name: string): { success: boolean; error?: string } {
+    if (this.isCore(name)) {
+      return { success: false, error: '核心支持库不可卸载' }
+    }
+    const item = this.libraries.find(l => l.name === name)
+    if (!item || !item.loaded) return { success: false, error: '该支持库未加载' }
     item.loaded = false
     item.libInfo = null
     this.saveLoadedState()
-    return true
+    return { success: true }
   }
 
   /** 加载所有已扫描的支持库 */
@@ -124,12 +201,8 @@ class LibraryManager {
     let count = 0
     for (const item of this.libraries) {
       if (!item.loaded) {
-        const info = parseFneFile(item.filePath)
-        if (info) {
-          item.loaded = true
-          item.libInfo = info
-          count++
-        }
+        const result = this.load(item.name)
+        if (result.success) count++
       }
     }
     this.saveLoadedState()
@@ -137,11 +210,12 @@ class LibraryManager {
   }
 
   /** 获取支持库列表（不含 libInfo 详情，用于 UI 展示） */
-  getList(): Array<{ name: string; filePath: string; loaded: boolean; libName?: string; cmdCount?: number; dtCount?: number }> {
+  getList(): Array<{ name: string; filePath: string; loaded: boolean; isCore: boolean; libName?: string; cmdCount?: number; dtCount?: number }> {
     return this.libraries.map(l => ({
       name: l.name,
       filePath: l.filePath,
       loaded: l.loaded,
+      isCore: this.isCore(l.name),
       libName: l.libInfo?.name,
       cmdCount: l.libInfo?.commands.length,
       dtCount: l.libInfo?.dataTypes.length,
@@ -149,11 +223,14 @@ class LibraryManager {
   }
 
   /** 获取所有已加载的命令 */
-  getAllCommands(): LibInfo['commands'] {
-    const cmds: LibInfo['commands'] = []
+  getAllCommands(): (LibCommand & { libraryName: string })[] {
+    const cmds: (LibCommand & { libraryName: string })[] = []
     for (const item of this.libraries) {
       if (item.loaded && item.libInfo) {
-        cmds.push(...item.libInfo.commands)
+        const libName = item.libInfo.name || ''
+        for (const cmd of item.libInfo.commands) {
+          cmds.push({ ...cmd, libraryName: libName })
+        }
       }
     }
     return cmds
@@ -185,6 +262,43 @@ class LibraryManager {
       }
     }
     return units
+  }
+
+  /** 获取静态库文件夹路径 */
+  getStaticLibFolder(): string {
+    const isDev = !app.isPackaged
+    if (isDev) {
+      return join(app.getAppPath(), 'static_lib')
+    }
+    return join(dirname(process.execPath), 'static_lib')
+  }
+
+  /** 查找指定支持库的静态库文件(.lib) */
+  findStaticLib(name: string, arch: string): string | null {
+    const staticFolder = this.getStaticLibFolder()
+    const archDir = arch === 'x86' ? 'x86' : 'x64'
+    // 搜索模式： name_static.lib 或 name.lib
+    const candidates = [
+      join(staticFolder, archDir, `${name}_static.lib`),
+      join(staticFolder, archDir, `${name}.lib`),
+      join(staticFolder, `${name}_static.lib`),
+      join(staticFolder, `${name}.lib`),
+    ]
+    for (const p of candidates) {
+      if (existsSync(p)) return p
+    }
+    return null
+  }
+
+  /** 获取所有已加载支持库的文件信息（用于编译链接） */
+  getLoadedLibraryFiles(): Array<{ name: string; fnePath: string; libName: string }> {
+    return this.libraries
+      .filter(l => l.loaded && l.libInfo)
+      .map(l => ({
+        name: l.name,
+        fnePath: l.filePath,
+        libName: l.libInfo!.name || l.name,
+      }))
   }
 }
 

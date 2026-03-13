@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import './Toolbar.css'
 import Icon from '../Icon/Icon'
 import '../Icon/Icon.css'
@@ -10,11 +9,14 @@ interface ToolbarProps {
   onAlign?: (action: AlignAction) => void
   onCompileRun?: () => void
   onStop?: () => void
+  hasProject?: boolean
+  isCompiling?: boolean
+  isRunning?: boolean
+  arch?: string
+  onArchChange?: (arch: string) => void
 }
 
-function Toolbar({ onOpenLibrary, hasControlSelected = false, onAlign, onCompileRun, onStop }: ToolbarProps): React.JSX.Element {
-  const [platform, setPlatform] = useState('windows')
-  const [arch, setArch] = useState('x64')
+function Toolbar({ onOpenLibrary, hasControlSelected = false, onAlign, onCompileRun, onStop, hasProject = false, isCompiling = false, isRunning = false, arch = 'x64', onArchChange }: ToolbarProps): React.JSX.Element {
 
   return (
     <div className="toolbar" role="toolbar" aria-label="工具栏">
@@ -46,18 +48,8 @@ function Toolbar({ onOpenLibrary, hasControlSelected = false, onAlign, onCompile
       <div className="toolbar-group">
         <select
           className="toolbar-select"
-          value={platform}
-          onChange={e => setPlatform(e.target.value)}
-          title="目标平台"
-        >
-          <option value="windows">Windows</option>
-          <option value="linux">Linux</option>
-          <option value="macos">macOS</option>
-        </select>
-        <select
-          className="toolbar-select"
           value={arch}
-          onChange={e => setArch(e.target.value)}
+          onChange={e => onArchChange?.(e.target.value)}
           title="目标架构"
         >
           <option value="x64">x64</option>
@@ -67,10 +59,10 @@ function Toolbar({ onOpenLibrary, hasControlSelected = false, onAlign, onCompile
       </div>
 
       <div className="toolbar-group">
-        <button className="toolbar-btn toolbar-btn-run" aria-label="编译运行" title="编译运行 (F5)" onClick={onCompileRun}>
+        <button className="toolbar-btn toolbar-btn-run" aria-label="编译运行" title="编译运行 (F5)" onClick={onCompileRun} disabled={!hasProject || isCompiling || isRunning}>
           <Icon name="run" size={16} />
         </button>
-        <button className="toolbar-btn toolbar-btn-stop" aria-label="停止" title="停止" onClick={onStop}>
+        <button className="toolbar-btn toolbar-btn-stop" aria-label="停止" title="停止" onClick={onStop} disabled={!isRunning}>
           <Icon name="stop" size={16} />
         </button>
       </div>
@@ -78,16 +70,16 @@ function Toolbar({ onOpenLibrary, hasControlSelected = false, onAlign, onCompile
       <div className="toolbar-separator" aria-hidden="true" />
 
       <div className="toolbar-group">
-        <button className="toolbar-btn" aria-label="单步" title="单步 (F10)">
+        <button className="toolbar-btn" aria-label="单步" title="单步 (F10)" disabled={!hasProject || !isRunning}>
           <Icon name="step-over" size={16} />
         </button>
-        <button className="toolbar-btn" aria-label="跟踪" title="跟踪 (F11)">
+        <button className="toolbar-btn" aria-label="跟踪" title="跟踪 (F11)" disabled={!hasProject || !isRunning}>
           <Icon name="step-into" size={16} />
         </button>
-        <button className="toolbar-btn" aria-label="跟踪返回" title="跟踪返回 (Shift+F11)">
+        <button className="toolbar-btn" aria-label="跟踪返回" title="跟踪返回 (Shift+F11)" disabled={!hasProject || !isRunning}>
           <Icon name="step-out" size={16} />
         </button>
-        <button className="toolbar-btn" aria-label="运行到光标处" title="运行到光标处 (Ctrl+F10)">
+        <button className="toolbar-btn" aria-label="运行到光标处" title="运行到光标处 (Ctrl+F10)" disabled={!hasProject || !isRunning}>
           <Icon name="run-to-cursor" size={16} />
         </button>
       </div>

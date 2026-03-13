@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'fs'
 import { libraryManager } from './library-manager'
 import { compileProject, runExecutable, stopExecutable, isRunning } from './compiler'
@@ -167,6 +167,22 @@ app.whenReady().then(() => {
     return { projectName: info['ProjectName'] || '', outputType: info['OutputType'] || '', platform: info['Platform'] || '', files, projectDir }
   })
 
+  // 更新项目文件中的平台架构
+  ipcMain.handle('project:updatePlatform', (_event, projectDir: string, platform: string) => {
+    const files = readdirSync(projectDir)
+    const eppFile = files.find(f => f.endsWith('.epp'))
+    if (!eppFile) return
+    const eppPath = join(projectDir, eppFile)
+    let content = readFileSync(eppPath, 'utf-8')
+    if (content.match(/^Platform=.*/m)) {
+      content = content.replace(/^Platform=.*/m, `Platform=${platform}`)
+    } else {
+      // 在 OutputType 行之后插入
+      content = content.replace(/^(OutputType=.*)$/m, `$1\nPlatform=${platform}`)
+    }
+    writeFileSync(eppPath, content, 'utf-8')
+  })
+
   // 保存打开的标签页列表到项目目录
   ipcMain.handle('project:saveOpenTabs', (_event, projectDir: string, tabPaths: string[]) => {
     const sessionPath = join(projectDir, '.ycide-session.json')
@@ -224,12 +240,16 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('library:load', async (_event, name: string) => {
     const result = libraryManager.load(name)
-    BrowserWindow.getAllWindows().forEach(w => w.webContents.send('library:loaded'))
+    if (result.success) {
+      BrowserWindow.getAllWindows().forEach(w => w.webContents.send('library:loaded'))
+    }
     return result
   })
   ipcMain.handle('library:unload', (_event, name: string) => {
     const result = libraryManager.unload(name)
-    BrowserWindow.getAllWindows().forEach(w => w.webContents.send('library:loaded'))
+    if (result.success) {
+      BrowserWindow.getAllWindows().forEach(w => w.webContents.send('library:loaded'))
+    }
     return result
   })
   ipcMain.handle('library:loadAll', async () => {
@@ -255,7 +275,7 @@ app.whenReady().then(() => {
 
   // 主题 IPC
   ipcMain.handle('theme:getList', () => {
-    const themesDir = isDev ? join(app.getAppPath(), 'themes') : join(process.resourcesPath, 'themes')
+    const themesDir = isDev ? join(app.getAppPath(), 'themes') : join(dirname(process.execPath), 'themes')
     if (!existsSync(themesDir)) return []
     try {
       return readdirSync(themesDir)
@@ -265,7 +285,7 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('theme:load', (_event, name: string) => {
-    const themesDir = isDev ? join(app.getAppPath(), 'themes') : join(process.resourcesPath, 'themes')
+    const themesDir = isDev ? join(app.getAppPath(), 'themes') : join(dirname(process.execPath), 'themes')
     const filePath = join(themesDir, `${name}.json`)
     if (!existsSync(filePath)) return null
     try {
@@ -288,14 +308,14 @@ app.whenReady().then(() => {
   })
 
   // 编译器 IPC
-  ipcMain.handle('compiler:compile', async (_event, projectDir: string, editorFilesObj?: Record<string, string>) => {
+  ipcMain.handle('compiler:compile', async (_event, projectDir: string, editorFilesObj?: Record<string, string>, linkMode?: 'static' | 'normal', arch?: string) => {
     const editorFiles = editorFilesObj ? new Map(Object.entries(editorFilesObj)) : undefined
-    return compileProject({ projectDir, debug: true }, editorFiles)
+    return compileProject({ projectDir, debug: true, linkMode: linkMode || 'normal', arch }, editorFiles)
   })
 
-  ipcMain.handle('compiler:run', async (_event, projectDir: string, editorFilesObj?: Record<string, string>) => {
+  ipcMain.handle('compiler:run', async (_event, projectDir: string, editorFilesObj?: Record<string, string>, arch?: string) => {
     const editorFiles = editorFilesObj ? new Map(Object.entries(editorFilesObj)) : undefined
-    const result = await compileProject({ projectDir, debug: true }, editorFiles)
+    const result = await compileProject({ projectDir, debug: true, arch }, editorFiles)
     if (result.success && result.outputFile) {
       runExecutable(result.outputFile)
     }

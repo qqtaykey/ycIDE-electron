@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useImperativeHandle, forwardRef } from 'react'
 import MonacoEditor, { OnMount, OnChange, type Monaco } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
-import EycTableEditor, { type EycTableEditorHandle } from './EycTableEditor'
+import EycTableEditor, { type EycTableEditorHandle, type FileProblem } from './EycTableEditor'
 import VisualDesigner, { type DesignForm, type SelectionTarget, type LibWindowUnit, type AlignAction } from './VisualDesigner'
 import Icon from '../Icon/Icon'
 import '../Icon/Icon.css'
@@ -27,7 +27,7 @@ function registerEycLanguage(monaco: Monaco): void {
     // 易语言关键字
     keywords: [
       '如果', '如果真', '否则', '如果结束', '如果真结束',
-      '判断', '判断开始', '判断结束', '默认',
+      '判断', '判断结束', '默认',
       '计次循环首', '计次循环尾', '循环判断首', '循环判断尾',
       '变量循环首', '变量循环尾', '到循环尾', '跳出循环',
       '返回', '结束',
@@ -142,7 +142,7 @@ function registerEycLanguage(monaco: Monaco): void {
       { open: '\u201c', close: '\u201d' },
     ],
     indentationRules: {
-      increaseIndentPattern: /^\s*\.(子程序|如果|否则|判断开始|判断|计次循环首|循环判断首|变量循环首)/,
+      increaseIndentPattern: /^\s*\.(子程序|如果|否则|判断|计次循环首|循环判断首|变量循环首)/,
       decreaseIndentPattern: /^\s*\.(如果结束|如果真结束|否则|判断结束|计次循环尾|循环判断尾|变量循环尾)/,
     },
   })
@@ -162,7 +162,7 @@ function registerEycLanguage(monaco: Monaco): void {
         { label: '.子程序', kind: monaco.languages.CompletionItemKind.Keyword, insertText: '.子程序 ${1:子程序名}\n.参数 ${2:参数名}, ${3:整数型}\n\n    $0', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, detail: '定义子程序', range },
         { label: '.局部变量', kind: monaco.languages.CompletionItemKind.Keyword, insertText: '.局部变量 ${1:变量名}, ${2:整数型}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, detail: '声明局部变量', range },
         { label: '.如果', kind: monaco.languages.CompletionItemKind.Keyword, insertText: '.如果 (${1:条件})\n    $0\n.如果结束', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, detail: '条件判断', range },
-        { label: '.判断开始', kind: monaco.languages.CompletionItemKind.Keyword, insertText: '.判断开始 (${1:条件})\n    $0\n.默认\n\n.判断结束', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, detail: '多条件判断', range },
+
         { label: '计次循环首', kind: monaco.languages.CompletionItemKind.Keyword, insertText: '计次循环首 (${1:次数}, ${2:计数变量})\n    $0\n计次循环尾 ()', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, detail: '计次循环', range },
         { label: '信息框', kind: monaco.languages.CompletionItemKind.Function, insertText: '信息框 (${1:"内容"}, ${2:0}, ${3:"标题"}, )', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, detail: '弹出信息框', range },
         { label: '输出调试文本', kind: monaco.languages.CompletionItemKind.Function, insertText: '输出调试文本 (${1:内容})', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, detail: '输出调试信息', range },
@@ -195,14 +195,17 @@ export interface EditorHandle {
   getEditorFiles: () => Record<string, string>
   openFile: (tab: EditorTab) => void
   insertDeclaration: () => void
+  insertLocalVariable: () => void
+  navigateToLine: (line: number) => void
 }
 
-const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTarget) => void; onSidebarTab?: (tab: 'project' | 'library' | 'property') => void; selection?: SelectionTarget; alignAction?: AlignAction; onAlignDone?: () => void; onMultiSelectChange?: (count: number) => void; openProjectFiles?: EditorTab[]; onOpenTabsChange?: (tabs: EditorTab[]) => void; onActiveTabChange?: (tabId: string | null) => void }>(function Editor({ onSelectControl, onSidebarTab, selection, alignAction, onAlignDone, onMultiSelectChange, openProjectFiles, onOpenTabsChange, onActiveTabChange }, ref) {
+const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTarget) => void; onSidebarTab?: (tab: 'project' | 'library' | 'property') => void; selection?: SelectionTarget; alignAction?: AlignAction; onAlignDone?: () => void; onMultiSelectChange?: (count: number) => void; openProjectFiles?: EditorTab[]; onOpenTabsChange?: (tabs: EditorTab[]) => void; onActiveTabChange?: (tabId: string | null) => void; onCommandClick?: (commandName: string) => void; onCommandClear?: () => void; onProblemsChange?: (problems: FileProblem[]) => void }>(function Editor({ onSelectControl, onSidebarTab, selection, alignAction, onAlignDone, onMultiSelectChange, openProjectFiles, onOpenTabsChange, onActiveTabChange, onCommandClick, onCommandClear, onProblemsChange }, ref) {
   const [tabs, setTabs] = useState<EditorTab[]>([])
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const eycEditorRef = useRef<EycTableEditorHandle | null>(null)
   const [windowUnits, setWindowUnits] = useState<LibWindowUnit[]>([])
+  const pendingNavigateRef = useRef<{ subName: string; params: Array<{ name: string; dataType: string; isByRef: boolean }> } | null>(null)
 
   // 保存当前文件
   const saveCurrentFile = useCallback(() => {
@@ -299,6 +302,12 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     },
     insertDeclaration: () => {
       eycEditorRef.current?.insertSubroutine()
+    },
+    insertLocalVariable: () => {
+      eycEditorRef.current?.insertLocalVariable()
+    },
+    navigateToLine: (line: number) => {
+      eycEditorRef.current?.navigateToLine(line)
     }
   }), [saveCurrentFile, saveAllFiles, closeActiveFile, tabs, activeTabId, onOpenTabsChange, onSidebarTab])
 
@@ -334,6 +343,60 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
   useEffect(() => {
     onActiveTabChange?.(activeTabId)
   }, [activeTabId])
+
+  // 双击可视化设计器控件 → 跳转到 .eyc 文件并定位/创建事件子程序
+  const handleControlDblClick = useCallback(async (ctrl: DesignControl, defaultEvent: LibUnitEvent | null) => {
+    const activeT = tabs.find(t => t.id === activeTabId)
+    if (!activeT || activeT.language !== 'efw' || !activeT.filePath) return
+
+    const eycPath = activeT.filePath.replace(/\.efw$/i, '.eyc')
+    const eventName = defaultEvent?.name || '被单击'
+    const subName = ctrl.name + '_' + eventName
+    const params = (defaultEvent?.args || []).map(arg => ({
+      name: arg.name || 'param',
+      dataType: arg.dataType || '整数型',
+      isByRef: arg.isByRef ?? false,
+    }))
+
+    const existingTab = tabs.find(t => t.filePath === eycPath)
+    if (existingTab) {
+      if (existingTab.id === activeTabId) {
+        // 已在该标签页上，直接导航
+        eycEditorRef.current?.navigateOrCreateSub(subName, params)
+      } else {
+        pendingNavigateRef.current = { subName, params }
+        setActiveTabId(existingTab.id)
+      }
+    } else {
+      // 读取并打开 .eyc 文件
+      const content = await window.api?.project?.readFile(eycPath)
+      if (content === null || content === undefined) return
+      const fileName = eycPath.split(/[\\/]/).pop() || ''
+      const newTab: EditorTab = {
+        id: eycPath, label: fileName, language: 'eyc',
+        value: content, savedValue: content, filePath: eycPath,
+      }
+      setTabs(prev => {
+        const merged = [...prev, newTab]
+        onOpenTabsChange?.(merged)
+        return merged
+      })
+      pendingNavigateRef.current = { subName, params }
+      setActiveTabId(eycPath)
+    }
+  }, [tabs, activeTabId, onOpenTabsChange])
+
+  // 标签切换后执行挂起的子程序导航
+  useEffect(() => {
+    if (!pendingNavigateRef.current) return
+    const activeT = tabs.find(t => t.id === activeTabId)
+    if (!activeT || activeT.language !== 'eyc') return
+    const pending = pendingNavigateRef.current
+    pendingNavigateRef.current = null
+    setTimeout(() => {
+      eycEditorRef.current?.navigateOrCreateSub(pending.subName, pending.params)
+    }, 100)
+  }, [activeTabId, tabs])
 
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0] || null
 
@@ -459,12 +522,16 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
             alignAction={alignAction}
             onAlignDone={onAlignDone}
             onMultiSelectChange={onMultiSelectChange}
+            onControlDoubleClick={handleControlDblClick}
           />
         ) : activeTab.language === 'eyc' ? (
           <EycTableEditor
             ref={eycEditorRef}
             value={activeTab.value}
             onChange={handleEycChange}
+            onCommandClick={onCommandClick}
+            onCommandClear={onCommandClear}
+            onProblemsChange={onProblemsChange}
           />
         ) : (
           <MonacoEditor

@@ -174,6 +174,8 @@ export interface LibCommand {
   category: string
   params: LibParam[]
   isHidden: boolean
+  isMember: boolean
+  ownerTypeName: string
   commandIndex: number
 }
 
@@ -421,14 +423,18 @@ export function parseFneFile(fnePath: string): LibInfo | null {
       const catIdx = (c.m_shtCategory as number) - 1
       const state = c.m_wState as number
 
+      const cmdDescription = (c.m_szExplain as string) || ''
+      const isMemberCmd = (c.m_shtCategory as number) === -1
       const cmd: LibCommand = {
         name: (c.m_szName as string) || '',
         englishName: (c.m_szEgName as string) || '',
-        description: (c.m_szExplain as string) || '',
+        description: cmdDescription,
         returnType: dataTypeToString(c.m_dtRetValType as number),
         category: catIdx >= 0 && catIdx < categories.length ? categories[catIdx] : '',
         params: [],
         isHidden: (state & CT_IS_HIDED) !== 0,
+        isMember: isMemberCmd,
+        ownerTypeName: '',
         commandIndex: i,
       }
 
@@ -477,9 +483,25 @@ export function parseFneFile(fnePath: string): LibInfo | null {
     for (let i = 0; i < dtCount; i++) {
       const d = dtArray[i]
       const state = d.m_dwState as number
+      const dtName = (d.m_szName as string) || ''
+
+      // 无论数据类型是否隐藏，都要标记其成员命令
+      const dtCmdCount = d.m_nCmdCount as number
+      const pCmdIndices = d.m_pnCmdsIndex
+      if (pCmdIndices && dtCmdCount > 0) {
+        try {
+          const indices = koffi.decode(pCmdIndices as never, koffi.array('int32', dtCmdCount)) as number[]
+          for (const idx of indices) {
+            if (idx >= 0 && idx < info.commands.length) {
+              info.commands[idx].isMember = true
+              info.commands[idx].ownerTypeName = dtName
+            }
+          }
+        } catch { /* 解析命令索引失败 */ }
+      }
+
       if (state & LDT_IS_HIDED) continue
 
-      const dtName = (d.m_szName as string) || ''
       const dtEnglishName = (d.m_szEgName as string) || ''
       const dtDescription = (d.m_szExplain as string) || ''
       const isWinUnit = (state & LDT_WIN_UNIT) !== 0

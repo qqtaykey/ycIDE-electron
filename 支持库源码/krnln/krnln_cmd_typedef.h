@@ -412,296 +412,297 @@
     _MAKE( 376, "卸载易包", "UnloadEPK", UnloadEPK, "卸载已被载入的指定名称的易包,成功返回真,失败返回假.本命令不支持在多线程环境和静态编译模式下使用.执行本命令前,必须确保以下几点,否则后果无法预测: 1. 在", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 575)\
     _MAKE( 377, "易包是否被载入", "IsEPKLoaded", IsEPKLoaded, "返回所指定名称的易包是否已经被载入.本命令不支持在静态编译模式下使用。本命令为高级命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 576)\
     _MAKE( 378, "复制易包常量", "CloneConstData", CloneConstData, "本命令仅在编译易包时有效,用作根据所提供的常量数据建立返回对应的非常量数据.在对易包公开子程序以参考方式传递进来的参数变量使用文本/字节集/数组三类常量进行赋值", 22, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 577)\
-    _MAKE( 379, "取窗口句柄", "GetHWnd", GetHWnd, "取出本窗口或窗口组件的窗口句柄（即HWND）。本命令为高级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 380, "销毁", "destroy", destroy, "销毁本窗口或窗口组件。窗口被销毁后，所有在载入本窗口之后对本窗口及其内窗口组件所进行的修改或设置都将被抛弃，窗口被销毁后如想再次使用必须重新装载。注意：当窗口调", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 578)\
-    _MAKE( 381, "获取焦点", "SetFocus", SetFocus, "将焦点移动到窗口组件。如果对窗口使用本方法，窗口将自动把焦点转移到第一个有能力保留焦点的窗口组件上去。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 382, "可有焦点", "IsFocus", IsFocus, "如果当前窗口组件具有焦点，则返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 383, "取用户区宽度", "GetClientWidth", GetClientWidth, "返回窗口或窗口组件用户区域的宽度，单位为像素点。对窗口而言，用户区域为窗口区域减去标题栏、菜单栏、边框后的区域；对窗口组件而言，用户区域等同于其窗口组件区域。本", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 384, "取用户区高度", "GetClientHeight", GetClientHeight, "返回窗口或窗口组件用户区域的高度，单位为像素点。对窗口而言，用户区域为窗口区域减去标题栏、菜单栏、边框后的区域；对窗口组件而言，用户区域等同于其窗口组件区域。本", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 385, "禁止重画", "LockWindowUpdate", LockWindowUpdate, "禁止窗口或窗口组件重画，以避免当频繁进行操作时引起闪烁。注意调用本命令后必须调用“允许重画”命令进行恢复。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 386, "允许重画", "UnlockWindowUpdate", UnlockWindowUpdate, "重新允许被禁止的窗口或窗口组件重画。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 387, "重画", "invalidate", invalidate, "通知 Windows 系统本窗口或窗口组件上的显示内容需要在以后被全部重画。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 388, "部分重画", "InvalidateRect", InvalidateRect, "通知 Windows 系统本窗口或窗口组件上的显示内容需要在以后被部分重画。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 579)\
-    _MAKE( 389, "取消重画", "validate", validate, "通知 Windows 系统本窗口或窗口组件不再需要被重画，保留现有的全部显示内容。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 390, "刷新显示", "UpdateWindow", UpdateWindow, "如果本窗口或窗口组件上的显示内容需要被全部或部分重画，则立即进行重画更新，否则不进行任何操作直接返回。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 391, "移动", "move", move, "改变窗口或窗口组件的位置或尺寸。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 583)\
-    _MAKE( 392, "调整层次", "ZOrder", ZOrder, "改变窗口或窗口组件的现行所处层次。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 587)\
-    _MAKE( 393, "弹出菜单", "PopupMenu", PopupMenu, "用于在窗口上的当前鼠标位置或指定坐标位置显示弹出式菜单，如果调用对象为窗口组件，则自动使用其所在的窗口。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 588)\
-    _MAKE( 394, "发送信息", "SendMessage", SendMessage, "将指定信息发送到窗口或窗口组件，并等待且取回信息反馈值。本命令为中级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 591)\
-    _MAKE( 395, "投递信息", "PostMessage", PostMessage, "将指定信息发送到窗口或窗口组件，不等待直接返回。本命令为中级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 594)\
-    _MAKE( 396, "取标记组件", "GetSpecTagUnit", GetSpecTagUnit, "返回当前窗口中具有指定标记数值文本的组件。如果不存在，将产生运行时错误。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 597)\
-    _MAKE( 397, "置外形图片", "SetShapePic", SetShapePic, "使用图片来设置窗口的外形，注意图片类型不能为图标及鼠标指针。另外，图片的轮廓应该尽量简单，以免影响窗口的刷新速度。如果调用对象为窗口组件，将自动使用其所在的窗口", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 598)\
-    _MAKE( 398, "激活", "Activate", Activate, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 399, "置托盘图标", "SetTrayIcon", SetTrayIcon, "设置本程序在系统托盘中的图标。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 600)\
-    _MAKE( 400, "弹出托盘菜单", "PopupTrayMenu", PopupTrayMenu, "在当前鼠标位置弹出指定菜单，本命令一般用作支持托盘菜单的弹出。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 602)\
-    _MAKE( 401, "置父窗口", "SetParentWnd", SetParentWnd, "设置指定窗口或窗口组件为本对象窗口或窗口组件的父窗口。本命令为初级对象成员命令。 成员属性“标题”所在数据类型为“窗口”，英文名称为“caption”，类型为“", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 603)\
-    _MAKE( 402, "加入文本", "AddText", AddText, "将指定文本加入到编辑框内容的尾部。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。 成员属性“内容”所在数据类型为“编辑框”，英文名称为“co", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 604)\
-    _MAKE( 403, "取设备句柄", "GetHDC", GetHDC, "如当前用户程序正在处理本画板所产生的“绘画”事件，则返回画板所对应的设备句柄（即HDC），否则返回 0。本命令为高级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 404, "清除", "cls", cls, "清除画板上指定区域的内容并将当前文本写出位置移动到被清除区左上角。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 605)\
-    _MAKE( 405, "取点", "GetPixel", GetPixel, "返回画板上指定点的颜色值。如果失败，将返回 -1。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 609)\
-    _MAKE( 406, "画点", "SetPixel", SetPixel, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 611)\
-    _MAKE( 407, "画直线", "LineTo", LineTo, "使用画笔在画板上画出一条直线。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 614)\
-    _MAKE( 408, "画椭圆", "ellipse", ellipse, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 618)\
-    _MAKE( 409, "画弧线", "ArcTo", ArcTo, "使用画笔在画板上画出一条弧线。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 622)\
-    _MAKE( 410, "画弦", "chord", chord, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 630)\
-    _MAKE( 411, "画饼", "pie", pie, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 638)\
-    _MAKE( 412, "画矩形", "DrawRect", DrawRect, "使用画笔在画板上画出一个矩形，矩形的内部使用刷子填充。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 646)\
-    _MAKE( 413, "画渐变矩形", "DrawJBRect", DrawJBRect, "本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 7, g_argumentInfo_krnln_global_var + 650)\
-    _MAKE( 414, "填充矩形", "FillRect", FillRect, "将画板上指定的矩形区域用当前刷子填充。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 657)\
-    _MAKE( 415, "画圆角矩形", "RoundRect", RoundRect, "使用画笔在画板上画出一个圆角矩形，圆角矩形的内部使用刷子填充。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 6, g_argumentInfo_krnln_global_var + 661)\
-    _MAKE( 416, "翻转矩形区", "InvertRect", InvertRect, "将画板上指定矩形区域的颜色翻转过来。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 667)\
-    _MAKE( 417, "画多边形", "polygon", polygon, "如果所画的多边形没有闭合，将自动闭合。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 671)\
-    _MAKE( 418, "置写出位置", "SetWritePos", SetWritePos, "设置下次使用“写文本行”或“写出”命令输出数据时的位置。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 673)\
-    _MAKE( 419, "写文本行", "print", print, "在当前写出位置写出指定的文本、数值、逻辑值或日期时间，并将现行写出位置调整到下行行首。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 675)\
-    _MAKE( 420, "滚动写行", "sprint", sprint, "在当前写出位置写出指定的文本、数值、逻辑值或日期时间，并将现行写出位置调整到下行行首。如果现行画板高度无法容纳当前所要写出的行，则自动向上滚动画板内容。本命令为", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 676)\
-    _MAKE( 421, "写出", "write", write, "在当前写出位置处写出指定的文本、数值、逻辑值或日期时间。自动调整现行写出位置到所写出数据的末位置。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 677)\
-    _MAKE( 422, "定位写出", "say", say, "在指定写出位置处写出指定的文本、数值、逻辑值或日期时间，不改变现行写出位置。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 678)\
-    _MAKE( 423, "取宽度", "GetWidth", GetWidth, "返回指定数据的写出宽度，使用当前绘画单位。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 681)\
-    _MAKE( 424, "取高度", "GetHeight", GetHeight, "返回指定数据的写出高度，使用当前绘画单位。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 682)\
-    _MAKE( 425, "画图片", "DrawPic", DrawPic, "本命令为初级对象成员命令。 1、#拷贝； 2、#翻转拷贝； 3、#位异或； 4、#位或； 5、#位与 本参数也可以指定透明色，但必须是负颜色数值。如： 画板1.", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 6, g_argumentInfo_krnln_global_var + 683)\
-    _MAKE( 426, "取图片宽度", "GetPicWidth", GetPicWidth, "返回指定图片的宽度，使用当前绘画单位。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 689)\
-    _MAKE( 427, "取图片高度", "GetPicHeight", GetPicHeight, "返回指定图片的高度，使用当前绘画单位。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 690)\
-    _MAKE( 428, "复制", "copy", copy, "将源画板（本命令的调用画板对象）中指定区域的内容快速复制到目的画板中的指定位置，使用源和目的画板各自的当前绘画单位。如果源画板当前不可视，其“自动重画”属性必须", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 691)\
-    _MAKE( 429, "取图片", "GetPic", GetPic, "返回画板上所有现有显示内容的图片数据。如果失败，返回空字节集。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 699)\
-    _MAKE( 430, "单位转换", "UnitCnv", UnitCnv, "将像素单位座标值转换到当前绘画单位，或将当前绘画单位座标值转换到像素单位。本命令为初级对象成员命令。 成员属性“边框”所在数据类型为“画板”，英文名称为“bor", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 701)\
-    _MAKE( 431, "调用反馈事件", "SendLabelMsg", SendLabelMsg, "产生标签的反馈事件，以调用此标签的“反馈事件”用户事件处理子程序，可以用作在多线程处理中将控制权转移到程序主线程上去执行。返回用户事件处理子程序所返回的值，如果", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 703)\
-    _MAKE( 432, "取顶端可见项目", "GetTopIndex", GetTopIndex, "返回组合框列表部分中当前最顶端可见项目的索引。0 为项目一，1 为项目二，如此类推。失败返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 433, "置顶端可见项目", "SetTopIndex", SetTopIndex, "设置组合框列表部分中当前最顶端的可见项目，必要时将自动滚动组合框的列表部分。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 706)\
-    _MAKE( 434, "取项目数", "GetCount", GetCount, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 435, "取项目数值", "GetItemData", GetItemData, "返回与指定项目相关联的数值。如果指定项目不存在，将返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 707)\
-    _MAKE( 436, "置项目数值", "SetItemData", SetItemData, "设置与指定项目相关联的数值。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 708)\
-    _MAKE( 437, "取项目文本", "GetItemText", GetItemText, "返回指定项目的文本。如果指定项目不存在，将返回空文本。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 710)\
-    _MAKE( 438, "置项目文本", "SetItemtext", SetItemtext, "设置指定项目的文本。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 711)\
-    _MAKE( 439, "加入项目", "AddString", AddString, "加入指定项目到组合框列表部分的尾部，成功返回加入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 713)\
-    _MAKE( 440, "插入项目", "InsertString", InsertString, "插入指定项目到组合框列表部分的指定位置处，成功返回插入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 715)\
-    _MAKE( 441, "删除项目", "DeleteString", DeleteString, "删除组合框列表部分指定位置处的项目。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 718)\
-    _MAKE( 442, "清空", "clear", clear, "删除组合框列表部分中的所有项目。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 443, "选择", "SelItem", SelItem, "在所有项目中寻找首部包含指定文本的项目，如找到，则选中它，并返回该项目的位置索引，否则返回 -1。本命令为初级对象成员命令。 成员属性“类型”所在数据类型为“组", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 719)\
-    _MAKE( 444, "取顶端可见项目", "GetTopIndex", GetTopIndex, "返回列表框中当前最顶端可见项目的索引。0 为项目一，1 为项目二，如此类推。失败返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 445, "置顶端可见项目", "SetTopIndex", SetTopIndex, "设置列表框中当前最顶端的可见项目，必要时将自动滚动列表框。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 720)\
-    _MAKE( 446, "取项目数", "GetCount", GetCount, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 447, "取项目数值", "GetItemData", GetItemData, "返回与指定项目相关联的数值。如果指定项目不存在，将返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 721)\
-    _MAKE( 448, "置项目数值", "SetItemData", SetItemData, "设置与指定项目相关联的数值。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 722)\
-    _MAKE( 449, "取项目文本", "GetItemText", GetItemText, "返回指定项目的文本。如果指定项目不存在，将返回空文本。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 724)\
-    _MAKE( 450, "置项目文本", "SetItemtext", SetItemtext, "设置指定项目的文本。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 725)\
-    _MAKE( 451, "取已选择项目数", "GetSelCount", GetSelCount, "返回已被选择项目的数目。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 452, "取所有被选择项目", "GetSelItems", GetSelItems, "返回一个整数数组，內含所有当前被选择项目的位置索引。如果当前没有被选择项目，返回空数组。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 453, "是否被选择", "IsSelected", IsSelected, "如果指定项目被选择，则返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 727)\
-    _MAKE( 454, "选择项目", "select", select, "选择或取消选择指定项目。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 728)\
-    _MAKE( 455, "取焦点项目", "GetCaretIndex", GetCaretIndex, "本命令仅在多选列表框中使用，用作返回当前焦点项目的位置索引。如果在单选列表框中使用本命令，将返回当前被选择项目的位置索引。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 456, "置焦点项目", "SetCaretIndex", SetCaretIndex, "本命令仅在多选列表框中使用，用作设置当前焦点项目。如果在单选列表框中使用本命令，将设置当前被选择项目。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 730)\
-    _MAKE( 457, "加入项目", "AddString", AddString, "加入指定项目到列表框的尾部，成功返回加入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 731)\
-    _MAKE( 458, "插入项目", "InsertString", InsertString, "插入指定项目到列表框的指定位置处，成功返回插入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 733)\
-    _MAKE( 459, "删除项目", "DeleteString", DeleteString, "删除列表框指定位置处的项目。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 736)\
-    _MAKE( 460, "清空", "clear", clear, "删除列表框中的所有项目。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 461, "选择", "SelItem", SelItem, "在所有项目中寻找首部包含指定文本的项目，如找到，则选中它，并返回该项目的位置索引，否则返回 -1 。本命令仅在单选列表框中使用，如果在多选列表框中使用，将返回 ", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 737)\
-    _MAKE( 462, "取顶端可见项目", "GetTopIndex", GetTopIndex, "返回列表框中当前最顶端可见项目的索引。0 为项目一，1 为项目二，如此类推。失败返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 463, "置顶端可见项目", "SetTopIndex", SetTopIndex, "设置列表框中当前最顶端的可见项目，必要时将自动滚动列表框。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 738)\
-    _MAKE( 464, "取项目数", "GetCount", GetCount, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 465, "取项目数值", "GetItemData", GetItemData, "返回与指定项目相关联的数值。如果指定项目不存在，将返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 739)\
-    _MAKE( 466, "置项目数值", "SetItemData", SetItemData, "设置与指定项目相关联的数值。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 740)\
-    _MAKE( 467, "取项目文本", "GetItemText", GetItemText, "返回指定项目的文本。如果指定项目不存在，将返回空文本。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 742)\
-    _MAKE( 468, "置项目文本", "SetItemtext", SetItemtext, "设置指定项目的文本。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 743)\
-    _MAKE( 469, "加入项目", "AddString", AddString, "加入指定项目到列表框的尾部，成功返回加入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 745)\
-    _MAKE( 470, "插入项目", "InsertString", InsertString, "插入指定项目到列表框的指定位置处，成功返回插入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 747)\
-    _MAKE( 471, "删除项目", "DeleteString", DeleteString, "删除列表框指定位置处的项目。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 750)\
-    _MAKE( 472, "清空", "clear", clear, "删除列表框中的所有项目。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 473, "选择", "SelItem", SelItem, "在所有项目中寻找首部包含指定文本的项目，如找到，则选中它，并返回该项目的位置索引，否则返回 -1。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 751)\
-    _MAKE( 474, "是否被选中", "IsChecked", IsChecked, "如果与指定项目对应的选择框被选中，则返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 752)\
-    _MAKE( 475, "选中项目", "SetCheck", SetCheck, "选中或取消选中与指定项目对应的选择框。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 753)\
-    _MAKE( 476, "是否被允许", "IsEnabled", IsEnabled, "如果与指定项目对应的选择框被允许操作，则返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 755)\
-    _MAKE( 477, "允许", "enable", enable, "允许或禁止对指定项目进行选择操作。成功返回真，失败返回假。本命令为初级对象成员命令。 成员属性“边框”所在数据类型为“选择列表框”，英文名称为“border”，", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 756)\
-    _MAKE( 478, "取子夹数目", "GetCount", GetCount, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 479, "取子夹名称", "GetName", GetName, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 758)\
-    _MAKE( 480, "置子夹名称", "SetName", SetName, "置入成功返回真，否则返回假。本命令为初级对象成员命令。 成员属性“表头方向”所在数据类型为“选择夹”，英文名称为“HeaderWay”，类型为“整数型（int）", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 759)\
-    _MAKE( 481, "跳转", "goto", goto_, "跳转到指定的邮件或 Internet 地址。本命令为初级对象成员命令。 成员属性“标题”所在数据类型为“超级链接框”，英文名称为“caption”，类型为“文本", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 482, "打开", "open", open, "打开当前类型的对话框，返回一个逻辑值。对于类型为“打开文件”、“保存文件”、“字体选择”的对话框，如果为真，表示用户已通过该对话框输入了有效数据，否则表示用户取", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 483, "取设备句柄", "GetHDC", GetHDC, "如当前用户程序正在进行打印作业，则返回对应的打印机设备句柄（即HDC），否则返回 0。本命令为高级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 484, "开始打印", "StartDoc", StartDoc, "返回真表示已经成功地进入了打印作业，进入打印作业后文本写出位置将被重置为 0 。如果执行本命令时已经在打印作业中或者用户在打印设置对话框中选择了取消，返回假。进", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 6, g_argumentInfo_krnln_global_var + 761)\
-    _MAKE( 485, "结束打印", "EndDoc", EndDoc, "如果当前已经进入了打印作业，调用本命令可完成此作业。结束打印后易程序进行的后续打印绘画操作都将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 486, "取消打印", "AbortDoc", AbortDoc, "如果当前已经进入了打印作业，调用本命令可立即中止且取消该作业。如果操作系统的打印管理器正在处理该打印作业（打印管理器正在运行并且允许后台打印），那么该作业将被删", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 487, "换页", "NewPage", NewPage, "调用本命令使打印机完成当前页的打印，文本写出位置被重置为 0 ，并走纸到下一页左上角。如果换页成功返回真，否则将自动取消打印并返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 488, "开始下一份", "NewCopy", NewCopy, "调用本命令后将结束在当前页上的打印作业，并将当前打印份数加一，当前页号置回到首页页号，以进入下一份拷贝的打印。如果成功返回真，失败将自动取消打印并返回假。本命令", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 489, "画点", "SetPixel", SetPixel, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 767)\
-    _MAKE( 490, "画直线", "LineTo", LineTo, "使用画笔在画板上画出一条直线。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 770)\
-    _MAKE( 491, "画椭圆", "ellipse", ellipse, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 774)\
-    _MAKE( 492, "画弧线", "ArcTo", ArcTo, "使用画笔在画板上画出一条弧线。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 778)\
-    _MAKE( 493, "画弦", "chord", chord, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 786)\
-    _MAKE( 494, "画饼", "pie", pie, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 794)\
-    _MAKE( 495, "画矩形", "DrawRect", DrawRect, "使用画笔在画板上画出一个矩形，矩形的内部使用刷子填充。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 802)\
-    _MAKE( 496, "画渐变矩形", "DrawJBRect", DrawJBRect, "本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 7, g_argumentInfo_krnln_global_var + 806)\
-    _MAKE( 497, "填充矩形", "FillRect", FillRect, "将画板上指定的矩形区域用当前刷子填充。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 813)\
-    _MAKE( 498, "画圆角矩形", "RoundRect", RoundRect, "使用画笔在画板上画出一个圆角矩形，圆角矩形的内部使用刷子填充。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 6, g_argumentInfo_krnln_global_var + 817)\
-    _MAKE( 499, "画多边形", "polygon", polygon, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 823)\
-    _MAKE( 500, "置写出位置", "SetWritePos", SetWritePos, "设置下次使用“写文本行”或“写出”命令输出数据时的位置。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 825)\
-    _MAKE( 501, "写文本行", "print", print, "在当前写出位置写出指定的文本、数值、逻辑值或日期时间，并将现行写出位置调整到下行行首。支持自动换页。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 827)\
-    _MAKE( 502, "写出", "write", write, "在当前写出位置处写出指定的文本、数值、逻辑值或日期时间。自动调整现行写出位置到所写出数据的末位置。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 828)\
-    _MAKE( 503, "定位写出", "say", say, "在指定写出位置处写出指定的文本、数值、逻辑值或日期时间，不改变现行写出位置。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 829)\
-    _MAKE( 504, "取宽度", "GetWidth", GetWidth, "返回指定数据的写出宽度，使用当前绘画单位。如果调用本命令时尚未进入打印，将返回 0 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 832)\
-    _MAKE( 505, "取高度", "GetHeight", GetHeight, "返回指定数据的写出高度，使用当前绘画单位。如果调用本命令时尚未进入打印，将返回 0 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 833)\
-    _MAKE( 506, "画图片", "DrawPic", DrawPic, "本命令为初级对象成员命令。 1、#拷贝； 2、#翻转拷贝； 3、#位异或； 4、#位或； 5、#位与 本参数也可以指定透明色，但必须是负颜色数值。如： 画板1.", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 7, g_argumentInfo_krnln_global_var + 834)\
-    _MAKE( 507, "取图片宽度", "GetPicWidth", GetPicWidth, "返回指定图片的宽度。如果调用本命令时尚未进入打印，使用像素点为单位，否则使用当前绘画单位。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 841)\
-    _MAKE( 508, "取图片高度", "GetPicHeight", GetPicHeight, "返回指定图片的高度。如果调用本命令时尚未进入打印，使用像素点为单位，否则使用当前绘画单位。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 842)\
-    _MAKE( 509, "置自定义纸张类型", "SetCustomPaperType", SetCustomPaperType, "添加或修改自定义纸张类型。本方法仅在Windows NT/2000/XP下有效，且要求具有打印机驱动的完全控制权限。注意：太小或太大的纸张大小和页边距，可能不被", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 7, g_argumentInfo_krnln_global_var + 843)\
-    _MAKE( 510, "删除自定义纸张类型", "DeleteCustomPaperType", DeleteCustomPaperType, "删除指定自定义纸张类型。本方法仅在Windows NT/2000/XP下有效，且要求具有打印机驱动的完全控制权限。本命令为高级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 850)\
-    _MAKE( 511, "取自定义纸张大小", "GetCustomPaperType", GetCustomPaperType, "取指定自定义纸张类型的纸张大小及边距，并写入后面的六个参数中。如果指定的自定义纸张类型不存在，返回“假”。本方法仅在Windows NT/2000/XP下有效，", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 7, g_argumentInfo_krnln_global_var + 851)\
-    _MAKE( 512, "取所有纸张类型", "SetCustomPaperType", SetCustomPaperType, "取当前默认打印机所支持的所有纸张类型（包括系统定义纸张类型和自定义纸张类型），返回一维文本数组，其中存放了的各纸张类型的名称。本方法仅在Windows NT/2", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 513, "单位转换", "UnitCnv", UnitCnv, "将像素单位座标值转换到当前绘画单位，或将当前绘画单位座标值转换到像素单位。注意在执行本方法之前，必须已经开始打印。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 858)\
-    _MAKE( 514, "取设备名称", "GetPrinterDeviceName", GetPrinterDeviceName, "如果已经开始打印，则返回当前打印机设备的名称。本命令为高级对象成员命令。 成员属性“绘画单位”所在数据类型为“打印机”，英文名称为“unit”，类型为“整数型（", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 515, "发送数据", "send", send, "发送数据到指定主机上的指定端口。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 860)\
-    _MAKE( 516, "取回数据", "recv", recv, "取回所接收到的数据。本命令必须在“数据到达”事件的处理子程序中使用。本命令为初级对象成员命令。 成员属性“端口”所在数据类型为“数据报”，英文名称为“port”", 22, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 517, "连接", "connect", connect, "连接到指定主机上的指定端口，该主机上的该端口必须已经被某一服务器组件监听。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 863)\
-    _MAKE( 518, "断开连接", "CloseConnect", CloseConnect, "断开与服务器的已有连接。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 519, "发送数据", "send", send, "在成功建立与服务器的连接后，发送数据到服务器端组件。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 865)\
-    _MAKE( 520, "取回数据", "recv", recv, "取回所接收到的数据。本命令必须在“数据到达”事件的处理子程序中使用。本命令为初级对象成员命令。 事件名称：数据到达 当服务器端将数据发送过来后，会产生本事件。在", 22, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 521, "取回数据", "recv", recv, "取回所接收到的数据。本命令必须在“数据到达”事件的处理子程序中使用。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 522, "取回客户", "GetClient", GetClient, "当接收到“客户进入”、“客户离开”或“数据到达”事件时，在该事件的处理子程序中可调用本方法取回对应的客户地址（IP地址 + 端口）。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 523, "发送数据", "send", send, "向指定已经连接进来的客户发送数据。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 866)\
-    _MAKE( 524, "断开客户", "CloseClient", CloseClient, "断开与指定客户之间的连接。本命令为初级对象成员命令。 成员属性“端口”所在数据类型为“服务器”，英文名称为“port”，类型为“整数型（int）”。 指定监听数", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 869)\
-    _MAKE( 525, "启动", "start", start, "启动或重新启动对指定端口的操作。在对端口进行操作之前必须首先启动，如在端口启动后又更改了端口属性必须重新启动。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 526, "停止", "stop", stop, "关闭已经启动的指定端口。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 527, "发送数据", "send", send, "从端口发送指定的数据。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 870)\
-    _MAKE( 528, "信号操作", "Signal", Signal, "本命令可以设置或清除通讯端口上指定信号的状态。成功返回真，失败返回假。本命令为初级对象成员命令。 成员属性“端口号”所在数据类型为“端口”，英文名称为“port", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 871)\
-    _MAKE( 529, "置光标", "SetCaret", SetCaret, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 873)\
-    _MAKE( 530, "选择", "Select", Select, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 875)\
-    _MAKE( 531, "全部选择", "SelectAll", SelectAll, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 532, "取光标行号", "CaretRow", CaretRow, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 533, "取光标列号", "CaretCol", CaretCol, "本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 534, "取选择行数", "SelectRows", SelectRows, "被选择的行区域起始于光标所在行。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 535, "取选择列数", "SelectCols", SelectCols, "被选择的列区域起始于光标所在列。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 536, "等宽缩放", "InWin", InWin, "将表格内容缩放到与表格窗口等宽显示。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 537, "全部复制", "CopyAll", CopyAll, "复制所有表格数据到剪贴板。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 538, "复制", "Copy", Copy, "复制指定区域表格数据到剪贴板。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 879)\
-    _MAKE( 539, "粘贴到光标处", "PasteToCaret", PasteToCaret, "粘贴剪贴板中的表格数据到当前光标处。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 540, "粘贴", "Paste", Paste, "粘贴剪贴板中的表格数据到指定位置。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 883)\
-    _MAKE( 541, "打印", "Print", Print, "打印表格数据到打印机。注意欲设置打印份数等打印设置信息请到与表格相连接的数据源中设置。成功返回空文本，失败(不包含操作者中断打印)返回非空错误文本。本命令为初级", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 885)\
-    _MAKE( 542, "打印预览", "PrintPreview", PrintPreview, "本命令为初级对象成员命令。 成员属性“数据源”所在数据类型为“表格”，英文名称为“DataSource”，类型为“文本型（text）”。 指定提供数据的数据源组", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 543, "到首记录", "GoTop", GoTop, "将数据源中当前记录指针移动到第一条记录上。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 544, "到尾记录", "GoBottom", GoBottom, "将数据源中当前记录指针移动到最后一条记录上。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 545, "跳过", "skip", skip, "将数据源中当前记录指针向前或者向后移动数条记录。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 887)\
-    _MAKE( 546, "跳到", "goto", goto_, "改变数据源中的当前记录指针到指定的记录号。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 888)\
-    _MAKE( 547, "取记录号", "RecNO", RecNO, "返回数据源当前记录指针所指向记录的记录号。记录号从1开始。如果当前记录指针无效，所返回记录号为0。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 548, "取表头行数", "GetFixedRowCount", GetFixedRowCount, "返回当以表格的形式表现数据源中的数据时表头所占的行数。表头行在表格中显示时不会滚动，在打印时会自动打印在每一页的顶部。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 549, "置表头行数", "SetFixedRowCount", SetFixedRowCount, "设置当以表格的形式表现数据源中的数据时表头所占的行数。表头行在表格中显示时不会滚动，在打印时会自动打印在每一页的顶部。注意如果数据源所使用的数据提供者不支持此特", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 889)\
-    _MAKE( 550, "取表头列数", "GetFixedColCount", GetFixedColCount, "返回当以表格的形式表现数据源中的数据时表头所占的列数。表头列在表格中显示时不会滚动。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 551, "置表头列数", "SetFixedColCount", SetFixedColCount, "设置当以表格的形式表现数据源中的数据时表头所占的列数。表头列在表格中显示时不会滚动。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 890)\
-    _MAKE( 552, "取行高", "GetRowHeight", GetRowHeight, "返回数据源中指定行在表现时的高度，单位为0.1毫米。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 891)\
-    _MAKE( 553, "置行高", "SetRowHeight", SetRowHeight, "设置数据源中数据行在表现时的高度，单位为0.1毫米。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 892)\
-    _MAKE( 554, "取列宽", "GetColWidth", GetColWidth, "返回数据源中指定列在表现时的宽度，单位为0.1毫米。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 895)\
-    _MAKE( 555, "置列宽", "SetColWidth", SetColWidth, "设置数据源中数据列在表现时的宽度，单位为0.1毫米。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 896)\
-    _MAKE( 556, "取类型", "GetType", GetType, "返回数据源中指定单元格的数据类型。返回值为以下常量值之一： 1、#文本； 2、#图片文件名； 3、#图片数据； 4、#字节集数据。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 899)\
-    _MAKE( 557, "置类型", "SetType", SetType, "设置数据源中指定单元格的数据类型。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 901)\
-    _MAKE( 558, "取文本色", "GetTextColor", GetTextColor, "返回数据源中指定单元格在表现时的文本颜色。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 906)\
-    _MAKE( 559, "置文本色", "SetTextColor", SetTextColor, "设置数据源中指定单元格在表现时的文本颜色。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 908)\
-    _MAKE( 560, "取背景色", "GetBackground", GetBackground, "返回数据源中指定单元格在表现时的背景颜色。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 913)\
-    _MAKE( 561, "置背景色", "SetBackground", SetBackground, "设置数据源中指定单元格在表现时的背景颜色。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 915)\
-    _MAKE( 562, "取字体名", "GetFontName", GetFontName, "返回数据源中指定单元格在表现时所使用字体的名称。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 920)\
-    _MAKE( 563, "置字体名", "SetFontName", SetFontName, "设置数据源中指定单元格在表现时所使用字体的名称。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 922)\
-    _MAKE( 564, "取字体尺寸", "GetFontSize", GetFontSize, "返回数据源中指定单元格在表现时所使用字体的尺寸，单位为0.1毫米。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 927)\
-    _MAKE( 565, "置字体尺寸", "SetFontSize", SetFontSize, "设置数据源中指定单元格在表现时所使用字体的尺寸，单位为0.1毫米。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 929)\
-    _MAKE( 566, "取字体属性", "GetFontAttr", GetFontAttr, "返回数据源中指定单元格在表现时所使用字体的属性。返回值为以下常量值之一或之和： 1、#粗体； 2、#斜体； 4、#下划线； 8、#删除线。本命令为初级对象成员命", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 934)\
-    _MAKE( 567, "置字体属性", "SetFontAttr", SetFontAttr, "设置数据源中指定单元格在表现时所使用字体的属性。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 936)\
-    _MAKE( 568, "取边距", "GetExtra", GetExtra, "返回数据源中指定单元格在表现其中数据时至其单元格边框之间的空白距离，单位为0.1毫米。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 941)\
-    _MAKE( 569, "置边距", "SetExtra", SetExtra, "设置数据源中指定单元格在表现其中数据时至其单元格边框之间的空白距离，单位为0.1毫米。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 943)\
-    _MAKE( 570, "取文本输入格式", "GetInputType", GetInputType, "返回数据源中某文本型单元格的输入格式。当新的数据通过输入方式更新到该单元格内之前，将首先自动根据此格式转换。返回值为以下常量值之一： 0、#通常型； 1、#字节", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 948)\
-    _MAKE( 571, "置文本输入格式", "SetInputType", SetInputType, "设置数据源中某文本型单元格的输入格式。当新的数据通过输入方式更新到该单元格内之前，将首先自动根据此格式转换。注意如果数据源所使用的数据提供者不支持此特性，本命令", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 950)\
-    _MAKE( 572, "取对齐方式", "GetAlignMode", GetAlignMode, "返回数据源中指定单元格在表现时所使用的对齐方式。返回值为以下常量值之一： 1、#上左； 2、#上中； 3、#上右； 4、#中左； 5、#中中； 6、#中右； 7", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 955)\
-    _MAKE( 573, "置对齐方式", "SetAlignMode", SetAlignMode, "设置数据源中指定单元格在表现时所使用的对齐方式。注意如果数据源所使用的数据提供者不支持某些属性，该属性将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 957)\
-    _MAKE( 574, "取密码方式", "GetPwdMode", GetPwdMode, "返回数据源中指定单元格在表现时是否使用密码方式。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 962)\
-    _MAKE( 575, "置密码方式", "SetPwdMode", SetPwdMode, "如设置值为真，则数据源中指定单元格在表现时以密码字符呈现。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 964)\
-    _MAKE( 576, "取文本", "GetText", GetText, "返回数据源中指定单元格的文本内容。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 969)\
-    _MAKE( 577, "置文本", "SetText", SetText, "设置数据源中指定单元格的文本内容，注意该单元格类型必须为“#文本”或“#图片文件名”。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 971)\
-    _MAKE( 578, "取数据", "GetData", GetData, "返回数据源中指定单元格的图片或字节集数据内容。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 974)\
-    _MAKE( 579, "置数据", "SetData", SetData, "设置数据源中指定单元格的图片或字节集数据内容，注意该单元格类型必须为“#图片数据”或“#字节集数据”。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 976)\
-    _MAKE( 580, "合并", "Cmb", Cmb, "组合数据源中指定范围内的单元格，使之以一个单元格的形式表现。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 979)\
-    _MAKE( 581, "分解", "Split", Split, "分解数据源中指定的已经组合的单元格，行列参数指向被组合单元格内的任何一个单元格即可。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 983)\
-    _MAKE( 582, "是否被合并", "HasCmb", HasCmb, "如果数据源中指定单元格与周边指定单元格有组合关系，返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 985)\
-    _MAKE( 583, "加线条", "AddLine", AddLine, "为数据源中指定范围内单元格添加线条。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 988)\
-    _MAKE( 584, "删线条", "RemoveLine", RemoveLine, "将数据源中指定范围内单元格内的线条去除。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 993)\
-    _MAKE( 585, "是否有线条", "HasLine", HasLine, "如果数据源中指定单元格有指定线条，返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 998)\
-    _MAKE( 586, "清除", "EmptyCell", EmptyCell, "清除数据源中指定范围内单元格内容为空文本。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 1001)\
-    _MAKE( 587, "置初始属性", "SetInitData", SetInitData, "设置在数据源中初始或者添加新单元格时默认的单元格初始属性。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 10, g_argumentInfo_krnln_global_var + 1005)\
-    _MAKE( 588, "初始尺寸", "InitSize", InitSize, "初始数据源中数据的行列数，注意数据源中所有原有数据将被清除。注意某些数据提供者可能不支持此方法。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1015)\
-    _MAKE( 589, "取行数", "GetRowCount", GetRowCount, "返回数据源中现行数据行数。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 590, "取列数", "GetColCount", GetColCount, "返回数据源中现行数据列数。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 591, "插入行", "InsertRow", InsertRow, "在数据源中指定位置处插入新数据行。注意某些数据提供者可能不支持在中间插入行。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1017)\
-    _MAKE( 592, "添加行", "AppendRow", AppendRow, "在数据源中最后一行后插入新数据行。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1019)\
-    _MAKE( 593, "删除行", "RemoveRow", RemoveRow, "在数据源中指定位置处删除数据行。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1020)\
-    _MAKE( 594, "插入列", "InsertCol", InsertCol, "在数据源中指定位置处插入新数据列。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1022)\
-    _MAKE( 595, "删除列", "RemoveCol", RemoveCol, "在数据源中指定位置处删除数据列。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1024)\
-    _MAKE( 596, "添加", "Append", Append, "将指定其它数据源或者数据提供者中的数据添加到本数据源的尾部。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 1026)\
-    _MAKE( 597, "存到字节集", "SaveDS", SaveDS, "将数据源中所有现有数据保存在字节集中返回。如果失败，将返回空字节集。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 598, "从字节集读", "LoadDS", LoadDS, "将指定字节集内的数据源数据写入到数据源中，数据源内所有原有数据将被清除。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1029)\
-    _MAKE( 599, "存到文件", "SaveDSFile", SaveDSFile, "将数据源中所有现有数据保存到指定文件中。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1030)\
-    _MAKE( 600, "从文件读", "LoadDSFile", LoadDSFile, "将指定文件内的数据源数据写入到数据源中，数据源内所有原有数据将被清除。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1031)\
-    _MAKE( 601, "单元格到字节集", "SaveDSCell", SaveDSCell, "将数据源中指定范围内单元格数据保存在字节集中返回。如果失败，将返回空字节集。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 1032)\
-    _MAKE( 602, "字节集到单元格", "LoadDSCell", LoadDSCell, "将指定字节集内的单元格数据写入到数据源中指定位置。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 1036)\
-    _MAKE( 603, "单元格到文件", "SaveDSCellFile", SaveDSCellFile, "将数据源中指定范围内单元格数据保存到指定文件中。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 1040)\
-    _MAKE( 604, "文件到单元格", "LoadDSCellFile", LoadDSCellFile, "将指定文件内的单元格数据写入到数据源中指定位置。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 1045)\
-    _MAKE( 605, "刷新", "Refrush", Refrush, "通知所有基于本数据源的数据处理者，使其自动从数据源重新获取并显示数据。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 606, "保存更改", "SaveChange", SaveChange, "通知所有基于本数据源的数据处理者，使其自动将处理或更改后的数据写回到数据源中。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 607, "打印设置", "SetupPrinter", SetupPrinter, "调用对话框设置数据的打印配置信息。当操作者按确认按钮退出对话框时返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 608, "取打印设置", "GetPrintInf", GetPrintInf, "返回打印数据源数据时所将使用的设置信息。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 609, "置打印设置", "SetPrintInf", SetPrintInf, "设置打印数据源数据时所将使用的设置信息。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1049)\
-    _MAKE( 610, "取打印页宽", "GetPageWidth", GetPageWidth, "返回打印数据源数据时所将使用打印纸的正文区域宽度，单位为0.1毫米。注意：1、此宽度不包含页边距；2、“打印设置”命令执行后，如果操作者改变了纸张类型，此值将自", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 611, "取打印页高", "GetPageHeight", GetPageHeight, "返回打印数据源数据时所将使用打印纸的正文区域高度，单位为0.1毫米。注意：1、此宽度不包含页边距；2、“打印设置”命令执行后，如果操作者改变了纸张类型，此值将自", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 612, "取只读方式", "GetReadOnly", GetReadOnly, "返回数据源中指定单元格在表现时是否只读。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1050)\
-    _MAKE( 613, "置只读方式", "SetReadOnly", SetReadOnly, "如设置值为真，则数据源中指定单元格在表现时只能读取而不能写入。注意： 1、如果数据处理者不支持此特性，则本属性无效； 2、如果数据提供者不支持此特性，本命令将被", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 1052)\
-    _MAKE( 614, "打开", "open", open, "打开指定的ODBC数据源以供以后操作。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 1057)\
-    _MAKE( 615, "关闭", "close", close, "关闭当前被打开的数据库。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 616, "取连接文本", "GetConnect", GetConnect, "返回当前被打开数据库的ODBC数据源连接文本。失败返回空文本。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 617, "启动事务", "BeginTrans", BeginTrans, "启动当前被打开数据库的事务，成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 618, "回滚事务", "RollbackTrans", RollbackTrans, "回滚当前被打开数据库的事务，所有在上一次事务提交前对数据库所作的修改均被取消。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 619, "提交事务", "CommitTrans", CommitTrans, "提交当前被打开数据库的事务。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 620, "查询", "query", query, "对当前被打开数据库进行数据查询，成功返回结果记录集句柄，失败返回0。注意当不再使用此记录集时，必须使用“关闭记录集”命令将其关闭。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1060)\
-    _MAKE( 621, "重新查询", "Requery", Requery, "对指定的记录集进行重新查询，并将其当前记录指针重定位到首记录。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1061)\
-    _MAKE( 622, "关闭记录集", "CloseRecordset", CloseRecordset, "关闭指定的记录集。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1062)\
-    _MAKE( 623, "首记录前", "bof", bof, "如果指定记录集的当前记录指针已在首记录的前面，返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1063)\
-    _MAKE( 624, "尾记录后", "eof", eof, "如果指定记录集的当前记录指针已在尾记录的后面，返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1064)\
-    _MAKE( 625, "到首记录", "GoTop", GoTop, "将指定记录集的当前记录指针移动到第一条记录上。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1065)\
-    _MAKE( 626, "到尾记录", "GoBottom", GoBottom, "将指定记录集的当前记录指针移动到最后一条记录上。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1066)\
-    _MAKE( 627, "到前一记录", "GoPrev", GoPrev, "将指定记录集的当前记录指针向前移动一条记录。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1067)\
-    _MAKE( 628, "到后一记录", "GoNext", GoNext, "将指定记录集的当前记录指针向后移动一条记录。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1068)\
-    _MAKE( 629, "读", "r", r, "返回指定记录集的当前记录处指定字段的数据内容，所返回数据的类型与字段SQL类型对照表如下： 返回数据类型   字段SQL类型 -----------------", 22, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1069)\
-    _MAKE( 630, "执行", "ExecuteSql", ExecuteSql, "执行指定的非查询类SQL语句，SQL语句中的列名（尤其是中文列名）可用中括号括住。如果SQL语句中涉及到备注或者字节集型字段，请在相应位置加上问号，然后再加上对", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1071)\
-    _MAKE( 631, "打开MDB数据库", "OpenMDB", OpenMDB, "本命令是针对 ACCESS MDB 数据库的特定打开方法，通过自建 ODBC 连接文本来打开 MDB 数据库。调用本命令后无需再调用“打开”命令。成功返回真，失", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 1073)\
-    _MAKE( 632, "打开SQL数据库", "OpenSqlServerDB", OpenSqlServerDB, "本命令是针对 SQL SERVER 数据库的特定打开方法，通过自建 ODBC 连接文本来打开 SQL SERVER 数据库。调用本命令后无需再调用“打开”命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 6, g_argumentInfo_krnln_global_var + 1078)\
-    _MAKE( 633, "创建", "CreateObject", CreateObject, "创建指定类型的 COM 对象，本对象中的原有内容将被释放。成功返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1084)\
-    _MAKE( 634, "获取", "GetObject", GetObject, "获取当前操作系统中已经存在的指定类型 COM 对象，本对象中的原有内容将被释放。成功返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1086)\
-    _MAKE( 635, "清除", "Clear", Clear, "将本对象的内容释放并清空。如果不调用本方法，则对象在退出其作用区域时会自动被释放。例如：假设对象存在于子程序局部变量中，当子程序调用退出时，该对象会被自动释放。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 636, "是否为空", "IsEmpty", IsEmpty, "如果本对象的内容为空，返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 637, "是否相等", "IsEqual", IsEqual, "如果本对象的内容与指定对象的内容相等，返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1087)\
-    _MAKE( 638, "读文本属性", "GetTextProperty", GetTextProperty, "读取并返回本对象的指定文本类型属性值，如果失败将返回空文本，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1088)\
-    _MAKE( 639, "读数值属性", "GetNumProperty", GetNumProperty, "读取并返回本对象的指定数值类型属性值，如果失败将返回数值0，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_FLOAT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1090)\
-    _MAKE( 640, "读逻辑属性", "GetBoolProperty", GetBoolProperty, "读取并返回本对象的指定逻辑型属性值，如果失败将返回假，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1092)\
-    _MAKE( 641, "读日期属性", "GetDateProperty", GetDateProperty, "读取并返回本对象的指定日期时间型属性值，如果失败将返回100年1月1日，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_DATE_TIME, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1094)\
-    _MAKE( 642, "读对象型属性", "GetObjectProperty", GetObjectProperty, "读取并返回本对象的指定对象属性值，如果失败将返回内容为空的对象，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1096)\
-    _MAKE( 643, "读属性", "GetProperty", GetProperty, "读取并返回本对象的指定属性值，本方法可以用作读取任意类型的属性。如果失败将返回类型值为空的变体型对象，且紧跟其后执行“取错误”方法将返回非空文本，否则将返回包含", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1098)\
-    _MAKE( 644, "写属性", "SetProperty", SetProperty, "设置本对象指定属性的值，如果失败，返回假，并且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1100)\
-    _MAKE( 645, "方法", "RunMethod", RunMethod, "执行本对象的指定方法并忽略其返回值，如果失败，紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1102)\
-    _MAKE( 646, "通用方法", "RunVariantMethod", RunVariantMethod, "执行本对象的指定方法并返回一个变体型对象值，该对象内记录该方法的返回数据。本命令可以用作执行返回任何数据类型数据的方法，如果该方法没有返回数据，所返回变体型对象", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1104)\
-    _MAKE( 647, "文本方法", "RunTextMethod", RunTextMethod, "执行本对象返回文本类型数据的方法，如果失败将返回空文本，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1106)\
-    _MAKE( 648, "数值方法", "RunNumMethod", RunNumMethod, "执行本对象返回数值类型数据的方法，如果失败将返回数值0，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_FLOAT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1108)\
-    _MAKE( 649, "逻辑方法", "RunBoolMethod", RunBoolMethod, "执行本对象返回逻辑型数据的方法，如果失败将返回假，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1110)\
-    _MAKE( 650, "日期方法", "RunDateMethod", RunDateMethod, "执行本对象返回日期时间型数据的方法，如果失败将返回100年1月1日，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_DATE_TIME, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1112)\
-    _MAKE( 651, "对象型方法", "RunObjectMethod", RunObjectMethod, "执行本对象返回对象型数据的方法，如果失败将返回内容为空的对象，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以", 22, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1114)\
-    _MAKE( 652, "创建图片对象", "CreatePicDispObj", CreatePicDispObj, "为指定图片数据创建对应的 COM 图片对象，本对象中的原有内容将被释放。成功返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1116)\
-    _MAKE( 653, "创建字体对象", "CreateFontDispObj", CreateFontDispObj, "为指定字体数据创建对应的 COM 字体对象，本对象中的原有内容将被释放。成功返回真，否则返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1117)\
-    _MAKE( 654, "取回图片", "GetPic", GetPic, "如果本对象为 COM 图片对象，则取回其具体图片数据。成功返回图片数据字节集，失败返回空字节集。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 655, "取回字体", "GetFont", GetFont, "如果本对象为 COM 字体对象，则取回其具体字体数据。如果失败，紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 656, "取错误", "GetErrorText", GetErrorText, "当读写对象属性、执行对象方法或取回字体时，紧跟该语句后执行本方法可以检查其是否执行成功。如果成功，本命令将返回空文本，如果失败，本命令将返回一个描述具体错误信息", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 657, "查看", "ViewObjInf", ViewObjInf, "本命令仅在易程序的调试版本中被执行，在发布版本中将被直接跳过。 通过对话框的方式查看本对象的调用格式信息，便于编写相关程序。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 658, "取接口", "QueryInterface", QueryInterface, "获取指定对象或者OCX窗口组件中的指定接口，本对象中的原有内容将被释放。成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1118)\
-    _MAKE( 659, "清除", "Clear", Clear, "将本对象的内容释放并清空。如果不调用本方法，则对象在退出其作用区域时会自动被释放。例如：假设对象存在于子程序局部变量中，当子程序调用退出时，该对象会被自动释放。", 22, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 660, "取类型", "GetType", GetType, "取回当前变体型对象的数据类型。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 661, "取数组成员数", "GetElementCount", GetElementCount, "如果本对象中存放的是数组数据，执行本方法将返回其成员数目，如果不是数组数据，执行本方法将返回 -1 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
-    _MAKE( 662, "取文本", "GetText", GetText, "返回本对象中或本对象数组成员中的文本数据，如果当前数据的数据类型不为文本型，将自动进行转换，如果转换失败将返回空文本。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1120)\
-    _MAKE( 663, "取数值", "GetNum", GetNum, "返回本对象中或本对象数组成员中的数值数据，如果当前数据的数据类型不为数值或错误值型，将自动进行转换，如果转换失败将返回 0 。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_FLOAT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1121)\
-    _MAKE( 664, "取逻辑值", "GetBool", GetBool, "返回本对象中或本对象数组成员中的逻辑值数据，如果当前数据的数据类型不为逻辑型，将自动进行转换，如果转换失败将返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1122)\
-    _MAKE( 665, "取日期", "GetDateTime", GetDateTime, "返回本对象中或本对象数组成员中的日期时间值数据，如果当前数据的数据类型不为日期时间型，将自动进行转换，如果转换失败将返回100年1月1日。本命令为初级对象成员命", 22, _CMD_OS(__OS_WIN), SDT_DATE_TIME, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1123)\
-    _MAKE( 666, "取对象", "GetObject", GetObject, "返回本对象中或本对象数组成员中的COM对象型数据，如果当前数据的数据类型不为COM对象型，将返回空COM对象。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1124)\
-    _MAKE( 667, "取变体型", "GetVariant", GetVariant, "返回本对象中或本对象数组成员中的变体型数据类型数据，如果当前数据的数据类型不为变体型，将自动进行转换。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1125)\
-    _MAKE( 668, "赋值", "set", set, "设置本对象的内容，成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1126)\
-    _MAKE( 669, "创建数组", "CreateArray", CreateArray, "创建指定类型和指定成员数的空白数组，对象中的原有内容将被清空，成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1128)\
-    _MAKE( 670, "置类型", "SetType", SetType, "清除当前变体型对象中的原有内容，并改变它的数据类型，成功返回真，失败返回假。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1130)\
-    _MAKE( 671, "取字节集", "GetBin", GetBin, "返回本对象中或本对象数组成员中的字节集数据，如果当前数据的数据类型不为字节集型，将自动进行转换，如果转换失败将返回空字节集。本命令为初级对象成员命令。", 22, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1131)
+    _MAKE( 379, "取窗口句柄", "GetHWnd", GetHWnd, "取出本窗口或窗口组件的窗口句柄（即HWND）。本命令为高级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 380, "销毁", "destroy", destroy, "销毁本窗口或窗口组件。窗口被销毁后，所有在载入本窗口之后对本窗口及其内窗口组件所进行的修改或设置都将被抛弃，窗口被销毁后如想再次使用必须重新装载。注意：当窗口调", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 578)\
+    _MAKE( 381, "获取焦点", "SetFocus", SetFocus, "将焦点移动到窗口组件。如果对窗口使用本方法，窗口将自动把焦点转移到第一个有能力保留焦点的窗口组件上去。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 382, "可有焦点", "IsFocus", IsFocus, "如果当前窗口组件具有焦点，则返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 383, "取用户区宽度", "GetClientWidth", GetClientWidth, "返回窗口或窗口组件用户区域的宽度，单位为像素点。对窗口而言，用户区域为窗口区域减去标题栏、菜单栏、边框后的区域；对窗口组件而言，用户区域等同于其窗口组件区域。本", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 384, "取用户区高度", "GetClientHeight", GetClientHeight, "返回窗口或窗口组件用户区域的高度，单位为像素点。对窗口而言，用户区域为窗口区域减去标题栏、菜单栏、边框后的区域；对窗口组件而言，用户区域等同于其窗口组件区域。本", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 385, "禁止重画", "LockWindowUpdate", LockWindowUpdate, "禁止窗口或窗口组件重画，以避免当频繁进行操作时引起闪烁。注意调用本命令后必须调用“允许重画”命令进行恢复。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 386, "允许重画", "UnlockWindowUpdate", UnlockWindowUpdate, "重新允许被禁止的窗口或窗口组件重画。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 387, "重画", "invalidate", invalidate, "通知 Windows 系统本窗口或窗口组件上的显示内容需要在以后被全部重画。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 388, "部分重画", "InvalidateRect", InvalidateRect, "通知 Windows 系统本窗口或窗口组件上的显示内容需要在以后被部分重画。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 579)\
+    _MAKE( 389, "取消重画", "validate", validate, "通知 Windows 系统本窗口或窗口组件不再需要被重画，保留现有的全部显示内容。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 390, "刷新显示", "UpdateWindow", UpdateWindow, "如果本窗口或窗口组件上的显示内容需要被全部或部分重画，则立即进行重画更新，否则不进行任何操作直接返回。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 391, "移动", "move", move, "改变窗口或窗口组件的位置或尺寸。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 583)\
+    _MAKE( 392, "调整层次", "ZOrder", ZOrder, "改变窗口或窗口组件的现行所处层次。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 587)\
+    _MAKE( 393, "弹出菜单", "PopupMenu", PopupMenu, "用于在窗口上的当前鼠标位置或指定坐标位置显示弹出式菜单，如果调用对象为窗口组件，则自动使用其所在的窗口。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 588)\
+    _MAKE( 394, "发送信息", "SendMessage", SendMessage, "将指定信息发送到窗口或窗口组件，并等待且取回信息反馈值。本命令为中级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 591)\
+    _MAKE( 395, "投递信息", "PostMessage", PostMessage, "将指定信息发送到窗口或窗口组件，不等待直接返回。本命令为中级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 594)\
+    _MAKE( 396, "取标记组件", "GetSpecTagUnit", GetSpecTagUnit, "返回当前窗口中具有指定标记数值文本的组件。如果不存在，将产生运行时错误。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 597)\
+    _MAKE( 397, "置外形图片", "SetShapePic", SetShapePic, "使用图片来设置窗口的外形，注意图片类型不能为图标及鼠标指针。另外，图片的轮廓应该尽量简单，以免影响窗口的刷新速度。如果调用对象为窗口组件，将自动使用其所在的窗口", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 598)\
+    _MAKE( 398, "激活", "Activate", Activate, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 399, "置托盘图标", "SetTrayIcon", SetTrayIcon, "设置本程序在系统托盘中的图标。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 600)\
+    _MAKE( 400, "弹出托盘菜单", "PopupTrayMenu", PopupTrayMenu, "在当前鼠标位置弹出指定菜单，本命令一般用作支持托盘菜单的弹出。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 602)\
+    _MAKE( 401, "置父窗口", "SetParentWnd", SetParentWnd, "设置指定窗口或窗口组件为本对象窗口或窗口组件的父窗口。本命令为初级对象成员命令。 成员属性“标题”所在数据类型为“窗口”，英文名称为“caption”，类型为“", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 603)\
+    _MAKE( 402, "加入文本", "AddText", AddText, "将指定文本加入到编辑框内容的尾部。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。 成员属性“内容”所在数据类型为“编辑框”，英文名称为“co", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 604)\
+    _MAKE( 403, "取设备句柄", "GetHDC", GetHDC, "如当前用户程序正在处理本画板所产生的“绘画”事件，则返回画板所对应的设备句柄（即HDC），否则返回 0。本命令为高级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 404, "清除", "cls", cls, "清除画板上指定区域的内容并将当前文本写出位置移动到被清除区左上角。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 605)\
+    _MAKE( 405, "取点", "GetPixel", GetPixel, "返回画板上指定点的颜色值。如果失败，将返回 -1。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 609)\
+    _MAKE( 406, "画点", "SetPixel", SetPixel, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 611)\
+    _MAKE( 407, "画直线", "LineTo", LineTo, "使用画笔在画板上画出一条直线。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 614)\
+    _MAKE( 408, "画椭圆", "ellipse", ellipse, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 618)\
+    _MAKE( 409, "画弧线", "ArcTo", ArcTo, "使用画笔在画板上画出一条弧线。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 622)\
+    _MAKE( 410, "画弦", "chord", chord, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 630)\
+    _MAKE( 411, "画饼", "pie", pie, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 638)\
+    _MAKE( 412, "画矩形", "DrawRect", DrawRect, "使用画笔在画板上画出一个矩形，矩形的内部使用刷子填充。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 646)\
+    _MAKE( 413, "画渐变矩形", "DrawJBRect", DrawJBRect, "本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 7, g_argumentInfo_krnln_global_var + 650)\
+    _MAKE( 414, "填充矩形", "FillRect", FillRect, "将画板上指定的矩形区域用当前刷子填充。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 657)\
+    _MAKE( 415, "画圆角矩形", "RoundRect", RoundRect, "使用画笔在画板上画出一个圆角矩形，圆角矩形的内部使用刷子填充。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 6, g_argumentInfo_krnln_global_var + 661)\
+    _MAKE( 416, "翻转矩形区", "InvertRect", InvertRect, "将画板上指定矩形区域的颜色翻转过来。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 667)\
+    _MAKE( 417, "画多边形", "polygon", polygon, "如果所画的多边形没有闭合，将自动闭合。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 671)\
+    _MAKE( 418, "置写出位置", "SetWritePos", SetWritePos, "设置下次使用“写文本行”或“写出”命令输出数据时的位置。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 673)\
+    _MAKE( 419, "写文本行", "print", print, "在当前写出位置写出指定的文本、数值、逻辑值或日期时间，并将现行写出位置调整到下行行首。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 675)\
+    _MAKE( 420, "滚动写行", "sprint", sprint, "在当前写出位置写出指定的文本、数值、逻辑值或日期时间，并将现行写出位置调整到下行行首。如果现行画板高度无法容纳当前所要写出的行，则自动向上滚动画板内容。本命令为", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 676)\
+    _MAKE( 421, "写出", "write", write, "在当前写出位置处写出指定的文本、数值、逻辑值或日期时间。自动调整现行写出位置到所写出数据的末位置。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 677)\
+    _MAKE( 422, "定位写出", "say", say, "在指定写出位置处写出指定的文本、数值、逻辑值或日期时间，不改变现行写出位置。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 678)\
+    _MAKE( 423, "取宽度", "GetWidth", GetWidth, "返回指定数据的写出宽度，使用当前绘画单位。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 681)\
+    _MAKE( 424, "取高度", "GetHeight", GetHeight, "返回指定数据的写出高度，使用当前绘画单位。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 682)\
+    _MAKE( 425, "画图片", "DrawPic", DrawPic, "本命令为初级对象成员命令。 1、#拷贝； 2、#翻转拷贝； 3、#位异或； 4、#位或； 5、#位与 本参数也可以指定透明色，但必须是负颜色数值。如： 画板1.", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 6, g_argumentInfo_krnln_global_var + 683)\
+    _MAKE( 426, "取图片宽度", "GetPicWidth", GetPicWidth, "返回指定图片的宽度，使用当前绘画单位。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 689)\
+    _MAKE( 427, "取图片高度", "GetPicHeight", GetPicHeight, "返回指定图片的高度，使用当前绘画单位。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 690)\
+    _MAKE( 428, "复制", "copy", copy, "将源画板（本命令的调用画板对象）中指定区域的内容快速复制到目的画板中的指定位置，使用源和目的画板各自的当前绘画单位。如果源画板当前不可视，其“自动重画”属性必须", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 691)\
+    _MAKE( 429, "取图片", "GetPic", GetPic, "返回画板上所有现有显示内容的图片数据。如果失败，返回空字节集。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 699)\
+    _MAKE( 430, "单位转换", "UnitCnv", UnitCnv, "将像素单位座标值转换到当前绘画单位，或将当前绘画单位座标值转换到像素单位。本命令为初级对象成员命令。 成员属性“边框”所在数据类型为“画板”，英文名称为“bor", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 701)\
+    _MAKE( 431, "调用反馈事件", "SendLabelMsg", SendLabelMsg, "产生标签的反馈事件，以调用此标签的“反馈事件”用户事件处理子程序，可以用作在多线程处理中将控制权转移到程序主线程上去执行。返回用户事件处理子程序所返回的值，如果", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 703)\
+    _MAKE( 432, "取顶端可见项目", "GetTopIndex", GetTopIndex, "返回组合框列表部分中当前最顶端可见项目的索引。0 为项目一，1 为项目二，如此类推。失败返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 433, "置顶端可见项目", "SetTopIndex", SetTopIndex, "设置组合框列表部分中当前最顶端的可见项目，必要时将自动滚动组合框的列表部分。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 706)\
+    _MAKE( 434, "取项目数", "GetCount", GetCount, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 435, "取项目数值", "GetItemData", GetItemData, "返回与指定项目相关联的数值。如果指定项目不存在，将返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 707)\
+    _MAKE( 436, "置项目数值", "SetItemData", SetItemData, "设置与指定项目相关联的数值。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 708)\
+    _MAKE( 437, "取项目文本", "GetItemText", GetItemText, "返回指定项目的文本。如果指定项目不存在，将返回空文本。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 710)\
+    _MAKE( 438, "置项目文本", "SetItemtext", SetItemtext, "设置指定项目的文本。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 711)\
+    _MAKE( 439, "加入项目", "AddString", AddString, "加入指定项目到组合框列表部分的尾部，成功返回加入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 713)\
+    _MAKE( 440, "插入项目", "InsertString", InsertString, "插入指定项目到组合框列表部分的指定位置处，成功返回插入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 715)\
+    _MAKE( 441, "删除项目", "DeleteString", DeleteString, "删除组合框列表部分指定位置处的项目。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 718)\
+    _MAKE( 442, "清空", "clear", clear, "删除组合框列表部分中的所有项目。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 443, "选择", "SelItem", SelItem, "在所有项目中寻找首部包含指定文本的项目，如找到，则选中它，并返回该项目的位置索引，否则返回 -1。本命令为初级对象成员命令。 成员属性“类型”所在数据类型为“组", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 719)\
+    _MAKE( 444, "取顶端可见项目", "GetTopIndex", GetTopIndex, "返回列表框中当前最顶端可见项目的索引。0 为项目一，1 为项目二，如此类推。失败返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 445, "置顶端可见项目", "SetTopIndex", SetTopIndex, "设置列表框中当前最顶端的可见项目，必要时将自动滚动列表框。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 720)\
+    _MAKE( 446, "取项目数", "GetCount", GetCount, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 447, "取项目数值", "GetItemData", GetItemData, "返回与指定项目相关联的数值。如果指定项目不存在，将返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 721)\
+    _MAKE( 448, "置项目数值", "SetItemData", SetItemData, "设置与指定项目相关联的数值。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 722)\
+    _MAKE( 449, "取项目文本", "GetItemText", GetItemText, "返回指定项目的文本。如果指定项目不存在，将返回空文本。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 724)\
+    _MAKE( 450, "置项目文本", "SetItemtext", SetItemtext, "设置指定项目的文本。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 725)\
+    _MAKE( 451, "取已选择项目数", "GetSelCount", GetSelCount, "返回已被选择项目的数目。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 452, "取所有被选择项目", "GetSelItems", GetSelItems, "返回一个整数数组，內含所有当前被选择项目的位置索引。如果当前没有被选择项目，返回空数组。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 453, "是否被选择", "IsSelected", IsSelected, "如果指定项目被选择，则返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 727)\
+    _MAKE( 454, "选择项目", "select", select, "选择或取消选择指定项目。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 728)\
+    _MAKE( 455, "取焦点项目", "GetCaretIndex", GetCaretIndex, "本命令仅在多选列表框中使用，用作返回当前焦点项目的位置索引。如果在单选列表框中使用本命令，将返回当前被选择项目的位置索引。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 456, "置焦点项目", "SetCaretIndex", SetCaretIndex, "本命令仅在多选列表框中使用，用作设置当前焦点项目。如果在单选列表框中使用本命令，将设置当前被选择项目。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 730)\
+    _MAKE( 457, "加入项目", "AddString", AddString, "加入指定项目到列表框的尾部，成功返回加入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 731)\
+    _MAKE( 458, "插入项目", "InsertString", InsertString, "插入指定项目到列表框的指定位置处，成功返回插入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 733)\
+    _MAKE( 459, "删除项目", "DeleteString", DeleteString, "删除列表框指定位置处的项目。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 736)\
+    _MAKE( 460, "清空", "clear", clear, "删除列表框中的所有项目。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 461, "选择", "SelItem", SelItem, "在所有项目中寻找首部包含指定文本的项目，如找到，则选中它，并返回该项目的位置索引，否则返回 -1 。本命令仅在单选列表框中使用，如果在多选列表框中使用，将返回 ", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 737)\
+    _MAKE( 462, "取顶端可见项目", "GetTopIndex", GetTopIndex, "返回列表框中当前最顶端可见项目的索引。0 为项目一，1 为项目二，如此类推。失败返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 463, "置顶端可见项目", "SetTopIndex", SetTopIndex, "设置列表框中当前最顶端的可见项目，必要时将自动滚动列表框。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 738)\
+    _MAKE( 464, "取项目数", "GetCount", GetCount, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 465, "取项目数值", "GetItemData", GetItemData, "返回与指定项目相关联的数值。如果指定项目不存在，将返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 739)\
+    _MAKE( 466, "置项目数值", "SetItemData", SetItemData, "设置与指定项目相关联的数值。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 740)\
+    _MAKE( 467, "取项目文本", "GetItemText", GetItemText, "返回指定项目的文本。如果指定项目不存在，将返回空文本。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 742)\
+    _MAKE( 468, "置项目文本", "SetItemtext", SetItemtext, "设置指定项目的文本。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 743)\
+    _MAKE( 469, "加入项目", "AddString", AddString, "加入指定项目到列表框的尾部，成功返回加入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 745)\
+    _MAKE( 470, "插入项目", "InsertString", InsertString, "插入指定项目到列表框的指定位置处，成功返回插入后该项目所处的位置，失败返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 747)\
+    _MAKE( 471, "删除项目", "DeleteString", DeleteString, "删除列表框指定位置处的项目。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 750)\
+    _MAKE( 472, "清空", "clear", clear, "删除列表框中的所有项目。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 473, "选择", "SelItem", SelItem, "在所有项目中寻找首部包含指定文本的项目，如找到，则选中它，并返回该项目的位置索引，否则返回 -1。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 751)\
+    _MAKE( 474, "是否被选中", "IsChecked", IsChecked, "如果与指定项目对应的选择框被选中，则返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 752)\
+    _MAKE( 475, "选中项目", "SetCheck", SetCheck, "选中或取消选中与指定项目对应的选择框。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 753)\
+    _MAKE( 476, "是否被允许", "IsEnabled", IsEnabled, "如果与指定项目对应的选择框被允许操作，则返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 755)\
+    _MAKE( 477, "允许", "enable", enable, "允许或禁止对指定项目进行选择操作。成功返回真，失败返回假。本命令为初级对象成员命令。 成员属性“边框”所在数据类型为“选择列表框”，英文名称为“border”，", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 756)\
+    _MAKE( 478, "取子夹数目", "GetCount", GetCount, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 479, "取子夹名称", "GetName", GetName, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 758)\
+    _MAKE( 480, "置子夹名称", "SetName", SetName, "置入成功返回真，否则返回假。本命令为初级对象成员命令。 成员属性“表头方向”所在数据类型为“选择夹”，英文名称为“HeaderWay”，类型为“整数型（int）", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 759)\
+    _MAKE( 481, "跳转", "goto", goto_, "跳转到指定的邮件或 Internet 地址。本命令为初级对象成员命令。 成员属性“标题”所在数据类型为“超级链接框”，英文名称为“caption”，类型为“文本", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 482, "打开", "open", open, "打开当前类型的对话框，返回一个逻辑值。对于类型为“打开文件”、“保存文件”、“字体选择”的对话框，如果为真，表示用户已通过该对话框输入了有效数据，否则表示用户取", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 483, "取设备句柄", "GetHDC", GetHDC, "如当前用户程序正在进行打印作业，则返回对应的打印机设备句柄（即HDC），否则返回 0。本命令为高级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 484, "开始打印", "StartDoc", StartDoc, "返回真表示已经成功地进入了打印作业，进入打印作业后文本写出位置将被重置为 0 。如果执行本命令时已经在打印作业中或者用户在打印设置对话框中选择了取消，返回假。进", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 6, g_argumentInfo_krnln_global_var + 761)\
+    _MAKE( 485, "结束打印", "EndDoc", EndDoc, "如果当前已经进入了打印作业，调用本命令可完成此作业。结束打印后易程序进行的后续打印绘画操作都将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 486, "取消打印", "AbortDoc", AbortDoc, "如果当前已经进入了打印作业，调用本命令可立即中止且取消该作业。如果操作系统的打印管理器正在处理该打印作业（打印管理器正在运行并且允许后台打印），那么该作业将被删", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 487, "换页", "NewPage", NewPage, "调用本命令使打印机完成当前页的打印，文本写出位置被重置为 0 ，并走纸到下一页左上角。如果换页成功返回真，否则将自动取消打印并返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 488, "开始下一份", "NewCopy", NewCopy, "调用本命令后将结束在当前页上的打印作业，并将当前打印份数加一，当前页号置回到首页页号，以进入下一份拷贝的打印。如果成功返回真，失败将自动取消打印并返回假。本命令", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 489, "画点", "SetPixel", SetPixel, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 767)\
+    _MAKE( 490, "画直线", "LineTo", LineTo, "使用画笔在画板上画出一条直线。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 770)\
+    _MAKE( 491, "画椭圆", "ellipse", ellipse, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 774)\
+    _MAKE( 492, "画弧线", "ArcTo", ArcTo, "使用画笔在画板上画出一条弧线。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 778)\
+    _MAKE( 493, "画弦", "chord", chord, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 786)\
+    _MAKE( 494, "画饼", "pie", pie, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 8, g_argumentInfo_krnln_global_var + 794)\
+    _MAKE( 495, "画矩形", "DrawRect", DrawRect, "使用画笔在画板上画出一个矩形，矩形的内部使用刷子填充。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 802)\
+    _MAKE( 496, "画渐变矩形", "DrawJBRect", DrawJBRect, "本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 7, g_argumentInfo_krnln_global_var + 806)\
+    _MAKE( 497, "填充矩形", "FillRect", FillRect, "将画板上指定的矩形区域用当前刷子填充。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 813)\
+    _MAKE( 498, "画圆角矩形", "RoundRect", RoundRect, "使用画笔在画板上画出一个圆角矩形，圆角矩形的内部使用刷子填充。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 6, g_argumentInfo_krnln_global_var + 817)\
+    _MAKE( 499, "画多边形", "polygon", polygon, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 823)\
+    _MAKE( 500, "置写出位置", "SetWritePos", SetWritePos, "设置下次使用“写文本行”或“写出”命令输出数据时的位置。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 825)\
+    _MAKE( 501, "写文本行", "print", print, "在当前写出位置写出指定的文本、数值、逻辑值或日期时间，并将现行写出位置调整到下行行首。支持自动换页。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 827)\
+    _MAKE( 502, "写出", "write", write, "在当前写出位置处写出指定的文本、数值、逻辑值或日期时间。自动调整现行写出位置到所写出数据的末位置。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 828)\
+    _MAKE( 503, "定位写出", "say", say, "在指定写出位置处写出指定的文本、数值、逻辑值或日期时间，不改变现行写出位置。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 829)\
+    _MAKE( 504, "取宽度", "GetWidth", GetWidth, "返回指定数据的写出宽度，使用当前绘画单位。如果调用本命令时尚未进入打印，将返回 0 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 832)\
+    _MAKE( 505, "取高度", "GetHeight", GetHeight, "返回指定数据的写出高度，使用当前绘画单位。如果调用本命令时尚未进入打印，将返回 0 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 833)\
+    _MAKE( 506, "画图片", "DrawPic", DrawPic, "本命令为初级对象成员命令。 1、#拷贝； 2、#翻转拷贝； 3、#位异或； 4、#位或； 5、#位与 本参数也可以指定透明色，但必须是负颜色数值。如： 画板1.", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 7, g_argumentInfo_krnln_global_var + 834)\
+    _MAKE( 507, "取图片宽度", "GetPicWidth", GetPicWidth, "返回指定图片的宽度。如果调用本命令时尚未进入打印，使用像素点为单位，否则使用当前绘画单位。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 841)\
+    _MAKE( 508, "取图片高度", "GetPicHeight", GetPicHeight, "返回指定图片的高度。如果调用本命令时尚未进入打印，使用像素点为单位，否则使用当前绘画单位。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 842)\
+    _MAKE( 509, "置自定义纸张类型", "SetCustomPaperType", SetCustomPaperType, "添加或修改自定义纸张类型。本方法仅在Windows NT/2000/XP下有效，且要求具有打印机驱动的完全控制权限。注意：太小或太大的纸张大小和页边距，可能不被", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 7, g_argumentInfo_krnln_global_var + 843)\
+    _MAKE( 510, "删除自定义纸张类型", "DeleteCustomPaperType", DeleteCustomPaperType, "删除指定自定义纸张类型。本方法仅在Windows NT/2000/XP下有效，且要求具有打印机驱动的完全控制权限。本命令为高级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 850)\
+    _MAKE( 511, "取自定义纸张大小", "GetCustomPaperType", GetCustomPaperType, "取指定自定义纸张类型的纸张大小及边距，并写入后面的六个参数中。如果指定的自定义纸张类型不存在，返回“假”。本方法仅在Windows NT/2000/XP下有效，", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 7, g_argumentInfo_krnln_global_var + 851)\
+    _MAKE( 512, "取所有纸张类型", "SetCustomPaperType", SetCustomPaperType, "取当前默认打印机所支持的所有纸张类型（包括系统定义纸张类型和自定义纸张类型），返回一维文本数组，其中存放了的各纸张类型的名称。本方法仅在Windows NT/2", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 513, "单位转换", "UnitCnv", UnitCnv, "将像素单位座标值转换到当前绘画单位，或将当前绘画单位座标值转换到像素单位。注意在执行本方法之前，必须已经开始打印。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 858)\
+    _MAKE( 514, "取设备名称", "GetPrinterDeviceName", GetPrinterDeviceName, "如果已经开始打印，则返回当前打印机设备的名称。本命令为高级对象成员命令。 成员属性“绘画单位”所在数据类型为“打印机”，英文名称为“unit”，类型为“整数型（", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 515, "发送数据", "send", send, "发送数据到指定主机上的指定端口。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 860)\
+    _MAKE( 516, "取回数据", "recv", recv, "取回所接收到的数据。本命令必须在“数据到达”事件的处理子程序中使用。本命令为初级对象成员命令。 成员属性“端口”所在数据类型为“数据报”，英文名称为“port”", -1, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 517, "连接", "connect", connect, "连接到指定主机上的指定端口，该主机上的该端口必须已经被某一服务器组件监听。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 863)\
+    _MAKE( 518, "断开连接", "CloseConnect", CloseConnect, "断开与服务器的已有连接。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 519, "发送数据", "send", send, "在成功建立与服务器的连接后，发送数据到服务器端组件。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 865)\
+    _MAKE( 520, "取回数据", "recv", recv, "取回所接收到的数据。本命令必须在“数据到达”事件的处理子程序中使用。本命令为初级对象成员命令。 事件名称：数据到达 当服务器端将数据发送过来后，会产生本事件。在", -1, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 521, "取回数据", "recv", recv, "取回所接收到的数据。本命令必须在“数据到达”事件的处理子程序中使用。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 522, "取回客户", "GetClient", GetClient, "当接收到“客户进入”、“客户离开”或“数据到达”事件时，在该事件的处理子程序中可调用本方法取回对应的客户地址（IP地址 + 端口）。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 523, "发送数据", "send", send, "向指定已经连接进来的客户发送数据。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 866)\
+    _MAKE( 524, "断开客户", "CloseClient", CloseClient, "断开与指定客户之间的连接。本命令为初级对象成员命令。 成员属性“端口”所在数据类型为“服务器”，英文名称为“port”，类型为“整数型（int）”。 指定监听数", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 869)\
+    _MAKE( 525, "启动", "start", start, "启动或重新启动对指定端口的操作。在对端口进行操作之前必须首先启动，如在端口启动后又更改了端口属性必须重新启动。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 526, "停止", "stop", stop, "关闭已经启动的指定端口。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 527, "发送数据", "send", send, "从端口发送指定的数据。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 870)\
+    _MAKE( 528, "信号操作", "Signal", Signal, "本命令可以设置或清除通讯端口上指定信号的状态。成功返回真，失败返回假。本命令为初级对象成员命令。 成员属性“端口号”所在数据类型为“端口”，英文名称为“port", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 871)\
+    _MAKE( 529, "置光标", "SetCaret", SetCaret, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 873)\
+    _MAKE( 530, "选择", "Select", Select, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 875)\
+    _MAKE( 531, "全部选择", "SelectAll", SelectAll, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 532, "取光标行号", "CaretRow", CaretRow, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 533, "取光标列号", "CaretCol", CaretCol, "本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 534, "取选择行数", "SelectRows", SelectRows, "被选择的行区域起始于光标所在行。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 535, "取选择列数", "SelectCols", SelectCols, "被选择的列区域起始于光标所在列。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 536, "等宽缩放", "InWin", InWin, "将表格内容缩放到与表格窗口等宽显示。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 537, "全部复制", "CopyAll", CopyAll, "复制所有表格数据到剪贴板。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 538, "复制", "Copy", Copy, "复制指定区域表格数据到剪贴板。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 879)\
+    _MAKE( 539, "粘贴到光标处", "PasteToCaret", PasteToCaret, "粘贴剪贴板中的表格数据到当前光标处。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 540, "粘贴", "Paste", Paste, "粘贴剪贴板中的表格数据到指定位置。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 883)\
+    _MAKE( 541, "打印", "Print", Print, "打印表格数据到打印机。注意欲设置打印份数等打印设置信息请到与表格相连接的数据源中设置。成功返回空文本，失败(不包含操作者中断打印)返回非空错误文本。本命令为初级", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 885)\
+    _MAKE( 542, "打印预览", "PrintPreview", PrintPreview, "本命令为初级对象成员命令。 成员属性“数据源”所在数据类型为“表格”，英文名称为“DataSource”，类型为“文本型（text）”。 指定提供数据的数据源组", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 543, "到首记录", "GoTop", GoTop, "将数据源中当前记录指针移动到第一条记录上。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 544, "到尾记录", "GoBottom", GoBottom, "将数据源中当前记录指针移动到最后一条记录上。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 545, "跳过", "skip", skip, "将数据源中当前记录指针向前或者向后移动数条记录。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 887)\
+    _MAKE( 546, "跳到", "goto", goto_, "改变数据源中的当前记录指针到指定的记录号。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 888)\
+    _MAKE( 547, "取记录号", "RecNO", RecNO, "返回数据源当前记录指针所指向记录的记录号。记录号从1开始。如果当前记录指针无效，所返回记录号为0。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 548, "取表头行数", "GetFixedRowCount", GetFixedRowCount, "返回当以表格的形式表现数据源中的数据时表头所占的行数。表头行在表格中显示时不会滚动，在打印时会自动打印在每一页的顶部。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 549, "置表头行数", "SetFixedRowCount", SetFixedRowCount, "设置当以表格的形式表现数据源中的数据时表头所占的行数。表头行在表格中显示时不会滚动，在打印时会自动打印在每一页的顶部。注意如果数据源所使用的数据提供者不支持此特", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 889)\
+    _MAKE( 550, "取表头列数", "GetFixedColCount", GetFixedColCount, "返回当以表格的形式表现数据源中的数据时表头所占的列数。表头列在表格中显示时不会滚动。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 551, "置表头列数", "SetFixedColCount", SetFixedColCount, "设置当以表格的形式表现数据源中的数据时表头所占的列数。表头列在表格中显示时不会滚动。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 890)\
+    _MAKE( 552, "取行高", "GetRowHeight", GetRowHeight, "返回数据源中指定行在表现时的高度，单位为0.1毫米。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 891)\
+    _MAKE( 553, "置行高", "SetRowHeight", SetRowHeight, "设置数据源中数据行在表现时的高度，单位为0.1毫米。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 892)\
+    _MAKE( 554, "取列宽", "GetColWidth", GetColWidth, "返回数据源中指定列在表现时的宽度，单位为0.1毫米。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 895)\
+    _MAKE( 555, "置列宽", "SetColWidth", SetColWidth, "设置数据源中数据列在表现时的宽度，单位为0.1毫米。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 896)\
+    _MAKE( 556, "取类型", "GetType", GetType, "返回数据源中指定单元格的数据类型。返回值为以下常量值之一： 1、#文本； 2、#图片文件名； 3、#图片数据； 4、#字节集数据。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 899)\
+    _MAKE( 557, "置类型", "SetType", SetType, "设置数据源中指定单元格的数据类型。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 901)\
+    _MAKE( 558, "取文本色", "GetTextColor", GetTextColor, "返回数据源中指定单元格在表现时的文本颜色。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 906)\
+    _MAKE( 559, "置文本色", "SetTextColor", SetTextColor, "设置数据源中指定单元格在表现时的文本颜色。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 908)\
+    _MAKE( 560, "取背景色", "GetBackground", GetBackground, "返回数据源中指定单元格在表现时的背景颜色。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 913)\
+    _MAKE( 561, "置背景色", "SetBackground", SetBackground, "设置数据源中指定单元格在表现时的背景颜色。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 915)\
+    _MAKE( 562, "取字体名", "GetFontName", GetFontName, "返回数据源中指定单元格在表现时所使用字体的名称。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 920)\
+    _MAKE( 563, "置字体名", "SetFontName", SetFontName, "设置数据源中指定单元格在表现时所使用字体的名称。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 922)\
+    _MAKE( 564, "取字体尺寸", "GetFontSize", GetFontSize, "返回数据源中指定单元格在表现时所使用字体的尺寸，单位为0.1毫米。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 927)\
+    _MAKE( 565, "置字体尺寸", "SetFontSize", SetFontSize, "设置数据源中指定单元格在表现时所使用字体的尺寸，单位为0.1毫米。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 929)\
+    _MAKE( 566, "取字体属性", "GetFontAttr", GetFontAttr, "返回数据源中指定单元格在表现时所使用字体的属性。返回值为以下常量值之一或之和： 1、#粗体； 2、#斜体； 4、#下划线； 8、#删除线。本命令为初级对象成员命", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 934)\
+    _MAKE( 567, "置字体属性", "SetFontAttr", SetFontAttr, "设置数据源中指定单元格在表现时所使用字体的属性。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 936)\
+    _MAKE( 568, "取边距", "GetExtra", GetExtra, "返回数据源中指定单元格在表现其中数据时至其单元格边框之间的空白距离，单位为0.1毫米。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 941)\
+    _MAKE( 569, "置边距", "SetExtra", SetExtra, "设置数据源中指定单元格在表现其中数据时至其单元格边框之间的空白距离，单位为0.1毫米。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 943)\
+    _MAKE( 570, "取文本输入格式", "GetInputType", GetInputType, "返回数据源中某文本型单元格的输入格式。当新的数据通过输入方式更新到该单元格内之前，将首先自动根据此格式转换。返回值为以下常量值之一： 0、#通常型； 1、#字节", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 948)\
+    _MAKE( 571, "置文本输入格式", "SetInputType", SetInputType, "设置数据源中某文本型单元格的输入格式。当新的数据通过输入方式更新到该单元格内之前，将首先自动根据此格式转换。注意如果数据源所使用的数据提供者不支持此特性，本命令", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 950)\
+    _MAKE( 572, "取对齐方式", "GetAlignMode", GetAlignMode, "返回数据源中指定单元格在表现时所使用的对齐方式。返回值为以下常量值之一： 1、#上左； 2、#上中； 3、#上右； 4、#中左； 5、#中中； 6、#中右； 7", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 955)\
+    _MAKE( 573, "置对齐方式", "SetAlignMode", SetAlignMode, "设置数据源中指定单元格在表现时所使用的对齐方式。注意如果数据源所使用的数据提供者不支持某些属性，该属性将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 957)\
+    _MAKE( 574, "取密码方式", "GetPwdMode", GetPwdMode, "返回数据源中指定单元格在表现时是否使用密码方式。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 962)\
+    _MAKE( 575, "置密码方式", "SetPwdMode", SetPwdMode, "如设置值为真，则数据源中指定单元格在表现时以密码字符呈现。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 964)\
+    _MAKE( 576, "取文本", "GetText", GetText, "返回数据源中指定单元格的文本内容。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 969)\
+    _MAKE( 577, "置文本", "SetText", SetText, "设置数据源中指定单元格的文本内容，注意该单元格类型必须为“#文本”或“#图片文件名”。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 971)\
+    _MAKE( 578, "取数据", "GetData", GetData, "返回数据源中指定单元格的图片或字节集数据内容。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 974)\
+    _MAKE( 579, "置数据", "SetData", SetData, "设置数据源中指定单元格的图片或字节集数据内容，注意该单元格类型必须为“#图片数据”或“#字节集数据”。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 976)\
+    _MAKE( 580, "合并", "Cmb", Cmb, "组合数据源中指定范围内的单元格，使之以一个单元格的形式表现。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 979)\
+    _MAKE( 581, "分解", "Split", Split, "分解数据源中指定的已经组合的单元格，行列参数指向被组合单元格内的任何一个单元格即可。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 983)\
+    _MAKE( 582, "是否被合并", "HasCmb", HasCmb, "如果数据源中指定单元格与周边指定单元格有组合关系，返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 985)\
+    _MAKE( 583, "加线条", "AddLine", AddLine, "为数据源中指定范围内单元格添加线条。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 988)\
+    _MAKE( 584, "删线条", "RemoveLine", RemoveLine, "将数据源中指定范围内单元格内的线条去除。注意如果数据源所使用的数据提供者不支持此特性，本命令将被忽略。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 993)\
+    _MAKE( 585, "是否有线条", "HasLine", HasLine, "如果数据源中指定单元格有指定线条，返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 998)\
+    _MAKE( 586, "清除", "EmptyCell", EmptyCell, "清除数据源中指定范围内单元格内容为空文本。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 1001)\
+    _MAKE( 587, "置初始属性", "SetInitData", SetInitData, "设置在数据源中初始或者添加新单元格时默认的单元格初始属性。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 10, g_argumentInfo_krnln_global_var + 1005)\
+    _MAKE( 588, "初始尺寸", "InitSize", InitSize, "初始数据源中数据的行列数，注意数据源中所有原有数据将被清除。注意某些数据提供者可能不支持此方法。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1015)\
+    _MAKE( 589, "取行数", "GetRowCount", GetRowCount, "返回数据源中现行数据行数。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 590, "取列数", "GetColCount", GetColCount, "返回数据源中现行数据列数。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 591, "插入行", "InsertRow", InsertRow, "在数据源中指定位置处插入新数据行。注意某些数据提供者可能不支持在中间插入行。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1017)\
+    _MAKE( 592, "添加行", "AppendRow", AppendRow, "在数据源中最后一行后插入新数据行。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1019)\
+    _MAKE( 593, "删除行", "RemoveRow", RemoveRow, "在数据源中指定位置处删除数据行。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1020)\
+    _MAKE( 594, "插入列", "InsertCol", InsertCol, "在数据源中指定位置处插入新数据列。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1022)\
+    _MAKE( 595, "删除列", "RemoveCol", RemoveCol, "在数据源中指定位置处删除数据列。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1024)\
+    _MAKE( 596, "添加", "Append", Append, "将指定其它数据源或者数据提供者中的数据添加到本数据源的尾部。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 1026)\
+    _MAKE( 597, "存到字节集", "SaveDS", SaveDS, "将数据源中所有现有数据保存在字节集中返回。如果失败，将返回空字节集。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 598, "从字节集读", "LoadDS", LoadDS, "将指定字节集内的数据源数据写入到数据源中，数据源内所有原有数据将被清除。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1029)\
+    _MAKE( 599, "存到文件", "SaveDSFile", SaveDSFile, "将数据源中所有现有数据保存到指定文件中。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1030)\
+    _MAKE( 600, "从文件读", "LoadDSFile", LoadDSFile, "将指定文件内的数据源数据写入到数据源中，数据源内所有原有数据将被清除。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1031)\
+    _MAKE( 601, "单元格到字节集", "SaveDSCell", SaveDSCell, "将数据源中指定范围内单元格数据保存在字节集中返回。如果失败，将返回空字节集。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 1032)\
+    _MAKE( 602, "字节集到单元格", "LoadDSCell", LoadDSCell, "将指定字节集内的单元格数据写入到数据源中指定位置。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 1036)\
+    _MAKE( 603, "单元格到文件", "SaveDSCellFile", SaveDSCellFile, "将数据源中指定范围内单元格数据保存到指定文件中。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 1040)\
+    _MAKE( 604, "文件到单元格", "LoadDSCellFile", LoadDSCellFile, "将指定文件内的单元格数据写入到数据源中指定位置。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_krnln_global_var + 1045)\
+    _MAKE( 605, "刷新", "Refrush", Refrush, "通知所有基于本数据源的数据处理者，使其自动从数据源重新获取并显示数据。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 606, "保存更改", "SaveChange", SaveChange, "通知所有基于本数据源的数据处理者，使其自动将处理或更改后的数据写回到数据源中。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 607, "打印设置", "SetupPrinter", SetupPrinter, "调用对话框设置数据的打印配置信息。当操作者按确认按钮退出对话框时返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 608, "取打印设置", "GetPrintInf", GetPrintInf, "返回打印数据源数据时所将使用的设置信息。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 609, "置打印设置", "SetPrintInf", SetPrintInf, "设置打印数据源数据时所将使用的设置信息。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1049)\
+    _MAKE( 610, "取打印页宽", "GetPageWidth", GetPageWidth, "返回打印数据源数据时所将使用打印纸的正文区域宽度，单位为0.1毫米。注意：1、此宽度不包含页边距；2、“打印设置”命令执行后，如果操作者改变了纸张类型，此值将自", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 611, "取打印页高", "GetPageHeight", GetPageHeight, "返回打印数据源数据时所将使用打印纸的正文区域高度，单位为0.1毫米。注意：1、此宽度不包含页边距；2、“打印设置”命令执行后，如果操作者改变了纸张类型，此值将自", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 612, "取只读方式", "GetReadOnly", GetReadOnly, "返回数据源中指定单元格在表现时是否只读。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1050)\
+    _MAKE( 613, "置只读方式", "SetReadOnly", SetReadOnly, "如设置值为真，则数据源中指定单元格在表现时只能读取而不能写入。注意： 1、如果数据处理者不支持此特性，则本属性无效； 2、如果数据提供者不支持此特性，本命令将被", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 1052)\
+    _MAKE( 614, "打开", "open", open, "打开指定的ODBC数据源以供以后操作。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_krnln_global_var + 1057)\
+    _MAKE( 615, "关闭", "close", close, "关闭当前被打开的数据库。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 616, "取连接文本", "GetConnect", GetConnect, "返回当前被打开数据库的ODBC数据源连接文本。失败返回空文本。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 617, "启动事务", "BeginTrans", BeginTrans, "启动当前被打开数据库的事务，成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 618, "回滚事务", "RollbackTrans", RollbackTrans, "回滚当前被打开数据库的事务，所有在上一次事务提交前对数据库所作的修改均被取消。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 619, "提交事务", "CommitTrans", CommitTrans, "提交当前被打开数据库的事务。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 620, "查询", "query", query, "对当前被打开数据库进行数据查询，成功返回结果记录集句柄，失败返回0。注意当不再使用此记录集时，必须使用“关闭记录集”命令将其关闭。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1060)\
+    _MAKE( 621, "重新查询", "Requery", Requery, "对指定的记录集进行重新查询，并将其当前记录指针重定位到首记录。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1061)\
+    _MAKE( 622, "关闭记录集", "CloseRecordset", CloseRecordset, "关闭指定的记录集。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1062)\
+    _MAKE( 623, "首记录前", "bof", bof, "如果指定记录集的当前记录指针已在首记录的前面，返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1063)\
+    _MAKE( 624, "尾记录后", "eof", eof, "如果指定记录集的当前记录指针已在尾记录的后面，返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1064)\
+    _MAKE( 625, "到首记录", "GoTop", GoTop, "将指定记录集的当前记录指针移动到第一条记录上。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1065)\
+    _MAKE( 626, "到尾记录", "GoBottom", GoBottom, "将指定记录集的当前记录指针移动到最后一条记录上。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1066)\
+    _MAKE( 627, "到前一记录", "GoPrev", GoPrev, "将指定记录集的当前记录指针向前移动一条记录。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1067)\
+    _MAKE( 628, "到后一记录", "GoNext", GoNext, "将指定记录集的当前记录指针向后移动一条记录。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1068)\
+    _MAKE( 629, "读", "r", r, "返回指定记录集的当前记录处指定字段的数据内容，所返回数据的类型与字段SQL类型对照表如下： 返回数据类型   字段SQL类型 -----------------", -1, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1069)\
+    _MAKE( 630, "执行", "ExecuteSql", ExecuteSql, "执行指定的非查询类SQL语句，SQL语句中的列名（尤其是中文列名）可用中括号括住。如果SQL语句中涉及到备注或者字节集型字段，请在相应位置加上问号，然后再加上对", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1071)\
+    _MAKE( 631, "打开MDB数据库", "OpenMDB", OpenMDB, "本命令是针对 ACCESS MDB 数据库的特定打开方法，通过自建 ODBC 连接文本来打开 MDB 数据库。调用本命令后无需再调用“打开”命令。成功返回真，失", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 5, g_argumentInfo_krnln_global_var + 1073)\
+    _MAKE( 632, "打开SQL数据库", "OpenSqlServerDB", OpenSqlServerDB, "本命令是针对 SQL SERVER 数据库的特定打开方法，通过自建 ODBC 连接文本来打开 SQL SERVER 数据库。调用本命令后无需再调用“打开”命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 6, g_argumentInfo_krnln_global_var + 1078)\
+    _MAKE( 633, "创建", "CreateObject", CreateObject, "创建指定类型的 COM 对象，本对象中的原有内容将被释放。成功返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1084)\
+    _MAKE( 634, "获取", "GetObject", GetObject, "获取当前操作系统中已经存在的指定类型 COM 对象，本对象中的原有内容将被释放。成功返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1086)\
+    _MAKE( 635, "清除", "Clear", Clear, "将本对象的内容释放并清空。如果不调用本方法，则对象在退出其作用区域时会自动被释放。例如：假设对象存在于子程序局部变量中，当子程序调用退出时，该对象会被自动释放。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 636, "是否为空", "IsEmpty", IsEmpty, "如果本对象的内容为空，返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 637, "是否相等", "IsEqual", IsEqual, "如果本对象的内容与指定对象的内容相等，返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1087)\
+    _MAKE( 638, "读文本属性", "GetTextProperty", GetTextProperty, "读取并返回本对象的指定文本类型属性值，如果失败将返回空文本，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1088)\
+    _MAKE( 639, "读数值属性", "GetNumProperty", GetNumProperty, "读取并返回本对象的指定数值类型属性值，如果失败将返回数值0，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_FLOAT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1090)\
+    _MAKE( 640, "读逻辑属性", "GetBoolProperty", GetBoolProperty, "读取并返回本对象的指定逻辑型属性值，如果失败将返回假，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1092)\
+    _MAKE( 641, "读日期属性", "GetDateProperty", GetDateProperty, "读取并返回本对象的指定日期时间型属性值，如果失败将返回100年1月1日，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_DATE_TIME, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1094)\
+    _MAKE( 642, "读对象型属性", "GetObjectProperty", GetObjectProperty, "读取并返回本对象的指定对象属性值，如果失败将返回内容为空的对象，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1096)\
+    _MAKE( 643, "读属性", "GetProperty", GetProperty, "读取并返回本对象的指定属性值，本方法可以用作读取任意类型的属性。如果失败将返回类型值为空的变体型对象，且紧跟其后执行“取错误”方法将返回非空文本，否则将返回包含", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1098)\
+    _MAKE( 644, "写属性", "SetProperty", SetProperty, "设置本对象指定属性的值，如果失败，返回假，并且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1100)\
+    _MAKE( 645, "方法", "RunMethod", RunMethod, "执行本对象的指定方法并忽略其返回值，如果失败，紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1102)\
+    _MAKE( 646, "通用方法", "RunVariantMethod", RunVariantMethod, "执行本对象的指定方法并返回一个变体型对象值，该对象内记录该方法的返回数据。本命令可以用作执行返回任何数据类型数据的方法，如果该方法没有返回数据，所返回变体型对象", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1104)\
+    _MAKE( 647, "文本方法", "RunTextMethod", RunTextMethod, "执行本对象返回文本类型数据的方法，如果失败将返回空文本，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1106)\
+    _MAKE( 648, "数值方法", "RunNumMethod", RunNumMethod, "执行本对象返回数值类型数据的方法，如果失败将返回数值0，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_FLOAT, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1108)\
+    _MAKE( 649, "逻辑方法", "RunBoolMethod", RunBoolMethod, "执行本对象返回逻辑型数据的方法，如果失败将返回假，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以被重复添加。", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1110)\
+    _MAKE( 650, "日期方法", "RunDateMethod", RunDateMethod, "执行本对象返回日期时间型数据的方法，如果失败将返回100年1月1日，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_DATE_TIME, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1112)\
+    _MAKE( 651, "对象型方法", "RunObjectMethod", RunObjectMethod, "执行本对象返回对象型数据的方法，如果失败将返回内容为空的对象，且紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。命令参数表中最后一个参数可以", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1114)\
+    _MAKE( 652, "创建图片对象", "CreatePicDispObj", CreatePicDispObj, "为指定图片数据创建对应的 COM 图片对象，本对象中的原有内容将被释放。成功返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1116)\
+    _MAKE( 653, "创建字体对象", "CreateFontDispObj", CreateFontDispObj, "为指定字体数据创建对应的 COM 字体对象，本对象中的原有内容将被释放。成功返回真，否则返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1117)\
+    _MAKE( 654, "取回图片", "GetPic", GetPic, "如果本对象为 COM 图片对象，则取回其具体图片数据。成功返回图片数据字节集，失败返回空字节集。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 655, "取回字体", "GetFont", GetFont, "如果本对象为 COM 字体对象，则取回其具体字体数据。如果失败，紧跟其后执行“取错误”方法将返回非空文本。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 656, "取错误", "GetErrorText", GetErrorText, "当读写对象属性、执行对象方法或取回字体时，紧跟该语句后执行本方法可以检查其是否执行成功。如果成功，本命令将返回空文本，如果失败，本命令将返回一个描述具体错误信息", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 657, "查看", "ViewObjInf", ViewObjInf, "本命令仅在易程序的调试版本中被执行，在发布版本中将被直接跳过。 通过对话框的方式查看本对象的调用格式信息，便于编写相关程序。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 658, "取接口", "QueryInterface", QueryInterface, "获取指定对象或者OCX窗口组件中的指定接口，本对象中的原有内容将被释放。成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1118)\
+    _MAKE( 659, "清除", "Clear", Clear, "将本对象的内容释放并清空。如果不调用本方法，则对象在退出其作用区域时会自动被释放。例如：假设对象存在于子程序局部变量中，当子程序调用退出时，该对象会被自动释放。", -1, _CMD_OS(__OS_WIN), _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 660, "取类型", "GetType", GetType, "取回当前变体型对象的数据类型。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 661, "取数组成员数", "GetElementCount", GetElementCount, "如果本对象中存放的是数组数据，执行本方法将返回其成员数目，如果不是数组数据，执行本方法将返回 -1 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, NULL)\
+    _MAKE( 662, "取文本", "GetText", GetText, "返回本对象中或本对象数组成员中的文本数据，如果当前数据的数据类型不为文本型，将自动进行转换，如果转换失败将返回空文本。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_TEXT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1120)\
+    _MAKE( 663, "取数值", "GetNum", GetNum, "返回本对象中或本对象数组成员中的数值数据，如果当前数据的数据类型不为数值或错误值型，将自动进行转换，如果转换失败将返回 0 。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_FLOAT, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1121)\
+    _MAKE( 664, "取逻辑值", "GetBool", GetBool, "返回本对象中或本对象数组成员中的逻辑值数据，如果当前数据的数据类型不为逻辑型，将自动进行转换，如果转换失败将返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1122)\
+    _MAKE( 665, "取日期", "GetDateTime", GetDateTime, "返回本对象中或本对象数组成员中的日期时间值数据，如果当前数据的数据类型不为日期时间型，将自动进行转换，如果转换失败将返回100年1月1日。本命令为初级对象成员命", -1, _CMD_OS(__OS_WIN), SDT_DATE_TIME, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1123)\
+    _MAKE( 666, "取对象", "GetObject", GetObject, "返回本对象中或本对象数组成员中的COM对象型数据，如果当前数据的数据类型不为COM对象型，将返回空COM对象。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1124)\
+    _MAKE( 667, "取变体型", "GetVariant", GetVariant, "返回本对象中或本对象数组成员中的变体型数据类型数据，如果当前数据的数据类型不为变体型，将自动进行转换。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), _SDT_ALL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1125)\
+    _MAKE( 668, "赋值", "set", set, "设置本对象的内容，成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1126)\
+    _MAKE( 669, "创建数组", "CreateArray", CreateArray, "创建指定类型和指定成员数的空白数组，对象中的原有内容将被清空，成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_krnln_global_var + 1128)\
+    _MAKE( 670, "置类型", "SetType", SetType, "清除当前变体型对象中的原有内容，并改变它的数据类型，成功返回真，失败返回假。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1130)\
+    _MAKE( 671, "取字节集", "GetBin", GetBin, "返回本对象中或本对象数组成员中的字节集数据，如果当前数据的数据类型不为字节集型，将自动进行转换，如果转换失败将返回空字节集。本命令为初级对象成员命令。", -1, _CMD_OS(__OS_WIN), SDT_BIN, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_krnln_global_var + 1131)
+

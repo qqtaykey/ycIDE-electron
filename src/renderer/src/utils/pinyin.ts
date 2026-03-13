@@ -1,0 +1,188 @@
+/**
+ * 拼音匹配工具（基于 pinyin-pro）
+ * 用于命令补全中将用户输入的拼音与中文命令名匹配
+ */
+
+import { pinyin } from 'pinyin-pro'
+
+// 缓存已查询过的汉字拼音，避免重复调用
+const pinyinCache = new Map<string, string>()
+
+/**
+ * 获取一个汉字的拼音（无声调，小写）
+ */
+function getCharPinyin(ch: string): string {
+  const cached = pinyinCache.get(ch)
+  if (cached !== undefined) return cached
+  if (!/[\u4e00-\u9fff]/.test(ch)) {
+    pinyinCache.set(ch, '')
+    return ''
+  }
+  const py = pinyin(ch, { toneType: 'none', type: 'array' })[0] || ''
+  pinyinCache.set(ch, py)
+  return py
+}
+
+/**
+ * 获取一个汉字的拼音首字母
+ */
+function getCharInitial(ch: string): string {
+  const py = getCharPinyin(ch)
+  return py ? py[0] : ''
+}
+
+/**
+ * 检查输入的拼音/文字是否匹配目标中文命令名
+ *
+ * 支持的匹配方式：
+ * 1. 中文子串匹配
+ * 2. 英文名前缀匹配 (不区分大小写)
+ * 3. 拼音首字母匹配：如 "ts" 匹配 "调试输出"
+ * 4. 拼音全拼前缀匹配：如 "tiao" 匹配 "调试"
+ * 5. 混合匹配：如 "tiaos" 匹配 "调试"
+ */
+export function matchCommand(
+  input: string,
+  cmdName: string,
+  cmdEnglishName: string
+): boolean {
+  if (!input) return false
+  const lower = input.toLowerCase()
+
+  // 1. 中文子串匹配
+  if (cmdName.includes(input)) return true
+
+  // 2. 英文名前缀匹配
+  if (cmdEnglishName && cmdEnglishName.toLowerCase().startsWith(lower)) return true
+
+  // 3-5. 拼音匹配
+  return pinyinMatch(lower, cmdName)
+}
+
+/**
+ * 拼音匹配：支持首字母、全拼、混合
+ */
+function pinyinMatch(input: string, target: string): boolean {
+  if (!/^[a-z]+$/.test(input)) return false
+  const chars = [...target]
+  return matchFrom(input, 0, chars, 0)
+}
+
+/**
+ * 递归匹配：从 input[iPos] 开始，尝试匹配 chars[cPos] 开始的字符
+ */
+function matchFrom(input: string, iPos: number, chars: string[], cPos: number): boolean {
+  if (iPos >= input.length) return true
+  if (cPos >= chars.length) return false
+
+  const ch = chars[cPos]
+  const py = getCharPinyin(ch)
+
+  if (!py) {
+    if (ch.toLowerCase() === input[iPos]) {
+      return matchFrom(input, iPos + 1, chars, cPos + 1)
+    }
+    return false
+  }
+
+  // 尝试首字母匹配
+  if (py[0] === input[iPos]) {
+    if (matchFrom(input, iPos + 1, chars, cPos + 1)) return true
+  }
+
+  // 尝试全拼前缀匹配（贪心）
+  for (let len = py.length; len >= 2; len--) {
+    if (iPos + len <= input.length && input.slice(iPos, iPos + len) === py.slice(0, len)) {
+      if (matchFrom(input, iPos + len, chars, cPos + 1)) return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * 返回拼音匹配覆盖的目标字符数，-1 表示不匹配
+ */
+function pinyinMatchCoverage(input: string, target: string): number {
+  if (!/^[a-z]+$/.test(input)) return -1
+  const chars = [...target]
+  return matchFromCoverage(input, 0, chars, 0)
+}
+
+function matchFromCoverage(input: string, iPos: number, chars: string[], cPos: number): number {
+  if (iPos >= input.length) return cPos
+  if (cPos >= chars.length) return -1
+
+  const ch = chars[cPos]
+  const py = getCharPinyin(ch)
+
+  if (!py) {
+    if (ch.toLowerCase() === input[iPos]) {
+      return matchFromCoverage(input, iPos + 1, chars, cPos + 1)
+    }
+    return -1
+  }
+
+  // 尝试首字母匹配
+  if (py[0] === input[iPos]) {
+    const r = matchFromCoverage(input, iPos + 1, chars, cPos + 1)
+    if (r >= 0) return r
+  }
+
+  // 尝试全拼前缀匹配（贪心）
+  for (let len = py.length; len >= 2; len--) {
+    if (iPos + len <= input.length && input.slice(iPos, iPos + len) === py.slice(0, len)) {
+      const r = matchFromCoverage(input, iPos + len, chars, cPos + 1)
+      if (r >= 0) return r
+    }
+  }
+
+  return -1
+}
+
+/**
+ * 计算匹配得分，用于排序（分数越高越靠前）
+ */
+export function matchScore(input: string, cmdName: string, cmdEnglishName: string): number {
+  if (!input) return 0
+  const lower = input.toLowerCase()
+
+  // 中文精确匹配（最高优先级）
+  if (cmdName === input) return 100
+  if (cmdName.startsWith(input)) return 90
+  if (cmdName.includes(input)) return 80
+
+  // 拼音匹配（中优先级）
+  const initials = [...cmdName].map(getCharInitial).join('')
+  if (initials === lower) return 70
+  if (initials.startsWith(lower)) return 65
+
+  if (/^[a-z]+$/.test(lower)) {
+    const targetLen = [...cmdName].length
+    const consumed = pinyinMatchCoverage(lower, cmdName)
+    if (consumed > 0) {
+      if (consumed >= targetLen) return 68
+      if (consumed / targetLen >= 0.5) return 58
+      return 52
+    }
+  }
+
+  // 英文匹配（低优先级）
+  if (cmdEnglishName) {
+    const engLower = cmdEnglishName.toLowerCase()
+    if (engLower === lower) return 45
+    if (engLower.startsWith(lower)) return 42
+    if (engLower.includes(lower)) return 38
+  }
+
+  return 0
+}
+
+/**
+ * 判断匹配是否通过英文名称命中
+ */
+export function isEnglishMatch(input: string, cmdEnglishName: string): boolean {
+  if (!input || !cmdEnglishName) return false
+  const lower = input.toLowerCase()
+  return cmdEnglishName.toLowerCase().includes(lower)
+}

@@ -11,3 +11,7 @@ compiler/
 *.vsidx
 *.tsbuildinfo
 test-fne.mjs
+支持库源码/krnln/Win32/
+支持库源码/krnln/x64/
+支持库源码/spec/x64/
+支持库源码/spec/Release/

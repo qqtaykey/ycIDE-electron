@@ -26,6 +26,7 @@ const api = {
       files: Array<{ type: string; fileName: string; flag: number }>;
       projectDir: string;
     } | null>,
+    updatePlatform: (projectDir: string, platform: string) => ipcRenderer.invoke('project:updatePlatform', projectDir, platform),
     saveOpenTabs: (projectDir: string, tabPaths: string[]) => ipcRenderer.invoke('project:saveOpenTabs', projectDir, tabPaths),
     loadOpenTabs: (projectDir: string) => ipcRenderer.invoke('project:loadOpenTabs', projectDir) as Promise<string[]>,
     openEpp: () => ipcRenderer.invoke('project:openEpp') as Promise<string | null>,
@@ -34,10 +35,10 @@ const api = {
   },
   // 编译
   compiler: {
-    compile: (projectDir: string, editorFiles?: Record<string, string>) =>
-      ipcRenderer.invoke('compiler:compile', projectDir, editorFiles),
-    run: (projectDir: string, editorFiles?: Record<string, string>) =>
-      ipcRenderer.invoke('compiler:run', projectDir, editorFiles),
+    compile: (projectDir: string, editorFiles?: Record<string, string>, linkMode?: 'static' | 'normal', arch?: string) =>
+      ipcRenderer.invoke('compiler:compile', projectDir, editorFiles, linkMode, arch),
+    run: (projectDir: string, editorFiles?: Record<string, string>, arch?: string) =>
+      ipcRenderer.invoke('compiler:run', projectDir, editorFiles, arch),
     stop: () => ipcRenderer.invoke('compiler:stop'),
     isRunning: () => ipcRenderer.invoke('compiler:isRunning') as Promise<boolean>,
   },

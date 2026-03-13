@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './OutputPanel.css'
 
 export interface OutputMessage {
@@ -6,22 +6,65 @@ export interface OutputMessage {
   text: string
 }
 
+/** 命令详细信息（用于提示面板展示） */
+export interface CommandDetail {
+  name: string
+  englishName: string
+  description: string
+  returnType: string
+  category: string
+  libraryName: string
+  params: Array<{
+    name: string
+    type: string
+    description: string
+    optional: boolean
+    isVariable: boolean
+    isArray: boolean
+  }>
+}
+
+/** 文件问题项 */
+export interface FileProblem {
+  line: number
+  column: number
+  message: string
+  severity: 'error' | 'warning'
+}
+
+type OutputTab = 'compile' | 'hint' | 'problems'
+
 interface OutputPanelProps {
   height: number
   onResize: (height: number) => void
   onClose: () => void
   messages?: OutputMessage[]
+  commandDetail?: CommandDetail | null
+  problems?: FileProblem[]
+  forceTab?: OutputTab | null
+  onProblemClick?: (problem: FileProblem) => void
 }
 
-function OutputPanel({ height, onResize, onClose, messages = [] }: OutputPanelProps): React.JSX.Element {
+function OutputPanel({ height, onResize, onClose, messages = [], commandDetail, problems = [], forceTab, onProblemClick }: OutputPanelProps): React.JSX.Element {
   const contentRef = useRef<HTMLDivElement>(null)
+  const [activeTab, setActiveTab] = useState<OutputTab>('compile')
 
-  // 自动滚动到底部
+  // 外部强制切换标签（编译/运行时自动切到编译输出）
   useEffect(() => {
-    if (contentRef.current) {
+    if (forceTab) setActiveTab(forceTab)
+  }, [forceTab])
+
+  // 当收到新的命令详情时自动切到提示标签
+  useEffect(() => {
+    if (commandDetail) setActiveTab('hint')
+  }, [commandDetail])
+
+  // 自动滚动到底部（仅编译输出）
+  useEffect(() => {
+    if (activeTab === 'compile' && contentRef.current) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight
     }
-  }, [messages])
+  }, [messages, activeTab])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -51,15 +94,108 @@ function OutputPanel({ height, onResize, onClose, messages = [] }: OutputPanelPr
       <div className="output-resizer" onMouseDown={handleMouseDown} role="separator" aria-orientation="horizontal" />
       <div className="output-header">
         <div className="output-tabs" role="tablist">
-          <button className="output-tab active" role="tab" aria-selected>编译输出</button>
+          <button
+            className={`output-tab ${activeTab === 'compile' ? 'active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'compile'}
+            onClick={() => setActiveTab('compile')}
+          >编译输出</button>
+          <button
+            className={`output-tab ${activeTab === 'hint' ? 'active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'hint'}
+            onClick={() => setActiveTab('hint')}
+          >提示</button>
+          <button
+            className={`output-tab ${activeTab === 'problems' ? 'active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'problems'}
+            onClick={() => setActiveTab('problems')}
+          >问题{problems.length > 0 ? ` (${problems.length})` : ''}</button>
         </div>
         <button className="output-close" onClick={onClose} aria-label="关闭输出面板">×</button>
       </div>
-      <div className="output-content" ref={contentRef} role="log" aria-live="polite" tabIndex={0}>
-        {messages.map((msg, i) => (
-          <div key={i} className={`output-line ${msg.type}`}>{msg.text}</div>
-        ))}
-      </div>
+
+      {/* 编译输出内容 */}
+      {activeTab === 'compile' && (
+        <div className="output-content" ref={contentRef} role="log" aria-live="polite" tabIndex={0}>
+          {messages.map((msg, i) => (
+            <div key={i} className={`output-line ${msg.type}`}>{msg.text}</div>
+          ))}
+        </div>
+      )}
+
+      {/* 提示内容（命令详情） */}
+      {activeTab === 'hint' && (
+        <div className="output-content output-hint-content" tabIndex={0}>
+          {commandDetail ? (() => {
+            const cd = commandDetail
+            const paramSig = cd.params.length > 0
+              ? cd.params.map(p => {
+                  let s = ''
+                  if (p.optional) s += '［'
+                  s += p.type
+                  if (p.isArray) s += '数组'
+                  s += ' ' + p.name
+                  if (p.optional) s += '］'
+                  return s
+                }).join('，')
+              : ''
+            const retLabel = cd.returnType ? `〈${cd.returnType}〉` : '〈无返回值〉'
+            const source = [cd.libraryName, cd.category].filter(Boolean).join('->')
+            return (
+              <div className="cmd-detail">
+                <div className="cmd-detail-call">
+                  <span className="cmd-detail-label">调用格式：</span>
+                  {retLabel} {cd.name} （{paramSig}）{source && <> - {source}</>}
+                </div>
+                {cd.englishName && (
+                  <div className="cmd-detail-eng">
+                    <span className="cmd-detail-label">英文名称：</span>{cd.englishName}
+                  </div>
+                )}
+                {cd.description && (
+                  <div className="cmd-detail-desc">{cd.description}</div>
+                )}
+                {cd.params.length > 0 && (
+                  <div className="cmd-detail-params">
+                    {cd.params.map((p, i) => (
+                      <div key={i} className="cmd-detail-param">
+                        <span className="cmd-detail-param-head">
+                          参数&lt;{i + 1}&gt;的名称为"{p.name}"，类型为"{p.type}{p.isArray ? '(数组)' : ''}{p.isVariable ? '(参考)' : ''}"{p.optional ? '，可以被省略' : ''}。
+                        </span>
+                        {p.description && <span className="cmd-detail-param-desc">{p.description}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })() : (
+            <div className="cmd-detail-empty">点击代码中的命令查看详细信息</div>
+          )}
+        </div>
+      )}
+
+      {/* 问题列表 */}
+      {activeTab === 'problems' && (
+        <div className="output-content output-problems-content" tabIndex={0}>
+          {problems.length === 0 ? (
+            <div className="output-problem-empty">当前文件没有问题</div>
+          ) : (
+            <>
+              <div className="output-problem-summary">共 {problems.length} 个问题</div>
+              {problems.map((p, i) => (
+                <div key={i} className="output-problem-row" onClick={() => onProblemClick?.(p)}>
+                  <span className={`output-problem-icon ${p.severity}`}>{p.severity === 'error' ? '✕' : '⚠'}</span>
+                  <span className="output-problem-msg">{p.message}</span>
+                  <span className="output-problem-loc">第 {p.line} 行, 第 {p.column} 列</span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

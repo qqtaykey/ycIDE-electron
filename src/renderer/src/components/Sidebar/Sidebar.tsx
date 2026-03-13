@@ -263,6 +263,50 @@ function LibraryPanel(): React.JSX.Element {
   )
 }
 
+/** 从窗口字段获取属性的映射值 */
+function getFormFieldValue(propName: string, form: DesignForm): string | number | boolean | undefined {
+  switch (propName) {
+    case '标题': return form.title
+    case '左边': return 0
+    case '顶边': return 0
+    case '宽度': return form.width
+    case '高度': return form.height
+    case '可视': return true
+    case '禁止': return false
+    default: return undefined
+  }
+}
+
+/** 从控件字段获取属性的映射值（标题→text, 左边→left 等） */
+function getControlFieldValue(propName: string, control: DesignControl): string | number | boolean | undefined {
+  switch (propName) {
+    case '标题': return control.text
+    case '左边': return control.left
+    case '顶边': return control.top
+    case '宽度': return control.width
+    case '高度': return control.height
+    case '可视': return control.visible
+    case '禁止': return !control.enabled
+    default: return undefined
+  }
+}
+
+/** 获取窗口属性的显示值 */
+function resolveFormPropValue(prop: LibUnitProperty, form: DesignForm): string | number | boolean {
+  const field = getFormFieldValue(prop.name, form)
+  if (field !== undefined) return field
+  return getDefaultPropValue(prop)
+}
+
+/** 根据属性类型返回默认值 */
+function getDefaultPropValue(prop: LibUnitProperty): string | number | boolean {
+  if (prop.typeName === '逻辑型') return false
+  if (prop.pickOptions.length > 0) return 0
+  if (prop.typeName === '整数型' || prop.typeName === '小数型' || prop.typeName === '选择整数' || prop.typeName === '选择特定整数') return 0
+  if (prop.typeName === '颜色' || prop.typeName === '颜色(透明)' || prop.typeName === '背景颜色') return 0
+  return ''
+}
+
 /** 属性值格式化显示 */
 function formatPropValue(prop: LibUnitProperty, value: string | number | boolean | undefined): string {
   if (value === undefined) return ''
@@ -271,6 +315,15 @@ function formatPropValue(prop: LibUnitProperty, value: string | number | boolean
     return prop.pickOptions[value] || String(value)
   }
   return String(value)
+}
+
+/** 获取控件属性的显示值（优先 properties，再映射字段，最后类型默认值） */
+function resolveControlPropValue(prop: LibUnitProperty, control: DesignControl): string | number | boolean {
+  const stored = control.properties[prop.name]
+  if (stored !== undefined) return stored
+  const field = getControlFieldValue(prop.name, control)
+  if (field !== undefined) return field
+  return getDefaultPropValue(prop)
 }
 
 function PropertyPanel({ selection, windowUnits, onSelectControl }: { selection?: SelectionTarget; windowUnits: LibWindowUnit[]; onSelectControl?: (target: SelectionTarget) => void }): React.JSX.Element {
@@ -336,9 +389,6 @@ function PropertyPanel({ selection, windowUnits, onSelectControl }: { selection?
     const baseProps: Array<{ label: string; value: string }> = [
       { label: '窗口名称', value: f.name },
       { label: '类型', value: '窗口' },
-      { label: '标题', value: f.title },
-      { label: '宽度', value: String(f.width) },
-      { label: '高度', value: String(f.height) },
     ]
     return (
       <div className="sidebar-panel">
@@ -351,12 +401,25 @@ function PropertyPanel({ selection, windowUnits, onSelectControl }: { selection?
                 <td className="prop-value">{p.value}</td>
               </tr>
             ))}
-            {windowUnit?.properties.filter(p => !p.isReadOnly).map(p => (
-              <tr key={p.name} className="prop-row">
-                <td className="prop-name" title={p.description}>{p.name}</td>
-                <td className="prop-value">{p.typeName}</td>
-              </tr>
-            ))}
+            {windowUnit ? (
+              windowUnit.properties.filter(p => !p.isReadOnly).map(p => (
+                <tr key={p.name} className="prop-row">
+                  <td className="prop-name" title={p.description}>{p.name}</td>
+                  <td className="prop-value">
+                    {formatPropValue(p, resolveFormPropValue(p, f))}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <>
+                <tr className="prop-row"><td className="prop-name">标题</td><td className="prop-value">{f.title}</td></tr>
+                <tr className="prop-row"><td className="prop-name">左边</td><td className="prop-value">0</td></tr>
+                <tr className="prop-row"><td className="prop-name">顶边</td><td className="prop-value">0</td></tr>
+                <tr className="prop-row"><td className="prop-name">宽度</td><td className="prop-value">{f.width}</td></tr>
+                <tr className="prop-row"><td className="prop-name">高度</td><td className="prop-value">{f.height}</td></tr>
+                <tr className="prop-row"><td className="prop-name">可视</td><td className="prop-value">真</td></tr>
+              </>
+            )}
           </tbody>
         </table>
       </div>
@@ -388,7 +451,7 @@ function PropertyPanel({ selection, windowUnits, onSelectControl }: { selection?
               <tr key={p.name} className="prop-row">
                 <td className="prop-name" title={p.description}>{p.name}</td>
                 <td className="prop-value">
-                  {formatPropValue(p, control.properties[p.name])}
+                  {formatPropValue(p, resolveControlPropValue(p, control))}
                 </td>
               </tr>
             ))
