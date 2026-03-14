@@ -193,36 +193,42 @@
 .vd-form-wrapper {
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.08);
   align-self: flex-start;
   position: relative;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.vd-form-wrapper.vd-form-selected {
+.vd-form-canvas.vd-form-selected {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* 窗口标题栏 */
+/* 窗口标题栏 (Win11) */
 .vd-form-titlebar {
   display: flex;
   align-items: center;
-  height: 30px;
-  background: linear-gradient(180deg, #4a7bca 0%, #3465b5 100%);
-  padding: 0 8px;
-  gap: 6px;
+  height: 32px;
+  background: #f3f3f3;
+  padding: 0 12px 0 12px;
+  gap: 8px;
   user-select: none;
+  border-bottom: 1px solid #e5e5e5;
 }
 
 .vd-form-titlebar-icon {
   font-size: 14px;
+  color: #333;
+  display: flex;
+  align-items: center;
 }
 
 .vd-form-titlebar-text {
   flex: 1;
-  color: #fff;
+  color: #191919;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -230,25 +236,27 @@
 
 .vd-form-titlebar-btns {
   display: flex;
-  gap: 2px;
+  gap: 0;
+  margin-right: -12px;
 }
 
 .vd-form-btn {
-  width: 28px;
-  height: 20px;
+  width: 46px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  color: rgba(255,255,255,0.8);
-  border-radius: 2px;
+  color: #191919;
   cursor: default;
+  border-radius: 0;
+  transition: background 0.1s;
 }
 .vd-form-btn:hover {
-  background: rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.06);
 }
 .vd-form-btn-close:hover {
-  background: #e81123;
+  background: #c42b1c;
   color: #fff;
 }
 
@@ -256,7 +264,8 @@
 .vd-form-canvas {
   position: relative;
   background: #f0f0f0;
-  border: 1px solid #999;
+  border: none;
+  border-top: none;
   overflow: hidden;
   /* 网格点 */
   background-image:

@@ -32,6 +32,8 @@ const api = {
     openEpp: () => ipcRenderer.invoke('project:openEpp') as Promise<string | null>,
     addFile: (projectDir: string, fileName: string, fileType: string, content: string) =>
       ipcRenderer.invoke('project:addFile', projectDir, fileName, fileType, content) as Promise<string>,
+    renameWindow: (projectDir: string, oldName: string, newName: string, openEycPaths: string[]) =>
+      ipcRenderer.invoke('project:renameWindow', projectDir, oldName, newName, openEycPaths) as Promise<{ newEfwPath: string; newEycPath: string }>,
   },
   // 编译
   compiler: {

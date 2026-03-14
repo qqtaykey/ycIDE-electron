@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join, dirname } from 'path'
-import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, renameSync } from 'fs'
 import { libraryManager } from './library-manager'
 import { compileProject, runExecutable, stopExecutable, isRunning } from './compiler'
 
@@ -101,6 +101,7 @@ app.whenReady().then(() => {
         title: info.name,
         width: 592,
         height: 384,
+        sourceFile: '_启动窗口.eyc',
         controls: []
       }, null, 2)
       writeFileSync(join(projectDir, '_启动窗口.efw'), efwData, 'utf-8')
@@ -216,6 +217,66 @@ app.whenReady().then(() => {
   ipcMain.handle('file:save', (_event, filePath: string, content: string) => {
     writeFileSync(filePath, content, 'utf-8')
     return true
+  })
+
+  // 读取目录内容
+  ipcMain.handle('file:readDir', (_event, dirPath: string) => {
+    if (!existsSync(dirPath)) return []
+    return readdirSync(dirPath)
+  })
+
+  // 窗口重命名：重命名文件、更新 .epp、更新所有 .eyc 内容引用
+  ipcMain.handle('project:renameWindow', (_event, projectDir: string, oldName: string, newName: string, openEycPaths: string[]) => {
+    const oldEfw = join(projectDir, oldName + '.efw')
+    const newEfw = join(projectDir, newName + '.efw')
+    const oldEyc = join(projectDir, oldName + '.eyc')
+    const newEyc = join(projectDir, newName + '.eyc')
+    const openSet = new Set(openEycPaths)
+
+    // 1. 重命名 .efw 文件
+    if (existsSync(oldEfw)) renameSync(oldEfw, newEfw)
+
+    // 2. 重命名 .eyc 文件
+    if (existsSync(oldEyc)) renameSync(oldEyc, newEyc)
+
+    // 3. 更新 .epp 项目文件中的文件引用
+    const eppFiles = readdirSync(projectDir).filter(f => f.endsWith('.epp'))
+    if (eppFiles.length > 0) {
+      const eppPath = join(projectDir, eppFiles[0])
+      let eppContent = readFileSync(eppPath, 'utf-8')
+      eppContent = eppContent.split(oldName + '.efw').join(newName + '.efw')
+      eppContent = eppContent.split(oldName + '.eyc').join(newName + '.eyc')
+      writeFileSync(eppPath, eppContent, 'utf-8')
+    }
+
+    // 4. 更新 .efw 中的 sourceFile 引用
+    if (existsSync(newEfw)) {
+      try {
+        const efwData = JSON.parse(readFileSync(newEfw, 'utf-8'))
+        if (efwData.sourceFile === oldName + '.eyc') {
+          efwData.sourceFile = newName + '.eyc'
+          writeFileSync(newEfw, JSON.stringify(efwData, null, 2), 'utf-8')
+        }
+      } catch { /* ignore */ }
+    }
+
+    // 5. 更新磁盘上所有 .eyc 文件的内容引用（跳过已在编辑器中打开的）
+    const eycFiles = readdirSync(projectDir).filter(f => f.toLowerCase().endsWith('.eyc'))
+    for (const fileName of eycFiles) {
+      const filePath = join(projectDir, fileName)
+      if (openSet.has(filePath)) continue
+      let content = readFileSync(filePath, 'utf-8')
+      if (!content.includes(oldName)) continue
+      // 更新程序集名：窗口程序集_旧名 → 窗口程序集_新名
+      content = content.split('窗口程序集_' + oldName).join('窗口程序集_' + newName)
+      // 更新事件引用：_旧名_ → _新名_
+      content = content.split('_' + oldName + '_').join('_' + newName + '_')
+      // 更新跨窗口引用：旧名. → 新名.  (如 窗口1.按钮1.禁止)
+      content = content.split(oldName + '.').join(newName + '.')
+      writeFileSync(filePath, content, 'utf-8')
+    }
+
+    return { newEfwPath: newEfw, newEycPath: newEyc }
   })
 
   // 向项目添加文件（创建文件 + 更新 .epp）

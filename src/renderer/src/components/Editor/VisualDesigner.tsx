@@ -54,6 +54,7 @@ export interface DesignForm {
   title: string
   width: number
   height: number
+  sourceFile?: string  // 关联的 .eyc 源代码文件名
   controls: DesignControl[]
 }
 
@@ -262,9 +263,10 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
   // 画布鼠标按下 — 开始创建控件或选中窗口
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
-    const rect = canvasRef.current!.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const canvas = canvasRef.current!
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left - canvas.clientLeft
+    const y = e.clientY - rect.top - canvas.clientTop
 
     if (activeTool) {
       // 创建新控件（在鼠标处放下默认大小）
@@ -355,7 +357,10 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
       setSelectedId(ctrl.id)
     }
 
-    const rect = canvasRef.current!.getBoundingClientRect()
+    const canvas = canvasRef.current!
+    const rect = canvas.getBoundingClientRect()
+    const bx = canvas.clientLeft
+    const by = canvas.clientTop
 
     if (isInMultiSelect && selectedIds.size >= 2) {
       // 多选拖拽：记录所有选中控件的初始位置
@@ -364,12 +369,12 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
         const c = form.controls.find(cc => cc.id === id)
         if (c) origPositions.set(id, { left: c.left, top: c.top })
       }
-      const startX = e.clientX - rect.left
-      const startY = e.clientY - rect.top
+      const startX = e.clientX - rect.left - bx
+      const startY = e.clientY - rect.top - by
 
       const handleMouseMove = (ev: MouseEvent): void => {
-        const mx = ev.clientX - rect.left
-        const my = ev.clientY - rect.top
+        const mx = ev.clientX - rect.left - bx
+        const my = ev.clientY - rect.top - by
         const dx = mx - startX
         const dy = my - startY
         onChange({
@@ -396,8 +401,8 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
       dragRef.current = {
         mode: 'move',
         controlId: ctrl.id,
-        startX: e.clientX - rect.left,
-        startY: e.clientY - rect.top,
+        startX: e.clientX - rect.left - bx,
+        startY: e.clientY - rect.top - by,
         origLeft: ctrl.left,
         origTop: ctrl.top,
         origWidth: ctrl.width,
@@ -407,8 +412,8 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
       const handleMouseMove = (ev: MouseEvent): void => {
         const d = dragRef.current
         if (!d) return
-        const mx = ev.clientX - rect.left
-        const my = ev.clientY - rect.top
+        const mx = ev.clientX - rect.left - bx
+        const my = ev.clientY - rect.top - by
         const dx = mx - d.startX
         const dy = my - d.startY
 
@@ -436,13 +441,16 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
     e.stopPropagation()
     if (e.button !== 0) return
 
-    const rect = canvasRef.current!.getBoundingClientRect()
+    const canvas = canvasRef.current!
+    const rect = canvas.getBoundingClientRect()
+    const bx = canvas.clientLeft
+    const by = canvas.clientTop
     dragRef.current = {
       mode: 'resize',
       controlId: ctrl.id,
       handle,
-      startX: e.clientX - rect.left,
-      startY: e.clientY - rect.top,
+      startX: e.clientX - rect.left - bx,
+      startY: e.clientY - rect.top - by,
       origLeft: ctrl.left,
       origTop: ctrl.top,
       origWidth: ctrl.width,
@@ -452,8 +460,8 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
     const handleMouseMove = (ev: MouseEvent): void => {
       const d = dragRef.current
       if (!d || !d.handle) return
-      const mx = ev.clientX - rect.left
-      const my = ev.clientY - rect.top
+      const mx = ev.clientX - rect.left - bx
+      const my = ev.clientY - rect.top - by
       const dx = mx - d.startX
       const dy = my - d.startY
 
@@ -734,13 +742,13 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
       <div className="vd-canvas-area">
 
         {/* 窗口外壳 */}
-        <div className={`vd-form-wrapper ${selectedId === '__form__' ? 'vd-form-selected' : ''}`}>
+        <div className="vd-form-wrapper">
           <div className="vd-form-titlebar" onMouseDown={handleFormTitleClick}>
             <span className="vd-form-titlebar-icon"><Icon name="windows-form" size={14} /></span>
             <span className="vd-form-titlebar-text">{form.title || form.name}</span>
             <span className="vd-form-titlebar-btns">
               <span className="vd-form-btn">─</span>
-              <span className="vd-form-btn">☐</span>
+              <span className="vd-form-btn">🗖️</span>
               <span className="vd-form-btn vd-form-btn-close">✕</span>
             </span>
           </div>
@@ -748,7 +756,7 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
           {/* 窗口客户区 */}
           <div
             ref={canvasRef}
-            className={`vd-form-canvas ${activeTool ? 'vd-crosshair' : ''}`}
+            className={`vd-form-canvas ${activeTool ? 'vd-crosshair' : ''} ${selectedId === '__form__' ? 'vd-form-selected' : ''}`}
             style={{ width: form.width, height: form.height }}
             onMouseDown={handleCanvasMouseDown}
           >

@@ -197,9 +197,10 @@ export interface EditorHandle {
   insertDeclaration: () => void
   insertLocalVariable: () => void
   navigateToLine: (line: number) => void
+  updateFormProperty: (targetKind: 'form' | 'control', controlId: string | null, propName: string, value: string | number | boolean) => void
 }
 
-const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTarget) => void; onSidebarTab?: (tab: 'project' | 'library' | 'property') => void; selection?: SelectionTarget; alignAction?: AlignAction; onAlignDone?: () => void; onMultiSelectChange?: (count: number) => void; openProjectFiles?: EditorTab[]; onOpenTabsChange?: (tabs: EditorTab[]) => void; onActiveTabChange?: (tabId: string | null) => void; onCommandClick?: (commandName: string, paramIndex?: number) => void; onCommandClear?: () => void; onProblemsChange?: (problems: FileProblem[]) => void; onCursorChange?: (line: number, column: number) => void; onDocTypeChange?: (docType: string) => void }>(function Editor({ onSelectControl, onSidebarTab, selection, alignAction, onAlignDone, onMultiSelectChange, openProjectFiles, onOpenTabsChange, onActiveTabChange, onCommandClick, onCommandClear, onProblemsChange, onCursorChange, onDocTypeChange }, ref) {
+const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTarget) => void; onSidebarTab?: (tab: 'project' | 'library' | 'property') => void; selection?: SelectionTarget; alignAction?: AlignAction; onAlignDone?: () => void; onMultiSelectChange?: (count: number) => void; openProjectFiles?: EditorTab[]; onOpenTabsChange?: (tabs: EditorTab[]) => void; onActiveTabChange?: (tabId: string | null) => void; onCommandClick?: (commandName: string, paramIndex?: number) => void; onCommandClear?: () => void; onProblemsChange?: (problems: FileProblem[]) => void; onCursorChange?: (line: number, column: number) => void; onDocTypeChange?: (docType: string) => void; projectDir?: string; onProjectTreeRefresh?: () => void }>(function Editor({ onSelectControl, onSidebarTab, selection, alignAction, onAlignDone, onMultiSelectChange, openProjectFiles, onOpenTabsChange, onActiveTabChange, onCommandClick, onCommandClear, onProblemsChange, onCursorChange, onDocTypeChange, projectDir, onProjectTreeRefresh }, ref) {
   const [tabs, setTabs] = useState<EditorTab[]>([])
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
@@ -255,6 +256,169 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     })
   }, [activeTabId, onOpenTabsChange])
 
+  // 磁盘级重命名：更新项目中未打开的 .eyc 文件
+  // 磁盘级重命名：更新项目中未打开的 .eyc 文件（仅控件改名使用）
+  const renameDiskFiles = useCallback(async (openFilePaths: Set<string>, pattern: string, replacement: string) => {
+    if (!projectDir) return
+    const dirFiles = await window.api?.file?.readDir(projectDir)
+    if (!dirFiles) return
+    const eycFiles = (dirFiles as string[]).filter(f => f.toLowerCase().endsWith('.eyc'))
+    for (const fileName of eycFiles) {
+      const filePath = projectDir + '\\' + fileName
+      if (openFilePaths.has(filePath)) continue // 已在标签页中修改过
+      const content = await window.api?.project?.readFile(filePath)
+      if (!content || !content.includes(pattern)) continue
+      const newContent = content.split(pattern).join(replacement)
+      await window.api?.file?.save(filePath, newContent)
+    }
+  }, [projectDir])
+
+  // 窗口重命名：更新 .eyc 内容中所有引用模式
+  const applyWindowRenameToContent = (content: string, oldName: string, newName: string): string => {
+    let result = content
+    // 程序集名：窗口程序集_旧名 → 窗口程序集_新名
+    result = result.split('窗口程序集_' + oldName).join('窗口程序集_' + newName)
+    // 事件引用：_旧名_ → _新名_
+    result = result.split('_' + oldName + '_').join('_' + newName + '_')
+    // 跨窗口引用：旧名.控件名.属性 或 旧名._事件
+    result = result.split(oldName + '.').join(newName + '.')
+    return result
+  }
+
+  // 属性面板修改属性值 → 更新 formData 和 selection
+  const updateFormProperty = useCallback((targetKind: 'form' | 'control', controlId: string | null, propName: string, value: string | number | boolean) => {
+    setTabs(prev => {
+      const tab = prev.find(t => t.id === activeTabId)
+      if (!tab || !tab.formData) return prev
+      const form = tab.formData
+
+      let newForm: DesignForm
+      let updatedTabs = prev
+
+      if (targetKind === 'form') {
+        if (propName === '__name__') {
+          const oldName = form.name
+          const newName = String(value)
+          const newSourceFile = newName + '.eyc'
+          newForm = { ...form, name: newName, sourceFile: newSourceFile }
+
+          // 计算新旧文件路径
+          const oldEfwPath = tab.filePath
+          const efwDir = oldEfwPath ? oldEfwPath.replace(/[/\\][^/\\]+$/, '') : projectDir
+          const newEfwPath = efwDir ? efwDir + '\\' + newName + '.efw' : undefined
+          const oldEycPath = efwDir
+            ? efwDir + '\\' + (form.sourceFile || oldName + '.eyc')
+            : undefined
+          const newEycPath = efwDir ? efwDir + '\\' + newName + '.eyc' : undefined
+
+          // 更新所有 .eyc 标签页中的内容引用
+          const openEycPaths: string[] = []
+          updatedTabs = prev.map(t => {
+            if (t.language === 'eyc') {
+              if (t.filePath) openEycPaths.push(t.filePath)
+              if (t.value.includes(oldName)) {
+                let newValue = applyWindowRenameToContent(t.value, oldName, newName)
+                // 若是当前窗口关联的 .eyc 标签页，同时更新路径
+                if (oldEycPath && t.filePath === oldEycPath && newEycPath) {
+                  return { ...t, id: newEycPath, label: newName + '.eyc', filePath: newEycPath, value: newValue }
+                }
+                return { ...t, value: newValue }
+              }
+              // 即使内容没变，也要更新路径（当前窗口关联的 .eyc）
+              if (oldEycPath && t.filePath === oldEycPath && newEycPath) {
+                return { ...t, id: newEycPath, label: newName + '.eyc', filePath: newEycPath }
+              }
+            }
+            return t
+          })
+
+          // 更新当前 .efw 标签页的路径和标签
+          if (newEfwPath) {
+            updatedTabs = updatedTabs.map(t =>
+              t.id === activeTabId
+                ? { ...t, id: newEfwPath, label: newName + '.efw', filePath: newEfwPath, formData: newForm }
+                : t
+            )
+            // 更新 activeTabId（异步，在 setTabs 后执行）
+            setTimeout(() => setActiveTabId(newEfwPath), 0)
+          }
+
+          // 异步：磁盘文件重命名 + 更新未打开的 .eyc + 更新 .epp + 刷新项目树
+          if (projectDir) {
+            // 通知标签变化以保存新路径
+            setTimeout(() => onOpenTabsChange?.(updatedTabs), 0)
+            ;(async () => {
+              await window.api?.project?.renameWindow(projectDir, oldName, newName, openEycPaths)
+              onProjectTreeRefresh?.()
+            })()
+          }
+        } else {
+          const fieldMap: Record<string, string> = { '宽度': 'width', '高度': 'height', '标题': 'title' }
+          const field = fieldMap[propName]
+          if (field) {
+            newForm = { ...form, [field]: value }
+          } else {
+            newForm = form
+          }
+        }
+        onSelectControl?.({ kind: 'form', form: newForm })
+      } else {
+        const fieldMap: Record<string, string> = { '左边': 'left', '顶边': 'top', '宽度': 'width', '高度': 'height', '标题': 'text' }
+        const boolMap: Record<string, { field: string; invert?: boolean }> = {
+          '可视': { field: 'visible' },
+          '禁止': { field: 'enabled', invert: true },
+        }
+        const field = fieldMap[propName]
+        const boolDef = boolMap[propName]
+        newForm = {
+          ...form,
+          controls: form.controls.map(c => {
+            if (c.id !== controlId) return c
+            if (propName === '__name__') {
+              return { ...c, name: String(value) }
+            }
+            if (field) {
+              return { ...c, [field]: value }
+            }
+            if (boolDef) {
+              return { ...c, [boolDef.field]: boolDef.invert ? !value : value }
+            }
+            return { ...c, properties: { ...c.properties, [propName]: value } }
+          })
+        }
+        // 控件改名：更新 .eyc 标签页中的引用
+        if (propName === '__name__') {
+          const oldCtrl = form.controls.find(c => c.id === controlId)
+          if (oldCtrl) {
+            const oldName = oldCtrl.name
+            const newName = String(value)
+            const openEycPaths = new Set<string>()
+            updatedTabs = prev.map(t => {
+              if (t.language === 'eyc') {
+                if (t.filePath) openEycPaths.add(t.filePath)
+                if (t.value.includes(oldName)) {
+                  const newValue = t.value.split(oldName + '_').join(newName + '_')
+                  return { ...t, value: newValue }
+                }
+              }
+              return t
+            })
+            // 异步更新磁盘上未打开的 .eyc 文件
+            renameDiskFiles(openEycPaths, oldName + '_', newName + '_')
+          }
+        }
+        const updatedCtrl = newForm.controls.find(c => c.id === controlId)
+        if (updatedCtrl) onSelectControl?.({ kind: 'control', control: updatedCtrl, form: newForm })
+      }
+
+      // 对窗口改名的情况，formData 已在上面处理过，不再覆盖
+      if (targetKind === 'form' && propName === '__name__') {
+        return updatedTabs
+      }
+      return updatedTabs.map(t => t.id === activeTabId ? { ...t, formData: newForm } : t)
+    })
+  }, [activeTabId, onSelectControl, renameDiskFiles, projectDir, onProjectTreeRefresh, onOpenTabsChange])
+
   // 暴露给父组件的方法
   useImperativeHandle(ref, () => ({
     save: saveCurrentFile,
@@ -308,8 +472,9 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     },
     navigateToLine: (line: number) => {
       eycEditorRef.current?.navigateToLine(line)
-    }
-  }), [saveCurrentFile, saveAllFiles, closeActiveFile, tabs, activeTabId, onOpenTabsChange, onSidebarTab])
+    },
+    updateFormProperty,
+  }), [saveCurrentFile, saveAllFiles, closeActiveFile, tabs, activeTabId, onOpenTabsChange, onSidebarTab, updateFormProperty])
 
   // 接收外部打开的项目文件
   useEffect(() => {
@@ -356,7 +521,12 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     const activeT = tabs.find(t => t.id === activeTabId)
     if (!activeT || activeT.language !== 'efw' || !activeT.filePath) return
 
-    const eycPath = activeT.filePath.replace(/\.efw$/i, '.eyc')
+    // 优先使用 .efw 中定义的 sourceFile，否则回退到文件名替换
+    const efwDir = activeT.filePath.replace(/[/\\][^/\\]+$/, '')
+    const sourceFileName = activeT.formData?.sourceFile
+    const eycPath = sourceFileName
+      ? efwDir + '\\' + sourceFileName
+      : activeT.filePath.replace(/\.efw$/i, '.eyc')
     const eventName = defaultEvent?.name || '被单击'
     const subName = ctrl.name + '_' + eventName
     const params = (defaultEvent?.args || []).map(arg => ({

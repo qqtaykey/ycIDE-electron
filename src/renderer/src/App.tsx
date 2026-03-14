@@ -225,6 +225,20 @@ function App(): React.JSX.Element {
     }
   }, [])
 
+  // 刷新项目树（窗口重命名后调用）
+  const refreshProjectTree = useCallback(async () => {
+    const dir = currentProjectDirRef.current
+    if (!dir) return
+    const dirFiles = await window.api?.file?.readDir(dir) as string[] | undefined
+    if (!dirFiles) return
+    const eppFile = dirFiles.find(f => f.endsWith('.epp'))
+    if (!eppFile) return
+    const eppInfo = await window.api?.project?.parseEpp(dir + '\\' + eppFile)
+    if (eppInfo) {
+      setProjectTree(buildProjectTreeFromEpp(eppInfo.projectName, eppInfo.files))
+    }
+  }, [buildProjectTreeFromEpp])
+
   // 同步 ref
   useEffect(() => {
     currentProjectDirRef.current = currentProjectDir
@@ -261,6 +275,7 @@ function App(): React.JSX.Element {
                 title: efwData.title || '',
                 width: efwData.width || 592,
                 height: efwData.height || 384,
+                sourceFile: efwData.sourceFile,
                 controls: (efwData.controls || []).map((c: any) => ({
                   id: c.id, type: c.type, name: c.name,
                   left: c.x ?? c.left ?? 0, top: c.y ?? c.top ?? 0,
@@ -416,6 +431,7 @@ function App(): React.JSX.Element {
         title: efwData.title || '',
         width: efwData.width || 592,
         height: efwData.height || 384,
+        sourceFile: efwData.sourceFile,
         controls: (efwData.controls || []).map((c: any) => ({
           id: c.id, type: c.type, name: c.name,
           left: c.x ?? c.left ?? 0, top: c.y ?? c.top ?? 0,
@@ -457,6 +473,7 @@ function App(): React.JSX.Element {
             title: efwData.title || info.name,
             width: efwData.width || 592,
             height: efwData.height || 384,
+            sourceFile: efwData.sourceFile,
             controls: (efwData.controls || []).map((c: any) => ({
               id: c.id,
               type: c.type,
@@ -585,7 +602,7 @@ function App(): React.JSX.Element {
         onRedo={() => handleMenuAction('edit:redo')}
       />
       <div className="app-body">
-        <Sidebar width={sidebarWidth} onResize={setSidebarWidth} selection={selection} activeTab={sidebarTab} onTabChange={setSidebarTab} onSelectControl={setSelection} projectTree={projectTree} onOpenFile={handleOpenFile} activeFileId={activeFileId ? activeFileId.replace(/^.*[\\/]/, '') : null} />
+        <Sidebar width={sidebarWidth} onResize={setSidebarWidth} selection={selection} activeTab={sidebarTab} onTabChange={setSidebarTab} onSelectControl={setSelection} onPropertyChange={(kind, ctrlId, prop, val) => editorRef.current?.updateFormProperty(kind, ctrlId, prop, val)} projectTree={projectTree} onOpenFile={handleOpenFile} activeFileId={activeFileId ? activeFileId.replace(/^.*[\\/]/, '') : null} projectDir={currentProjectDir} />
         <div className="app-main">
           <Editor
             ref={editorRef}
@@ -603,6 +620,8 @@ function App(): React.JSX.Element {
             onProblemsChange={setFileProblems}
             onCursorChange={(line, col) => { setCursorLine(line); setCursorColumn(col) }}
             onDocTypeChange={setDocType}
+            projectDir={currentProjectDir}
+            onProjectTreeRefresh={refreshProjectTree}
           />
           {showOutput && (
             <OutputPanel

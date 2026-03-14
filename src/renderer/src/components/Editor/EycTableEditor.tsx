@@ -1855,11 +1855,25 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
                   const t = el.trim()
                   return el.includes(FLOW_AUTO_TAG) || t === FLOW_TRUE_MARK || t === FLOW_ELSE_MARK || t === FLOW_JUDGE_END_MARK
                 })
-                const hasEnding = kwLines.length > 0 && kwLines.every(el => {
-                  const t = el.trim()
-                  const kw = (t === FLOW_TRUE_MARK || t === FLOW_ELSE_MARK || t === FLOW_JUDGE_END_MARK) ? t : el.replace(FLOW_AUTO_TAG, '').trim()
-                  return remainingLines.some(rl => extractFlowKw(rl) === kw)
-                })
+                // 检查紧邻下方的行是否已经是当前命令的流程结构（防止重复插入）
+                // 必须从 remainingLines 的最前面开始匹配，跳过空行/普通代码行
+                let hasEnding = false
+                if (kwLines.length > 0) {
+                  // 提取第一个 remaining 行的流程关键词
+                  const firstRemainingKw = remainingLines.length > 0 ? extractFlowKw(remainingLines[0]) : null
+                  // 提取第一个 kwLine 的期望关键词
+                  const firstKwT = kwLines[0].trim()
+                  const firstExpectedKw = (firstKwT === FLOW_TRUE_MARK || firstKwT === FLOW_ELSE_MARK || firstKwT === FLOW_JUDGE_END_MARK)
+                    ? firstKwT : kwLines[0].replace(FLOW_AUTO_TAG, '').trim().split(/[\s(（]/)[0]
+                  // 只有当紧邻的第一行就匹配第一个期望关键词时，才视为已有结构
+                  if (firstRemainingKw === firstExpectedKw) {
+                    hasEnding = kwLines.every(el => {
+                      const t = el.trim()
+                      const kw = (t === FLOW_TRUE_MARK || t === FLOW_ELSE_MARK || t === FLOW_JUDGE_END_MARK) ? t : el.replace(FLOW_AUTO_TAG, '').trim().split(/[\s(（]/)[0]
+                      return remainingLines.some(rl => extractFlowKw(rl) === kw)
+                    })
+                  }
+                }
                 if (hasEnding) extraLines = []
 
                 const isLoopFlow = FLOW_LOOP_KW.has(cmdCheckName)

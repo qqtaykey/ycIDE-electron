@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import type { DesignControl, DesignForm, SelectionTarget, LibWindowUnit, LibUnitProperty, LibUnitEvent } from '../Editor/VisualDesigner'
 import Icon from '../Icon/Icon'
 import '../Icon/Icon.css'
@@ -24,9 +24,11 @@ interface SidebarProps {
   activeTab: SidebarTab
   onTabChange: (tab: SidebarTab) => void
   onSelectControl?: (target: SelectionTarget) => void
+  onPropertyChange?: (targetKind: 'form' | 'control', controlId: string | null, propName: string, value: string | number | boolean) => void
   projectTree?: TreeNode[]
   onOpenFile?: (fileId: string, fileName: string) => void
   activeFileId?: string | null
+  projectDir?: string
 }
 
 interface LibItem {
@@ -326,7 +328,153 @@ function resolveControlPropValue(prop: LibUnitProperty, control: DesignControl):
   return getDefaultPropValue(prop)
 }
 
-function PropertyPanel({ selection, windowUnits, onSelectControl }: { selection?: SelectionTarget; windowUnits: LibWindowUnit[]; onSelectControl?: (target: SelectionTarget) => void }): React.JSX.Element {
+/** 可编辑名称单元格（带重复检查） */
+function EditableNameCell({ value, existingNames, onChange }: { value: string; existingNames: string[]; onChange: (v: string) => void }): React.JSX.Element {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const [error, setError] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { setDraft(value); setError('') }, [value])
+  useEffect(() => { if (editing) inputRef.current?.select() }, [editing])
+
+  const validate = useCallback((name: string): string => {
+    if (!name.trim()) return '名称不能为空'
+    if (/^[0-9]/.test(name)) return '名称不能以数字开头'
+    if (/^[^\u4e00-\u9fa5a-zA-Z_]/.test(name)) return '名称不能以特殊符号开头'
+    if (name !== value && existingNames.includes(name)) return '名称已存在'
+    return ''
+  }, [value, existingNames])
+
+  const commitEdit = useCallback(() => {
+    const err = validate(draft)
+    if (err) { setError(err); return }
+    setEditing(false)
+    setError('')
+    if (draft !== value) onChange(draft)
+  }, [draft, value, onChange, validate])
+
+  if (editing) {
+    return (
+      <div>
+        <input
+          ref={inputRef}
+          className={`prop-edit-input ${error ? 'prop-edit-input-error' : ''}`}
+          type="text"
+          value={draft}
+          onChange={e => { setDraft(e.target.value); setError(validate(e.target.value)) }}
+          onBlur={commitEdit}
+          onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') { setDraft(value); setError(''); setEditing(false) } }}
+        />
+        {error && <div className="prop-edit-error">{error}</div>}
+      </div>
+    )
+  }
+  return <span className="prop-value-text" onClick={() => setEditing(true)}>{value}</span>
+}
+
+/** 可编辑整数属性单元格 */
+function EditableIntCell({ value, onChange }: { value: number; onChange: (v: number) => void }): React.JSX.Element {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(String(value))
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { setDraft(String(value)) }, [value])
+  useEffect(() => { if (editing) inputRef.current?.select() }, [editing])
+
+  const commitEdit = useCallback(() => {
+    setEditing(false)
+    const n = parseInt(draft, 10)
+    if (!isNaN(n) && n !== value) onChange(n)
+    else setDraft(String(value))
+  }, [draft, value, onChange])
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        className="prop-edit-input"
+        type="text"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commitEdit}
+        onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') { setDraft(String(value)); setEditing(false) } }}
+      />
+    )
+  }
+  return <span className="prop-value-text" onClick={() => setEditing(true)}>{value}</span>
+}
+
+/** 可编辑文本属性单元格 */
+function EditableTextCell({ value, onChange }: { value: string; onChange: (v: string) => void }): React.JSX.Element {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { setDraft(value) }, [value])
+  useEffect(() => { if (editing) inputRef.current?.select() }, [editing])
+
+  const commitEdit = useCallback(() => {
+    setEditing(false)
+    if (draft !== value) onChange(draft)
+    else setDraft(value)
+  }, [draft, value, onChange])
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        className="prop-edit-input"
+        type="text"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commitEdit}
+        onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') { setDraft(value); setEditing(false) } }}
+      />
+    )
+  }
+  return <span className="prop-value-text" onClick={() => setEditing(true)}>{value || '\u00A0'}</span>
+}
+
+/** 可编辑逻辑型属性单元格（单击切换） */
+function EditableBoolCell({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }): React.JSX.Element {
+  return <span className="prop-value-text prop-value-bool" onClick={() => onChange(!value)}>{value ? '真' : '假'}</span>
+}
+
+/** 可编辑枚举/选择属性单元格（下拉框） */
+function EditablePickCell({ value, options, onChange }: { value: number; options: string[]; onChange: (v: number) => void }): React.JSX.Element {
+  return (
+    <select
+      className="prop-edit-select"
+      value={value}
+      onChange={e => onChange(parseInt(e.target.value, 10))}
+    >
+      {options.map((opt, i) => (
+        <option key={i} value={i}>{opt}</option>
+      ))}
+    </select>
+  )
+}
+
+/** 根据属性类型渲染对应的可编辑单元格 */
+function renderEditableCell(prop: LibUnitProperty, val: string | number | boolean, onChange: (v: string | number | boolean) => void): React.JSX.Element {
+  // 有 pickOptions → 下拉选择
+  if (prop.pickOptions.length > 0 && typeof val === 'number') {
+    return <EditablePickCell value={val} options={prop.pickOptions} onChange={v => onChange(v)} />
+  }
+  // 逻辑型 → 单击切换
+  if (prop.typeName === '逻辑型') {
+    return <EditableBoolCell value={!!val} onChange={v => onChange(v)} />
+  }
+  // 整数型 / 小数型 / 颜色等数值类型
+  if (prop.typeName === '整数型' || prop.typeName === '小数型' || prop.typeName === '选择整数' || prop.typeName === '选择特定整数' || prop.typeName === '颜色' || prop.typeName === '颜色(透明)' || prop.typeName === '背景颜色') {
+    return <EditableIntCell value={typeof val === 'number' ? val : 0} onChange={v => onChange(v)} />
+  }
+  // 文本型及其他 → 文本输入
+  return <EditableTextCell value={String(val ?? '')} onChange={v => onChange(v)} />
+}
+
+function PropertyPanel({ selection, windowUnits, onSelectControl, onPropertyChange, projectNames }: { selection?: SelectionTarget; windowUnits: LibWindowUnit[]; onSelectControl?: (target: SelectionTarget) => void; onPropertyChange?: (targetKind: 'form' | 'control', controlId: string | null, propName: string, value: string | number | boolean) => void; projectNames?: string[] }): React.JSX.Element {
   // 获取当前窗口数据（从任意选中状态中提取）
   const form = selection?.kind === 'form' ? selection.form
     : selection?.kind === 'control' ? selection.form
@@ -386,37 +534,41 @@ function PropertyPanel({ selection, windowUnits, onSelectControl }: { selection?
   if (selection.kind === 'form') {
     const f = selection.form
     const windowUnit = windowUnits.find(u => u.name === '窗口')
-    const baseProps: Array<{ label: string; value: string }> = [
-      { label: '窗口名称', value: f.name },
-      { label: '类型', value: '窗口' },
-    ]
+    const allNames = [f.name, ...f.controls.map(c => c.name)]
     return (
       <div className="sidebar-panel">
         {renderSelector()}
         <table className="prop-table">
           <tbody>
-            {baseProps.map(p => (
-              <tr key={p.label} className="prop-row">
-                <td className="prop-name">{p.label}</td>
-                <td className="prop-value">{p.value}</td>
-              </tr>
-            ))}
+            <tr className="prop-row">
+              <td className="prop-name">窗口名称</td>
+              <td className="prop-value">
+                <EditableNameCell value={f.name} existingNames={projectNames || []} onChange={v => onPropertyChange?.('form', null, '__name__', v)} />
+              </td>
+            </tr>
+            <tr className="prop-row">
+              <td className="prop-name">类型</td>
+              <td className="prop-value">窗口</td>
+            </tr>
             {windowUnit ? (
-              windowUnit.properties.filter(p => !p.isReadOnly).map(p => (
-                <tr key={p.name} className="prop-row">
-                  <td className="prop-name" title={p.description}>{p.name}</td>
-                  <td className="prop-value">
-                    {formatPropValue(p, resolveFormPropValue(p, f))}
-                  </td>
-                </tr>
-              ))
+              windowUnit.properties.filter(p => !p.isReadOnly).map(p => {
+                const val = resolveFormPropValue(p, f)
+                return (
+                  <tr key={p.name} className="prop-row">
+                    <td className="prop-name" title={p.description}>{p.name}</td>
+                    <td className="prop-value">
+                      {renderEditableCell(p, val, v => onPropertyChange?.('form', null, p.name, v))}
+                    </td>
+                  </tr>
+                )
+              })
             ) : (
               <>
-                <tr className="prop-row"><td className="prop-name">标题</td><td className="prop-value">{f.title}</td></tr>
+                <tr className="prop-row"><td className="prop-name">标题</td><td className="prop-value"><EditableTextCell value={f.title} onChange={v => onPropertyChange?.('form', null, '标题', v)} /></td></tr>
                 <tr className="prop-row"><td className="prop-name">左边</td><td className="prop-value">0</td></tr>
                 <tr className="prop-row"><td className="prop-name">顶边</td><td className="prop-value">0</td></tr>
-                <tr className="prop-row"><td className="prop-name">宽度</td><td className="prop-value">{f.width}</td></tr>
-                <tr className="prop-row"><td className="prop-name">高度</td><td className="prop-value">{f.height}</td></tr>
+                <tr className="prop-row"><td className="prop-name">宽度</td><td className="prop-value"><EditableIntCell value={f.width} onChange={v => onPropertyChange?.('form', null, '宽度', v)} /></td></tr>
+                <tr className="prop-row"><td className="prop-name">高度</td><td className="prop-value"><EditableIntCell value={f.height} onChange={v => onPropertyChange?.('form', null, '高度', v)} /></td></tr>
                 <tr className="prop-row"><td className="prop-name">可视</td><td className="prop-value">真</td></tr>
               </>
             )}
@@ -429,41 +581,44 @@ function PropertyPanel({ selection, windowUnits, onSelectControl }: { selection?
   const control = selection.control
   const typeName = control.type
   const unit = windowUnits.find(u => u.name === control.type)
-
-  const baseProps: Array<{ label: string; value: string }> = [
-    { label: '控件名称', value: control.name },
-    { label: '控件类型', value: typeName },
-  ]
+  const allNames = form ? [form.name, ...form.controls.filter(c => c.id !== control.id).map(c => c.name)] : []
 
   return (
     <div className="sidebar-panel">
       {renderSelector()}
       <table className="prop-table">
         <tbody>
-          {baseProps.map(p => (
-            <tr key={p.label} className="prop-row">
-              <td className="prop-name">{p.label}</td>
-              <td className="prop-value">{p.value}</td>
-            </tr>
-          ))}
+          <tr className="prop-row">
+            <td className="prop-name">控件名称</td>
+            <td className="prop-value">
+              <EditableNameCell value={control.name} existingNames={allNames} onChange={v => onPropertyChange?.('control', control.id, '__name__', v)} />
+            </td>
+          </tr>
+          <tr className="prop-row">
+            <td className="prop-name">控件类型</td>
+            <td className="prop-value">{typeName}</td>
+          </tr>
           {unit ? (
-            unit.properties.filter(p => !p.isReadOnly).map(p => (
-              <tr key={p.name} className="prop-row">
-                <td className="prop-name" title={p.description}>{p.name}</td>
-                <td className="prop-value">
-                  {formatPropValue(p, resolveControlPropValue(p, control))}
-                </td>
-              </tr>
-            ))
+            unit.properties.filter(p => !p.isReadOnly).map(p => {
+              const val = resolveControlPropValue(p, control)
+              return (
+                <tr key={p.name} className="prop-row">
+                  <td className="prop-name" title={p.description}>{p.name}</td>
+                  <td className="prop-value">
+                    {renderEditableCell(p, val, v => onPropertyChange?.('control', control.id, p.name, v))}
+                  </td>
+                </tr>
+              )
+            })
           ) : (
             <>
-              <tr className="prop-row"><td className="prop-name">标题</td><td className="prop-value">{control.text}</td></tr>
-              <tr className="prop-row"><td className="prop-name">左边</td><td className="prop-value">{control.left}</td></tr>
-              <tr className="prop-row"><td className="prop-name">顶边</td><td className="prop-value">{control.top}</td></tr>
-              <tr className="prop-row"><td className="prop-name">宽度</td><td className="prop-value">{control.width}</td></tr>
-              <tr className="prop-row"><td className="prop-name">高度</td><td className="prop-value">{control.height}</td></tr>
-              <tr className="prop-row"><td className="prop-name">可视</td><td className="prop-value">{control.visible ? '真' : '假'}</td></tr>
-              <tr className="prop-row"><td className="prop-name">禁止</td><td className="prop-value">{control.enabled ? '假' : '真'}</td></tr>
+              <tr className="prop-row"><td className="prop-name">标题</td><td className="prop-value"><EditableTextCell value={control.text} onChange={v => onPropertyChange?.('control', control.id, '标题', v)} /></td></tr>
+              <tr className="prop-row"><td className="prop-name">左边</td><td className="prop-value"><EditableIntCell value={control.left} onChange={v => onPropertyChange?.('control', control.id, '左边', v)} /></td></tr>
+              <tr className="prop-row"><td className="prop-name">顶边</td><td className="prop-value"><EditableIntCell value={control.top} onChange={v => onPropertyChange?.('control', control.id, '顶边', v)} /></td></tr>
+              <tr className="prop-row"><td className="prop-name">宽度</td><td className="prop-value"><EditableIntCell value={control.width} onChange={v => onPropertyChange?.('control', control.id, '宽度', v)} /></td></tr>
+              <tr className="prop-row"><td className="prop-name">高度</td><td className="prop-value"><EditableIntCell value={control.height} onChange={v => onPropertyChange?.('control', control.id, '高度', v)} /></td></tr>
+              <tr className="prop-row"><td className="prop-name">可视</td><td className="prop-value"><EditableBoolCell value={control.visible} onChange={v => onPropertyChange?.('control', control.id, '可视', v)} /></td></tr>
+              <tr className="prop-row"><td className="prop-name">禁止</td><td className="prop-value"><EditableBoolCell value={!control.enabled} onChange={v => onPropertyChange?.('control', control.id, '禁止', v)} /></td></tr>
             </>
           )}
         </tbody>
@@ -472,8 +627,9 @@ function PropertyPanel({ selection, windowUnits, onSelectControl }: { selection?
   )
 }
 
-function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectControl, projectTree, onOpenFile, activeFileId }: SidebarProps): React.JSX.Element {
+function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectControl, onPropertyChange, projectTree, onOpenFile, activeFileId, projectDir }: SidebarProps): React.JSX.Element {
   const [windowUnits, setWindowUnits] = useState<LibWindowUnit[]>([])
+  const [projectNames, setProjectNames] = useState<string[]>([])
 
   // 从支持库加载窗口组件信息，并在支持库加载后刷新
   const loadWindowUnits = useCallback(() => {
@@ -485,6 +641,32 @@ function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectC
     window.api.on('library:loaded', loadWindowUnits)
     return () => { window.api.off('library:loaded') }
   }, [loadWindowUnits])
+
+  // 加载项目中所有 .efw 的窗口名称（用于项目级窗口重名检查，控件只在窗口内检查）
+  useEffect(() => {
+    if (!projectDir || activeTab !== 'property') { setProjectNames([]); return }
+    const currentFormName = selection?.kind === 'form' ? selection.form.name
+      : selection?.kind === 'control' ? selection.form.name : null
+    let cancelled = false
+    ;(async () => {
+      const dirFiles = await window.api?.file?.readDir(projectDir)
+      if (cancelled || !dirFiles) return
+      const names: string[] = []
+      for (const f of dirFiles as string[]) {
+        if (!f.toLowerCase().endsWith('.efw')) continue
+        const content = await window.api?.project?.readFile(projectDir + '\\' + f)
+        if (cancelled || !content) continue
+        try {
+          const efwData = JSON.parse(content)
+          const formName = efwData.name || f.replace('.efw', '')
+          // 排除当前正在编辑的窗口自身名称
+          if (formName !== currentFormName) names.push(formName)
+        } catch { /* ignore parse errors */ }
+      }
+      if (!cancelled) setProjectNames(names)
+    })()
+    return () => { cancelled = true }
+  }, [projectDir, activeTab, selection])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -566,7 +748,7 @@ function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectC
           )
         )}
         {activeTab === 'library' && <LibraryPanel />}
-        {activeTab === 'property' && <PropertyPanel selection={selection} windowUnits={windowUnits} onSelectControl={onSelectControl} />}
+        {activeTab === 'property' && <PropertyPanel selection={selection} windowUnits={windowUnits} onSelectControl={onSelectControl} onPropertyChange={onPropertyChange} projectNames={projectNames} />}
       </div>
       {activeTab === 'property' && (
         <div className="sidebar-event-bar">

@@ -250,3 +250,54 @@
   border-bottom: 1px solid rgba(255,255,255,0.04);
   word-break: break-all;
 }
+
+.prop-value-text {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: text;
+}
+
+.prop-edit-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1px 4px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  outline: none;
+}
+.prop-edit-input-error {
+  border-color: #e81123;
+}
+.prop-edit-error {
+  font-size: 10px;
+  color: #e81123;
+  margin-top: 1px;
+  line-height: 1.2;
+}
+
+.prop-edit-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1px 2px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.prop-edit-select:focus {
+  border-color: var(--accent);
+}
+
+.prop-value-bool {
+  cursor: pointer;
+  user-select: none;
+}
