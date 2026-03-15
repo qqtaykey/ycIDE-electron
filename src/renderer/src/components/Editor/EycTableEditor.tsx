@@ -949,6 +949,25 @@ function getCmdIconClass(category: string): string {
   return 'eyc-ac-icon-func'
 }
 
+/** 找到文本中最外层括号的位置范围 (start=开括号位置, end=闭括号位置) */
+function getOuterParenRange(text: string): { start: number; end: number } | null {
+  const openIdx = text.search(/[(（]/)
+  if (openIdx < 0) return null
+  let depth = 0
+  let inStr = false
+  for (let i = openIdx; i < text.length; i++) {
+    const ch = text[i]
+    if (inStr) { if (ch === '"' || ch === '\u201d') inStr = false; continue }
+    if (ch === '"' || ch === '\u201c') { inStr = true; continue }
+    if (ch === '(' || ch === '（') depth++
+    else if (ch === ')' || ch === '）') {
+      depth--
+      if (depth === 0) return { start: openIdx, end: i }
+    }
+  }
+  return null
+}
+
 const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(function EycTableEditor({ value, onChange, onCommandClick, onCommandClear, onProblemsChange, onCursorChange }, ref) {
   const [editCell, setEditCell] = useState<EditState | null>(null)
   const [editVal, setEditVal] = useState('')
@@ -1524,12 +1543,13 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         flowMarkRef.current = ''
         return
       }
-      // 流程起始行重新输入流程命令时，flowIndent 已包含本命令自身的流程区域缩进（4空格），
-      // 而 formatCommandLine 会再次添加4空格，导致缩进翻倍。此处减去自身贡献。
+      // formatCommandLine 会为流程命令额外加4空格，若 flowIndent 已包含流程缩进则需减去以避免翻倍
+      // 但只有裸命令名（无括号）才会被 formatCommandLine 重新格式化，已有括号的不会加4
       let baseIndent = flowIndentRef.current
       const trimmedCmd = effectiveVal.trim()
       const cmdCheckName = trimmedCmd.startsWith('.') ? trimmedCmd : trimmedCmd.split(/[\s(（]/)[0]
-      if (trimmedCmd && FLOW_AUTO_COMPLETE[cmdCheckName] && wasFlowStartRef.current && baseIndent.length >= 4) {
+      const isBareCmd = /^[\u4e00-\u9fa5A-Za-z_][\u4e00-\u9fa5A-Za-z0-9_.]*\s*$/.test(trimmedCmd)
+      if (isBareCmd && trimmedCmd && FLOW_AUTO_COMPLETE[cmdCheckName] && baseIndent.length >= 4) {
         baseIndent = baseIndent.slice(0, baseIndent.length - 4)
       }
       const formattedLines = formatCommandLine(baseIndent + effectiveVal)
@@ -1737,6 +1757,75 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
       return
     }
 
+    // ===== 命令行括号保护：已格式化的命令行只允许在括号内编辑参数 =====
+    if (editCell && editCell.cellIndex < 0 && editCell.paramIdx === undefined) {
+      const parenRange = getOuterParenRange(editVal)
+      if (parenRange) {
+        const cur = e.currentTarget.selectionStart ?? 0
+        const selE = e.currentTarget.selectionEnd ?? cur
+        const pS = parenRange.start + 1  // 开括号后的第一个可编辑位置
+        const pE = parenRange.end        // 闭括号位置（不可编辑）
+        const hasSel = cur !== selE
+        const selInRange = cur >= pS && selE <= pE
+
+        // Enter：提交编辑并在下一行插入空行（不拆行，保护命令结构）
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          setAcVisible(false)
+          commit()
+          // 在命令行下方插入空行并进入编辑
+          setTimeout(() => {
+            const latestText = prevRef.current
+            const latestLines = latestText.split('\n')
+            const insertAt = editCell!.lineIndex + 1
+            const fi = flowIndentRef.current || ''
+            latestLines.splice(insertAt, 0, fi)
+            const nt = latestLines.join('\n')
+            pushUndo(latestText)
+            setCurrentText(nt); prevRef.current = nt; onChange(nt)
+            flowMarkRef.current = ''
+            flowIndentRef.current = fi
+            wasFlowStartRef.current = false
+            setEditCell({ lineIndex: insertAt, cellIndex: -1, fieldIdx: -1, sliceField: false })
+            setEditVal('')
+            setTimeout(() => inputRef.current?.focus(), 0)
+          }, 0)
+          return
+        }
+        // Tab：提交编辑并跳转到下一行编辑
+        if (e.key === 'Tab') {
+          e.preventDefault()
+          setAcVisible(false)
+          commit()
+          setTimeout(() => {
+            const latestText = prevRef.current
+            const latestLines = latestText.split('\n')
+            const nextLi = editCell!.lineIndex + 1
+            if (nextLi < latestLines.length) {
+              startEditLine(nextLi)
+            }
+          }, 0)
+          return
+        }
+        // Backspace：光标在括号外或选区跨出括号时阻止
+        if (e.key === 'Backspace') {
+          if (hasSel ? !selInRange : cur <= pS) { e.preventDefault(); return }
+        }
+        // Delete：光标在括号外或选区跨出括号时阻止
+        if (e.key === 'Delete') {
+          if (hasSel ? !selInRange : cur >= pE) { e.preventDefault(); return }
+        }
+        // Ctrl+X/V：选区跨出括号时阻止
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'x' || e.key === 'v')) {
+          if (!selInRange) { e.preventDefault(); return }
+        }
+        // 可打印字符：光标在括号外时阻止输入
+        if (e.key.length === 1 && !(e.ctrlKey || e.metaKey)) {
+          if (hasSel ? !selInRange : (cur < pS || cur > pE)) { e.preventDefault(); return }
+        }
+      }
+    }
+
     // ===== 原有键盘处理 =====
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -1835,9 +1924,11 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
             } else {
               // 普通代码行/虚拟行：自动展开流程结构
               // 需要加回 flowIndent（被 startEditLine 剥离的流程区域缩进）
-              // 但若编辑行本身是流程起始行，其自身流程区域的4空格不需要加回（formatCommandLine 会重新添加）
+              // 但 formatCommandLine 会为流程命令额外加4空格，所以需减去以避免缩进翻倍
+              // 只有裸命令名（无括号）才会被 formatCommandLine 重新格式化
               let enterIndent = flowIndentRef.current
-              if (wasFlowStartRef.current && enterIndent.length >= 4) {
+              const isBareEnterCmd = /^[\u4e00-\u9fa5A-Za-z_][\u4e00-\u9fa5A-Za-z0-9_.]*\s*$/.test(editVal.trim())
+              if (isBareEnterCmd && enterIndent.length >= 4) {
                 enterIndent = enterIndent.slice(0, enterIndent.length - 4)
               }
               const formattedLines = formatCommandLine(enterIndent + editVal)
@@ -2053,7 +2144,75 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         }
       }
     } else if (e.key === 'Escape') { setAcVisible(false); setEditCell(null) }
-  }, [commit, editCell, editVal, lines, onChange, acVisible, acItems, acIndex, applyCompletion, currentText, pushUndo])
+    // ===== 方向键导航 =====
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      if (editCell && editCell.cellIndex < 0) {
+        e.preventDefault()
+        const cursorPos = e.currentTarget.selectionStart ?? 0
+        commit()
+        const targetLi = e.key === 'ArrowUp' ? editCell.lineIndex - 1 : editCell.lineIndex + 1
+        setTimeout(() => {
+          const latestLines = prevRef.current.split('\n')
+          if (targetLi >= 0 && targetLi < latestLines.length) {
+            startEditLine(targetLi)
+            // 尝试保持光标水平位置
+            setTimeout(() => {
+              if (inputRef.current) {
+                const maxPos = inputRef.current.value.length
+                const pos = Math.min(cursorPos, maxPos)
+                inputRef.current.selectionStart = pos
+                inputRef.current.selectionEnd = pos
+              }
+            }, 0)
+          }
+        }, 0)
+      }
+    } else if (e.key === 'ArrowLeft') {
+      if (editCell && editCell.cellIndex < 0) {
+        const pos = e.currentTarget.selectionStart ?? 0
+        if (pos === 0 && editCell.lineIndex > 0) {
+          e.preventDefault()
+          commit()
+          const targetLi = editCell.lineIndex - 1
+          setTimeout(() => {
+            const latestLines = prevRef.current.split('\n')
+            if (targetLi >= 0 && targetLi < latestLines.length) {
+              startEditLine(targetLi)
+              setTimeout(() => {
+                if (inputRef.current) {
+                  const end = inputRef.current.value.length
+                  inputRef.current.selectionStart = end
+                  inputRef.current.selectionEnd = end
+                }
+              }, 0)
+            }
+          }, 0)
+        }
+      }
+    } else if (e.key === 'ArrowRight') {
+      if (editCell && editCell.cellIndex < 0) {
+        const pos = e.currentTarget.selectionStart ?? 0
+        const len = editVal.length
+        if (pos >= len) {
+          e.preventDefault()
+          commit()
+          const targetLi = editCell.lineIndex + 1
+          setTimeout(() => {
+            const latestLines = prevRef.current.split('\n')
+            if (targetLi < latestLines.length) {
+              startEditLine(targetLi)
+              setTimeout(() => {
+                if (inputRef.current) {
+                  inputRef.current.selectionStart = 0
+                  inputRef.current.selectionEnd = 0
+                }
+              }, 0)
+            }
+          }, 0)
+        }
+      }
+    }
+  }, [commit, editCell, editVal, lines, onChange, acVisible, acItems, acIndex, applyCompletion, currentText, pushUndo, startEditLine])
 
   // 插入子程序：在当前光标所处子程序后方插入，无光标时插入到末尾
   useImperativeHandle(ref, () => ({
@@ -2573,6 +2732,18 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
                     value={editVal}
                     onChange={e => {
                       const v = e.target.value
+                      // 命令行括号保护：阻止 IME/粘贴等修改括号外的内容
+                      if (editCell?.cellIndex === -1) {
+                        const oldRange = getOuterParenRange(editVal)
+                        if (oldRange) {
+                          const prefix = editVal.slice(0, oldRange.start + 1)
+                          const suffix = editVal.slice(oldRange.end)
+                          if (!v.startsWith(prefix) || !v.endsWith(suffix)) {
+                            e.target.value = editVal
+                            return
+                          }
+                        }
+                      }
                       setEditVal(v)
                       liveUpdate(v)
                       const pos = e.target.selectionStart ?? v.length
