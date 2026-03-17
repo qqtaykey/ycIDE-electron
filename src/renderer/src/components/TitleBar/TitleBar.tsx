@@ -102,20 +102,24 @@ function buildMenus(hasProject: boolean, hasOpenFile: boolean, themes: string[],
 
 interface TitleBarProps {
   onMenuAction?: (action: string) => void
+  onWindowClose?: () => void
   hasProject?: boolean
   hasOpenFile?: boolean
   themes?: string[]
   currentTheme?: string
 }
 
-function TitleBar({ onMenuAction, hasProject = false, hasOpenFile = false, themes = [], currentTheme = '' }: TitleBarProps): React.JSX.Element {
+function TitleBar({ onMenuAction, onWindowClose, hasProject = false, hasOpenFile = false, themes = [], currentTheme = '' }: TitleBarProps): React.JSX.Element {
   const menus = buildMenus(hasProject, hasOpenFile, themes, currentTheme)
   const [openMenu, setOpenMenu] = useState<number | null>(null)
   const menuBarRef = useRef<HTMLDivElement>(null)
 
   const handleMinimize = () => window.api?.window.minimize()
   const handleMaximize = () => window.api?.window.maximize()
-  const handleClose = () => window.api?.window.close()
+  const handleClose = () => {
+    if (onWindowClose) onWindowClose()
+    else window.api?.window.close()
+  }
 
   const closeMenu = useCallback(() => setOpenMenu(null), [])
 

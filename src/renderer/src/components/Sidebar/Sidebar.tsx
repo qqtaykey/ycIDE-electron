@@ -141,10 +141,12 @@ function LibraryPanel(): React.JSX.Element {
     })
   }, [])
 
+  const loadedLibs = useMemo(() => libs.filter(lib => lib.loaded), [libs])
+
   return (
     <div className="sidebar-panel">
       <ul className="tree" role="tree" aria-label="支持库列表">
-        {libs.map(lib => {
+        {loadedLibs.map(lib => {
           const isExpanded = expandedLibs.has(lib.name)
           const detail = libDetails[lib.name]
           // 按分类分组命令（排除隐藏命令）
@@ -257,8 +259,8 @@ function LibraryPanel(): React.JSX.Element {
             </li>
           )
         })}
-        {libs.length === 0 && (
-          <li className="sidebar-empty">暂无支持库</li>
+        {loadedLibs.length === 0 && (
+          <li className="sidebar-empty">暂无已加载支持库</li>
         )}
       </ul>
     </div>
@@ -716,8 +718,39 @@ function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectC
   }, [selection, windowUnits])
 
   const selectedTypeName = selection ? (selection.kind === 'form' ? '窗口' : selection.control.type) : ''
+  const currentForm = selection ? (selection.kind === 'form' ? selection.form : selection.form) : null
+  const eventTargetName = selection ? (selection.kind === 'form' ? selection.form.name : selection.control.name) : ''
+  const EVENT_PREFIX_CHECKED = '✓\u00A0'
+  const EVENT_PREFIX_EMPTY = '\u00A0\u00A0'
 
   const [selectedEvent, setSelectedEvent] = useState('')
+  const [existingEventSubs, setExistingEventSubs] = useState<Set<string>>(new Set())
+
+  // 读取当前窗口对应 .eyc，解析已存在的 .子程序 名称
+  useEffect(() => {
+    if (activeTab !== 'property' || !projectDir || !currentForm) {
+      setExistingEventSubs(new Set())
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const sourceFile = currentForm.sourceFile || `${currentForm.name}.eyc`
+      const filePath = projectDir + '\\' + sourceFile
+      const content = await window.api?.project?.readFile(filePath)
+      if (cancelled || !content) {
+        if (!cancelled) setExistingEventSubs(new Set())
+        return
+      }
+      const next = new Set<string>()
+      const subRegex = /^\s*\.子程序\s+([^\s]+)/gm
+      let m: RegExpExecArray | null
+      while ((m = subRegex.exec(content)) !== null) {
+        if (m[1]) next.add(m[1])
+      }
+      if (!cancelled) setExistingEventSubs(next)
+    })()
+    return () => { cancelled = true }
+  }, [activeTab, projectDir, currentForm?.name, currentForm?.sourceFile])
 
   // 选中组件变化时，自动选择默认事件
   useEffect(() => {
@@ -761,7 +794,9 @@ function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectC
             {selectedEvents.length === 0
               ? <option value="">(无事件)</option>
               : selectedEvents.map(ev => (
-                  <option key={ev.name} value={ev.name} title={ev.description}>{ev.name}</option>
+                  <option key={ev.name} value={ev.name} title={ev.description}>
+                    {(existingEventSubs.has(`_${eventTargetName.replace(/^_+/, '')}_${ev.name}`) ? EVENT_PREFIX_CHECKED : EVENT_PREFIX_EMPTY) + ev.name}
+                  </option>
                 ))
             }
           </select>

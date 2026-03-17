@@ -3,6 +3,7 @@ import MonacoEditor, { OnMount, OnChange, type Monaco } from '@monaco-editor/rea
 import type { editor } from 'monaco-editor'
 import EycTableEditor, { type EycTableEditorHandle, type FileProblem } from './EycTableEditor'
 import VisualDesigner, { type DesignForm, type DesignControl, type SelectionTarget, type LibWindowUnit, type LibUnitEvent, type AlignAction } from './VisualDesigner'
+import { eycToInternalFormat, eycToYiFormat } from './eycFormat'
 import Icon from '../Icon/Icon'
 import '../Icon/Icon.css'
 import './Editor.css'
@@ -191,6 +192,7 @@ export interface EditorHandle {
   save: () => void
   saveAll: () => void
   closeActiveTab: () => void
+  hasModifiedTabs: () => boolean
   editorAction: (action: string) => void
   getEditorFiles: () => Record<string, string>
   openFile: (tab: EditorTab) => void
@@ -208,17 +210,43 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
   const [windowUnits, setWindowUnits] = useState<LibWindowUnit[]>([])
   const pendingNavigateRef = useRef<{ subName: string; params: Array<{ name: string; dataType: string; isByRef: boolean }> } | null>(null)
 
+  const buildEventSubName = useCallback((targetName: string, eventName: string): string => {
+    const normalized = targetName.replace(/^_+/, '')
+    return `_${normalized}_${eventName}`
+  }, [])
+
+  // 统一计算标签页的实际保存内容（efw 使用 formData 序列化结果）
+  const getTabPersistContent = (tab: EditorTab): string => {
+    if (tab.language === 'efw' && tab.formData) {
+      return JSON.stringify(tab.formData, null, 2)
+    }
+    return tab.value
+  }
+
+  const getTabSaveContent = (tab: EditorTab): string => {
+    if (tab.language === 'eyc') return eycToYiFormat(tab.value)
+    return getTabPersistContent(tab)
+  }
+
+  const normalizeIncomingTab = (tab: EditorTab): EditorTab => {
+    if (tab.language !== 'eyc') return tab
+    return {
+      ...tab,
+      value: eycToInternalFormat(tab.value),
+      savedValue: eycToInternalFormat(tab.savedValue),
+    }
+  }
+
+  const isTabModified = (tab: EditorTab): boolean => getTabPersistContent(tab) !== tab.savedValue
+
   // 保存当前文件
   const saveCurrentFile = useCallback(() => {
     setTabs(prev => {
       const tab = prev.find(t => t.id === activeTabId)
       if (!tab || !tab.filePath) return prev
-      if (tab.language === 'efw' && tab.formData) {
-        window.api?.file?.save(tab.filePath, JSON.stringify(tab.formData, null, 2))
-      } else {
-        window.api?.file?.save(tab.filePath, tab.value)
-      }
-      return prev.map(t => t.id === activeTabId ? { ...t, savedValue: t.value } : t)
+      const content = getTabSaveContent(tab)
+      window.api?.file?.save(tab.filePath, content)
+      return prev.map(t => t.id === activeTabId ? { ...t, savedValue: getTabPersistContent(t) } : t)
     })
   }, [activeTabId])
 
@@ -226,35 +254,57 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
   const saveAllFiles = useCallback(() => {
     setTabs(prev =>
       prev.map(t => {
-        if (t.filePath && t.value !== t.savedValue) {
-          if (t.language === 'efw' && t.formData) {
-            window.api?.file?.save(t.filePath, JSON.stringify(t.formData, null, 2))
-          } else {
-            window.api?.file?.save(t.filePath, t.value)
-          }
-          return { ...t, savedValue: t.value }
+        if (t.filePath && isTabModified(t)) {
+          const content = getTabSaveContent(t)
+          window.api?.file?.save(t.filePath, content)
+          return { ...t, savedValue: getTabPersistContent(t) }
         }
         return t
       })
     )
   }, [])
 
-  // 关闭当前标签页
-  const closeActiveFile = useCallback(() => {
-    if (!activeTabId) return
+  // 统一关闭标签逻辑：有改动时先提示保存（保存/不保存/取消）
+  const closeTabWithPrompt = useCallback(async (tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId)
+    if (!tab) return
+
+    if (isTabModified(tab)) {
+      const action = await window.api?.dialog?.confirmSaveBeforeClose(tab.label)
+      if (action === 'cancel') return
+      if (action === 'save' && tab.filePath) {
+        const content = getTabSaveContent(tab)
+        await window.api?.file?.save(tab.filePath, content)
+      }
+    }
+
     setTabs(prev => {
-      const newTabs = prev.filter(t => t.id !== activeTabId)
+      const closingTab = prev.find(t => t.id === tabId)
+      const updatedPrev = (closingTab && isTabModified(closingTab))
+        ? prev.map(t => {
+          if (t.id !== tabId) return t
+          return { ...t, savedValue: getTabPersistContent(t) }
+        })
+        : prev
+
+      const newTabs = updatedPrev.filter(t => t.id !== tabId)
       if (newTabs.length === 0) {
         setActiveTabId(null)
-      } else {
-        const idx = prev.findIndex(t => t.id === activeTabId)
+      } else if (activeTabId === tabId) {
+        const idx = updatedPrev.findIndex(t => t.id === tabId)
         const newActive = newTabs[Math.min(idx, newTabs.length - 1)]
         setActiveTabId(newActive.id)
       }
       onOpenTabsChange?.(newTabs)
       return newTabs
     })
-  }, [activeTabId, onOpenTabsChange])
+  }, [tabs, activeTabId, onOpenTabsChange])
+
+  // 关闭当前标签页
+  const closeActiveFile = useCallback(() => {
+    if (!activeTabId) return
+    void closeTabWithPrompt(activeTabId)
+  }, [activeTabId, closeTabWithPrompt])
 
   // 磁盘级重命名：更新项目中未打开的 .eyc 文件
   // 磁盘级重命名：更新项目中未打开的 .eyc 文件（仅控件改名使用）
@@ -424,7 +474,13 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     save: saveCurrentFile,
     saveAll: saveAllFiles,
     closeActiveTab: closeActiveFile,
+    hasModifiedTabs: () => tabs.some(t => isTabModified(t)),
     editorAction: (action: string) => {
+      const active = tabs.find(t => t.id === activeTabId)
+      if (active?.language === 'eyc') {
+        eycEditorRef.current?.editorAction(action)
+        return
+      }
       const ed = editorRef.current
       if (!ed) return
       switch (action) {
@@ -445,6 +501,8 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
         const fileName = t.filePath?.replace(/^.*[\\/]/, '') || t.label
         if (t.language === 'efw' && t.formData) {
           files[fileName] = JSON.stringify(t.formData, null, 2)
+        } else if (t.language === 'eyc') {
+          files[fileName] = eycToYiFormat(t.value)
         } else {
           files[fileName] = t.value
         }
@@ -452,17 +510,18 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
       return files
     },
     openFile: (tab: EditorTab) => {
+      const incoming = normalizeIncomingTab(tab)
       setTabs(prev => {
-        if (prev.some(t => t.id === tab.id)) {
-          setActiveTabId(tab.id)
+        if (prev.some(t => t.id === incoming.id)) {
+          setActiveTabId(incoming.id)
           return prev
         }
-        const merged = [...prev, tab]
+        const merged = [...prev, incoming]
         onOpenTabsChange?.(merged)
-        setActiveTabId(tab.id)
+        setActiveTabId(incoming.id)
         return merged
       })
-      if (tab.language === 'efw') onSidebarTab?.('property')
+      if (incoming.language === 'efw') onSidebarTab?.('property')
     },
     insertDeclaration: () => {
       eycEditorRef.current?.insertSubroutine()
@@ -479,16 +538,17 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
   // 接收外部打开的项目文件
   useEffect(() => {
     if (openProjectFiles && openProjectFiles.length > 0) {
+      const normalizedIncoming = openProjectFiles.map(normalizeIncomingTab)
       setTabs(prev => {
         const existingIds = new Set(prev.map(t => t.id))
-        const newTabs = openProjectFiles.filter(t => !existingIds.has(t.id))
+        const newTabs = normalizedIncoming.filter(t => !existingIds.has(t.id))
         const merged = [...prev, ...newTabs]
         onOpenTabsChange?.(merged)
         return merged
       })
       // 激活第一个新文件
-      setActiveTabId(openProjectFiles[0].id)
-      if (openProjectFiles[0].language === 'efw') {
+      setActiveTabId(normalizedIncoming[0].id)
+      if (normalizedIncoming[0].language === 'efw') {
         onSidebarTab?.('property')
       }
     }
@@ -528,7 +588,7 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
       ? efwDir + '\\' + sourceFileName
       : activeT.filePath.replace(/\.efw$/i, '.eyc')
     const eventName = defaultEvent?.name || '被单击'
-    const subName = ctrl.name + '_' + eventName
+    const subName = buildEventSubName(ctrl.name, eventName)
     const params = (defaultEvent?.args || []).map(arg => ({
       name: arg.name || 'param',
       dataType: arg.dataType || '整数型',
@@ -561,7 +621,51 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
       pendingNavigateRef.current = { subName, params }
       setActiveTabId(eycPath)
     }
-  }, [tabs, activeTabId, onOpenTabsChange])
+  }, [tabs, activeTabId, onOpenTabsChange, buildEventSubName])
+
+  // 双击可视化设计器窗口 → 跳转到 .eyc 文件并定位/创建窗口默认事件子程序
+  const handleFormDblClick = useCallback(async (formData: DesignForm, defaultEvent: LibUnitEvent | null) => {
+    const activeT = tabs.find(t => t.id === activeTabId)
+    if (!activeT || activeT.language !== 'efw' || !activeT.filePath) return
+
+    const efwDir = activeT.filePath.replace(/[/\\][^/\\]+$/, '')
+    const sourceFileName = activeT.formData?.sourceFile
+    const eycPath = sourceFileName
+      ? efwDir + '\\' + sourceFileName
+      : activeT.filePath.replace(/\.efw$/i, '.eyc')
+    const eventName = defaultEvent?.name || '被创建完毕'
+    const subName = `${formData.name}_${eventName}`
+    const params = (defaultEvent?.args || []).map(arg => ({
+      name: arg.name || 'param',
+      dataType: arg.dataType || '整数型',
+      isByRef: arg.isByRef ?? false,
+    }))
+
+    const existingTab = tabs.find(t => t.filePath === eycPath)
+    if (existingTab) {
+      if (existingTab.id === activeTabId) {
+        eycEditorRef.current?.navigateOrCreateSub(subName, params)
+      } else {
+        pendingNavigateRef.current = { subName, params }
+        setActiveTabId(existingTab.id)
+      }
+    } else {
+      const content = await window.api?.project?.readFile(eycPath)
+      if (content === null || content === undefined) return
+      const fileName = eycPath.split(/[\\/]/).pop() || ''
+      const newTab: EditorTab = {
+        id: eycPath, label: fileName, language: 'eyc',
+        value: content, savedValue: content, filePath: eycPath,
+      }
+      setTabs(prev => {
+        const merged = [...prev, newTab]
+        onOpenTabsChange?.(merged)
+        return merged
+      })
+      pendingNavigateRef.current = { subName, params }
+      setActiveTabId(eycPath)
+    }
+  }, [tabs, activeTabId, onOpenTabsChange, buildEventSubName])
 
   // 标签切换后执行挂起的子程序导航
   useEffect(() => {
@@ -583,9 +687,10 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     // 注册 Ctrl+S 保存
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       setTabs(prev =>
-        prev.map(t =>
-          t.id === activeTabId ? { ...t, savedValue: t.value } : t
-        )
+        prev.map(t => {
+          if (t.id !== activeTabId) return t
+          return { ...t, savedValue: getTabPersistContent(t) }
+        })
       )
     })
 
@@ -632,19 +737,8 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
 
   const closeTab = useCallback((e: React.MouseEvent, tabId: string) => {
     e.stopPropagation()
-    setTabs(prev => {
-      const newTabs = prev.filter(t => t.id !== tabId)
-      if (newTabs.length === 0) {
-        setActiveTabId(null)
-      } else if (activeTabId === tabId) {
-        const idx = prev.findIndex(t => t.id === tabId)
-        const newActive = newTabs[Math.min(idx, newTabs.length - 1)]
-        setActiveTabId(newActive.id)
-      }
-      onOpenTabsChange?.(newTabs)
-      return newTabs
-    })
-  }, [activeTabId, onOpenTabsChange])
+    void closeTabWithPrompt(tabId)
+  }, [closeTabWithPrompt])
 
   const switchTab = useCallback((tabId: string) => {
     setActiveTabId(tabId)
@@ -656,37 +750,10 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     setTimeout(() => editorRef.current?.focus(), 0)
   }, [tabs, onSidebarTab])
 
-  const isModified = (tab: EditorTab) => tab.value !== tab.savedValue
+  const isModified = (tab: EditorTab) => isTabModified(tab)
 
   return (
     <div className="editor" role="main" aria-label="代码编辑器">
-      {/* 标签页 */}
-      <div className="editor-tabs" role="tablist" aria-label="打开的文件">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={`editor-tab ${tab.id === activeTabId ? 'active' : ''}`}
-            role="tab"
-            aria-selected={tab.id === activeTabId}
-            onClick={() => switchTab(tab.id)}
-            title={tab.filePath || tab.label}
-          >
-            <span className="editor-tab-icon">
-              {getFileIcon(tab.language)}
-            </span>
-            <span className="editor-tab-label">{tab.label}</span>
-            {isModified(tab) && (
-              <span className="editor-tab-modified" title="未保存更改">●</span>
-            )}
-            <span
-              className="editor-tab-close"
-              aria-label={`关闭 ${tab.label}`}
-              onClick={(e) => closeTab(e, tab.id)}
-            >×</span>
-          </button>
-        ))}
-      </div>
-
       {/* 编辑区 */}
       <div className="editor-content">
         {!activeTab ? (
@@ -705,6 +772,7 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
             onAlignDone={onAlignDone}
             onMultiSelectChange={onMultiSelectChange}
             onControlDoubleClick={handleControlDblClick}
+            onFormDoubleClick={handleFormDblClick}
           />
         ) : activeTab.language === 'eyc' ? (
           <EycTableEditor
@@ -799,6 +867,33 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
           }
         />
         )}
+      </div>
+
+      {/* 标签页 */}
+      <div className="editor-tabs" role="tablist" aria-label="打开的文件">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`editor-tab ${tab.id === activeTabId ? 'active' : ''}`}
+            role="tab"
+            aria-selected={tab.id === activeTabId}
+            onClick={() => switchTab(tab.id)}
+            title={tab.filePath || tab.label}
+          >
+            <span className="editor-tab-icon">
+              {getFileIcon(tab.language)}
+            </span>
+            <span className="editor-tab-label">{tab.label}</span>
+            {isModified(tab) && (
+              <span className="editor-tab-modified" title="未保存更改">●</span>
+            )}
+            <span
+              className="editor-tab-close"
+              aria-label={`关闭 ${tab.label}`}
+              onClick={(e) => closeTab(e, tab.id)}
+            >×</span>
+          </button>
+        ))}
       </div>
     </div>
   )

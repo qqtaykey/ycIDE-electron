@@ -78,6 +78,7 @@ interface VisualDesignerProps {
   onAlignDone?: () => void
   onMultiSelectChange?: (count: number) => void
   onControlDoubleClick?: (control: DesignControl, defaultEvent: LibUnitEvent | null) => void
+  onFormDoubleClick?: (form: DesignForm, defaultEvent: LibUnitEvent | null) => void
 }
 
 // ========== 内置默认尺寸 ==========
@@ -107,7 +108,7 @@ let nextControlId = 1
 // 记住上次选中的 id（跨重渲染保持）
 let lastSelectedId: string = '__form__'
 
-function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], externalSelectedId, alignAction, onAlignDone, onMultiSelectChange, onControlDoubleClick }: VisualDesignerProps): React.JSX.Element {
+function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], externalSelectedId, alignAction, onAlignDone, onMultiSelectChange, onControlDoubleClick, onFormDoubleClick }: VisualDesignerProps): React.JSX.Element {
   // '__form__' 表示选中窗口自身，null 表示无选中
   const [selectedId, setSelectedId] = useState<string | null>(lastSelectedId)
   // 多选支持
@@ -377,6 +378,15 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
     const defaultEvent = unitInfo?.events?.[0] ?? null
     onControlDoubleClick?.(ctrl, defaultEvent)
   }, [windowUnits, onControlDoubleClick])
+
+  // 窗口双击（标题栏或空白客户区）— 跳转到窗口默认事件子程序
+  const handleFormDblClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const formUnit = windowUnits.find(u => u.name === '窗口')
+    const defaultEvent = formUnit?.events?.[0] ?? null
+    onFormDoubleClick?.(form, defaultEvent)
+  }, [windowUnits, onFormDoubleClick, form])
 
   // 控件鼠标按下 — 开始移动（支持 Shift 多选）
   const handleControlMouseDown = useCallback((e: React.MouseEvent, ctrl: DesignControl) => {
@@ -797,8 +807,8 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
       <div className="vd-canvas-area">
 
         {/* 窗口外壳 */}
-        <div className="vd-form-wrapper">
-          <div className="vd-form-titlebar" onMouseDown={handleFormTitleClick}>
+        <div className={`vd-form-wrapper ${selectedId === '__form__' ? 'vd-form-wrapper-selected' : ''}`}>
+          <div className="vd-form-titlebar" onMouseDown={handleFormTitleClick} onDoubleClick={handleFormDblClick}>
             <span className="vd-form-titlebar-icon"><Icon name="windows-form" size={14} /></span>
             <span className="vd-form-titlebar-text">{form.title || form.name}</span>
             <span className="vd-form-titlebar-btns">
@@ -814,6 +824,7 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
             className={`vd-form-canvas ${activeTool ? 'vd-crosshair' : ''} ${selectedId === '__form__' ? 'vd-form-selected' : ''}`}
             style={{ width: form.width, height: form.height }}
             onMouseDown={handleCanvasMouseDown}
+            onDoubleClick={handleFormDblClick}
           >
             {/* 拖拽绘制预览 — 直接显示组件外观 */}
             {drawRect && drawRect.w > 0 && drawRect.h > 0 && activeTool && (

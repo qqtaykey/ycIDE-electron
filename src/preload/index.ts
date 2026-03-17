@@ -63,6 +63,11 @@ const api = {
     getCurrent: () => ipcRenderer.invoke('theme:getCurrent') as Promise<string>,
     setCurrent: (name: string) => ipcRenderer.invoke('theme:setCurrent', name),
   },
+  // 对话框
+  dialog: {
+    confirmSaveBeforeClose: (fileLabel: string) =>
+      ipcRenderer.invoke('dialog:confirmSaveBeforeClose', fileLabel) as Promise<'save' | 'discard' | 'cancel'>,
+  },
   // 通用 IPC
   on: (channel: string, callback: (...args: unknown[]) => void) => {
     ipcRenderer.on(channel, (_event, ...args) => callback(...args))

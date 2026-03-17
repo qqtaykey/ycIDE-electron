@@ -49,11 +49,22 @@ interface OutputPanelProps {
 function OutputPanel({ height, onResize, onClose, messages = [], commandDetail, highlightParamIndex, problems = [], forceTab, onProblemClick }: OutputPanelProps): React.JSX.Element {
   const contentRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<OutputTab>('compile')
+  const [flashProblemIndex, setFlashProblemIndex] = useState<number>(-1)
 
   // 外部强制切换标签（编译/运行时自动切到编译输出）
   useEffect(() => {
     if (forceTab) setActiveTab(forceTab)
   }, [forceTab])
+
+  // 仅在“运行/编译触发并切到问题面板”时闪烁提示第一项，随后自动取消
+  useEffect(() => {
+    if (forceTab === 'problems' && problems.length > 0) {
+      setFlashProblemIndex(0)
+      const timer = window.setTimeout(() => setFlashProblemIndex(-1), 1200)
+      return () => window.clearTimeout(timer)
+    }
+    return
+  }, [forceTab, problems.length])
 
   // 当收到新的命令详情时自动切到提示标签
   useEffect(() => {
@@ -213,7 +224,13 @@ function OutputPanel({ height, onResize, onClose, messages = [], commandDetail, 
             <>
               <div className="output-problem-summary">共 {problems.length} 个问题</div>
               {problems.map((p, i) => (
-                <div key={i} className="output-problem-row" onClick={() => onProblemClick?.(p)}>
+                <div
+                  key={i}
+                  className={`output-problem-row ${i === flashProblemIndex ? 'flash' : ''}`}
+                  onClick={() => {
+                    onProblemClick?.(p)
+                  }}
+                >
                   <span className={`output-problem-icon ${p.severity}`}>{p.severity === 'error' ? '✕' : '⚠'}</span>
                   <span className="output-problem-msg">{p.message}</span>
                   <span className="output-problem-loc">第 {p.line} 行, 第 {p.column} 列</span>

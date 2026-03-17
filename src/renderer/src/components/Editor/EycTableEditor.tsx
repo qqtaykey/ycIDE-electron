@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { matchScore, isEnglishMatch } from '../../utils/pinyin'
+import { eycToYiFormat, sanitizePastedTextForCurrent, normalizeEycText } from './eycFormat'
 import './EycTableEditor.css'
 
 // ========== 数据结构 ==========
@@ -428,9 +429,9 @@ function buildBlocks(text: string): RenderBlock[] {
 
 // ========== 流程线计算 ==========
 
-interface FlowSegment { depth: number; type: 'start' | 'end' | 'branch' | 'through'; isLoop: boolean; isMarker?: boolean; hasInnerVert?: boolean; hasExtraEnds?: boolean; isInnerThrough?: boolean; isInnerEnd?: boolean; hasNextFlow?: boolean; hasPrevFlowEnd?: boolean; hasInnerLink?: boolean; hasOuterLink?: boolean; outerHidden?: boolean; isStraightEnd?: boolean }
+interface FlowSegment { depth: number; type: 'start' | 'end' | 'branch' | 'through'; isLoop: boolean; isMarker?: boolean; markerInnerVert?: boolean; hasInnerVert?: boolean; hasExtraEnds?: boolean; isInnerThrough?: boolean; isInnerEnd?: boolean; hasNextFlow?: boolean; hasPrevFlowEnd?: boolean; hasInnerLink?: boolean; hasOuterLink?: boolean; outerHidden?: boolean; isStraightEnd?: boolean }
 
-interface FlowBlock { startLine: number; endLine: number; branchLines: number[]; depth: number; isLoop: boolean; extraEndLines?: number[]; extraBranchLines?: number[] }
+interface FlowBlock { startLine: number; endLine: number; branchLines: number[]; depth: number; isLoop: boolean; keyword?: string; extraEndLines?: number[]; extraBranchLines?: number[] }
 
 /** 从代码行提取流程关键词（处理可能的 . 前缀和自动标记） */
 function extractFlowKw(codeLine: string): string | null {
@@ -697,8 +698,26 @@ function computeFlowLines(blocks: RenderBlock[]): { map: Map<number, FlowSegment
         }
         const entry = stack.pop()!
         const extraBranch: number[] = (entry as any)._extraBranch || []
-        flowBlocks.push({ startLine: entry.lineIndex, endLine: blk.lineIndex, branchLines: entry.branches, depth: entry.depth, isLoop: entry.isLoop, extraEndLines: extraEndLines.length > 0 ? extraEndLines : undefined, extraBranchLines: extraBranch.length > 0 ? extraBranch : undefined })
+        flowBlocks.push({ startLine: entry.lineIndex, endLine: blk.lineIndex, branchLines: entry.branches, depth: entry.depth, isLoop: entry.isLoop, keyword: entry.keyword, extraEndLines: extraEndLines.length > 0 ? extraEndLines : undefined, extraBranchLines: extraBranch.length > 0 ? extraBranch : undefined })
       }
+    }
+  }
+
+  // Post-processing: 如果/如果真 块中可能存在多个不连续的 \u200C 标记分支（如嵌套流程命令将连续 \u200C 序列打断），
+  // 只保留最后一个 \u200C 作为真正的标记分支，前面的移为 extraBranch（through），
+  // 避免中间的 \u200C 绘制多余的横向分支线和提前开始内侧竖线。
+  for (const fb of flowBlocks) {
+    if (fb.keyword !== '如果' && fb.keyword !== '如果真') continue
+    const trueBranches = fb.branchLines.filter(bl => markerLines.has(bl))
+    if (trueBranches.length <= 1) continue
+    trueBranches.sort((a, b) => a - b)
+    const lastTrue = trueBranches[trueBranches.length - 1]
+    for (const bl of trueBranches) {
+      if (bl === lastTrue) continue
+      const idx = fb.branchLines.indexOf(bl)
+      if (idx >= 0) fb.branchLines.splice(idx, 1)
+      if (!fb.extraBranchLines) fb.extraBranchLines = []
+      fb.extraBranchLines.push(bl)
     }
   }
 
@@ -723,6 +742,7 @@ function computeFlowLines(blocks: RenderBlock[]): { map: Map<number, FlowSegment
 
     // 找标记分支行
     const markerBranches = fb.branchLines.filter(bl => markerLines.has(bl))
+    const lastMarkerBranch = markerBranches.length > 0 ? markerBranches[markerBranches.length - 1] : undefined
 
     // 结束线段（只有存在标记分支时才绘制内侧流程线，如果真等无分支命令只绘制外侧）
     const hasExtras = fb.extraEndLines && fb.extraEndLines.length > 0
@@ -733,7 +753,7 @@ function computeFlowLines(blocks: RenderBlock[]): { map: Map<number, FlowSegment
     // 所有标记分支都绘制横线
     for (const bl of fb.branchLines) {
       if (markerLines.has(bl)) {
-        addSeg(bl, { depth: fb.depth, type: 'branch', isLoop: fb.isLoop, isMarker: true })
+        addSeg(bl, { depth: fb.depth, type: 'branch', isLoop: fb.isLoop, isMarker: true, markerInnerVert: bl === lastMarkerBranch || undefined })
       } else {
         addSeg(bl, { depth: fb.depth, type: 'branch', isLoop: fb.isLoop })
       }
@@ -806,7 +826,10 @@ function computeFlowLines(blocks: RenderBlock[]): { map: Map<number, FlowSegment
     const throughSegs = map.get(nextLine)
     if (throughSegs) {
       const seg = throughSegs.find(s => s.type === 'through' && s.depth === fb.depth && s.hasInnerVert)
-      if (seg) seg.hasInnerLink = true
+      if (seg) {
+        seg.hasInnerLink = true
+        seg.hasInnerVert = undefined
+      }
     }
     // 在内层 start 段标记 hasOuterLink（只下移位置，不画额外连接线）
     const startSegs = map.get(nextLine)
@@ -819,7 +842,10 @@ function computeFlowLines(blocks: RenderBlock[]): { map: Map<number, FlowSegment
       const lineSegs = map.get(li)
       if (!lineSegs) continue
       const seg = lineSegs.find(s => s.depth === fb.depth)
-      if (seg) seg.outerHidden = true
+      if (seg) {
+        seg.outerHidden = true
+        seg.hasInnerVert = undefined
+      }
     }
     // 额外结束行也隐藏外层竖线
     if (fb.extraEndLines) {
@@ -827,7 +853,10 @@ function computeFlowLines(blocks: RenderBlock[]): { map: Map<number, FlowSegment
         const lineSegs = map.get(el)
         if (!lineSegs) continue
         const seg = lineSegs.find(s => s.depth === fb.depth)
-        if (seg) seg.outerHidden = true
+        if (seg) {
+          seg.outerHidden = true
+          seg.hasInnerVert = undefined
+        }
       }
     }
   }
@@ -1068,6 +1097,7 @@ export interface EycTableEditorHandle {
   insertLocalVariable: () => void
   navigateOrCreateSub: (subName: string, params: Array<{ name: string; dataType: string; isByRef: boolean }>) => void
   navigateToLine: (line: number) => void
+  editorAction: (action: string) => void
 }
 
 interface EycTableEditorProps {
@@ -1169,6 +1199,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
   const isDragging = useRef(false)
   const dragStartPos = useRef<{ x: number; y: number } | null>(null)
   const wasDragSelect = useRef(false)
+  const pendingInputDragRef = useRef<{ lineIndex: number; x: number; y: number } | null>(null)
 
   // ===== 撤销/重做栈 =====
   const undoStack = useRef<string[]>([])
@@ -1233,6 +1264,20 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
   // mousemove 和 mouseup 全局监听
   useEffect(() => {
     const onMove = (e: MouseEvent): void => {
+      if (!isDragging.current && pendingInputDragRef.current) {
+        const p = pendingInputDragRef.current
+        const dx = e.clientX - p.x
+        const dy = e.clientY - p.y
+        if (dx * dx + dy * dy > 25) {
+          if (editCellRef.current) commitRef.current()
+          dragStartPos.current = { x: p.x, y: p.y }
+          dragAnchor.current = p.lineIndex
+          setSelectedLines(new Set([p.lineIndex]))
+          isDragging.current = true
+          wasDragSelect.current = true
+          wrapperRef.current?.focus()
+        }
+      }
       if (!isDragging.current || dragAnchor.current === null) return
       if (dragStartPos.current) {
         const dx = e.clientX - dragStartPos.current.x
@@ -1246,6 +1291,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
     }
     const onUp = (): void => {
       isDragging.current = false
+      pendingInputDragRef.current = null
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
@@ -1257,6 +1303,26 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
 
   // 全局键盘处理（选择状态下 Ctrl+C 复制、Delete 删除；Ctrl+A 全选）
   useEffect(() => {
+    const getFirstDeclarationLine = (ls: string[]): number => {
+      const parsed = parseLines(ls.join('\n'))
+      for (let i = 0; i < parsed.length; i++) {
+        const tp = parsed[i].type
+        if (tp !== 'blank' && tp !== 'comment' && tp !== 'code' && tp !== 'version' && tp !== 'supportLib') return i
+      }
+      return -1
+    }
+
+    const getDeletableSelection = (ls: string[], selection: Set<number>): { protectedLine: number; deletable: Set<number>; sorted: number[] } => {
+      const protectedLine = getFirstDeclarationLine(ls)
+      const deletable = new Set<number>()
+      for (const i of selection) {
+        if (i < 0 || i >= ls.length) continue
+        if (i === protectedLine) continue
+        deletable.add(i)
+      }
+      return { protectedLine, deletable, sorted: [...deletable].sort((a, b) => a - b) }
+    }
+
     const handler = (e: KeyboardEvent): void => {
       // 正在编辑输入框时不处理（交给 onKey）
       const tag = (document.activeElement as HTMLElement)?.tagName
@@ -1306,14 +1372,17 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         e.preventDefault()
         navigator.clipboard.readText().then(clipText => {
           if (!clipText) return
-          const pastedLines = clipText.split('\n').map(l => l.replace(/\r$/, ''))
+          const sanitized = sanitizePastedTextForCurrent(clipText, currentText)
+          const pastedLines = sanitized.split('\n').map(l => l.replace(/\r$/, ''))
           const ls = currentText.split('\n')
           pushUndo(currentText)
           if (selectedLines.size > 0) {
             // 有选中行：在第一个选中行位置替换选中行
-            const sorted = [...selectedLines].sort((a, b) => a - b)
-            const insertAt = sorted[0]
-            const nl = ls.filter((_, i) => !selectedLines.has(i))
+            const { protectedLine, deletable, sorted } = getDeletableSelection(ls, selectedLines)
+            const insertAt = sorted.length > 0
+              ? sorted[0]
+              : (protectedLine >= 0 ? Math.min(protectedLine + 1, ls.length) : ls.length)
+            const nl = ls.filter((_, i) => !deletable.has(i))
             nl.splice(insertAt, 0, ...pastedLines)
             const nt = nl.join('\n')
             setCurrentText(nt); prevRef.current = nt; onChange(nt)
@@ -1341,15 +1410,16 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         e.preventDefault()
         const sorted = [...selectedLines].sort((a, b) => a - b)
         const ls = currentText.split('\n')
-        const selectedText = sorted.filter(i => i < ls.length).map(i => ls[i]).join('\n')
+        const selectedText = eycToYiFormat(sorted.filter(i => i < ls.length).map(i => ls[i]).join('\n'))
         navigator.clipboard.writeText(selectedText)
         return
       }
       if (ctrl && e.key === 'x') {
         e.preventDefault()
-        const sorted = [...selectedLines].sort((a, b) => a - b)
         const ls = currentText.split('\n')
-        const selectedText = sorted.filter(i => i < ls.length).map(i => ls[i]).join('\n')
+        const { deletable, sorted } = getDeletableSelection(ls, selectedLines)
+        if (sorted.length === 0) return
+        const selectedText = eycToYiFormat(sorted.map(i => ls[i]).join('\n'))
         navigator.clipboard.writeText(selectedText)
         // 检查删除后是否会破坏流程结构（各区段最少保留1行）
         const checkedCmds = new Set<number>()
@@ -1358,17 +1428,17 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
           const st = getFlowStructureAround(ls, i)
           if (!st || checkedCmds.has(st.cmdLine)) return false
           checkedCmds.add(st.cmdLine)
-          if (selectedLines.has(st.cmdLine)) return false // 命令行也选中，允许整体删除
+          if (deletable.has(st.cmdLine)) return false // 命令行也选中，允许整体删除
           return st.sections.some(sec => {
             let remaining = 0
-            for (let j = sec.startLine; j <= sec.endLine; j++) { if (!selectedLines.has(j)) remaining++ }
+            for (let j = sec.startLine; j <= sec.endLine; j++) { if (!deletable.has(j)) remaining++ }
             return remaining < 1
           })
         })
         if (wouldBreak) return
         // 删除选中行
         pushUndo(currentText)
-        const nl = ls.filter((_, i) => !selectedLines.has(i))
+        const nl = ls.filter((_, i) => !deletable.has(i))
         const nt = nl.join('\n')
         setCurrentText(nt); prevRef.current = nt; onChange(nt)
         setSelectedLines(new Set())
@@ -1378,23 +1448,24 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         e.preventDefault()
         const ls = currentText.split('\n')
         // 检查删除后是否会破坏流程结构（各区段最少保留1行）
-        const sortedSel = [...selectedLines].sort((a, b) => a - b)
+        const { deletable, sorted: sortedSel } = getDeletableSelection(ls, selectedLines)
+        if (sortedSel.length === 0) return
         const checkedCmds2 = new Set<number>()
         const wouldBreak2 = sortedSel.some(i => {
           if (i >= ls.length) return false
           const st = getFlowStructureAround(ls, i)
           if (!st || checkedCmds2.has(st.cmdLine)) return false
           checkedCmds2.add(st.cmdLine)
-          if (selectedLines.has(st.cmdLine)) return false
+          if (deletable.has(st.cmdLine)) return false
           return st.sections.some(sec => {
             let remaining = 0
-            for (let j = sec.startLine; j <= sec.endLine; j++) { if (!selectedLines.has(j)) remaining++ }
+            for (let j = sec.startLine; j <= sec.endLine; j++) { if (!deletable.has(j)) remaining++ }
             return remaining < 1
           })
         })
         if (wouldBreak2) return
         pushUndo(currentText)
-        const nl = ls.filter((_, i) => !selectedLines.has(i))
+        const nl = ls.filter((_, i) => !deletable.has(i))
         const nt = nl.join('\n')
         setCurrentText(nt); prevRef.current = nt; onChange(nt)
         setSelectedLines(new Set())
@@ -1565,13 +1636,12 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
       return [val.slice(0, indentLen) + formatOps(trimmed)]
     }
 
-    // 查找是否为单独的命令名（后面没有括号）
-    const m = trimmed.match(/^([\u4e00-\u9fa5A-Za-z_][\u4e00-\u9fa5A-Za-z0-9_.]*)\s*$/)
-    if (!m) return [val]
-
-    const cmdName = m[1]
     const indent = val.length - trimmed.length
     const prefix = val.slice(0, indent)
+
+    // 提取命令名（支持“命令名”或“命令名 (...)”两种输入）
+    const cmdName = trimmed.split(/[\s(（]/)[0]
+    if (!/^[\u4e00-\u9fa5A-Za-z_][\u4e00-\u9fa5A-Za-z0-9_.]*$/.test(cmdName)) return [val]
 
     // 流程控制命令自动补齐后续行
     const autoLines = FLOW_AUTO_COMPLETE[cmdName]
@@ -1580,7 +1650,12 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
       // 命令本身和内部代码行都缩进4空格（两个汉字宽度）给流程线留空间
       const innerPrefix = prefix + '    '
       let mainLine: string
-      if (cmd && cmd.params.length > 0) {
+      const parenRange = getOuterParenRange(trimmed)
+      if (parenRange) {
+        // 已输入括号时尽量保留用户输入参数内容，再做流程补齐
+        const argText = trimmed.slice(parenRange.start + 1, parenRange.end).trim()
+        mainLine = innerPrefix + cmdName + ' (' + argText + ')'
+      } else if (cmd && cmd.params.length > 0) {
         const paramSlots = cmd.params.map(p => p.optional ? '' : '').join(', ')
         mainLine = innerPrefix + cmdName + ' (' + paramSlots + ')'
       } else {
@@ -1601,7 +1676,10 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
       return [mainLine, ...extra]
     }
 
-    // 普通命令
+    // 普通命令：仅对“裸命令名”自动补括号
+    const m = trimmed.match(/^([\u4e00-\u9fa5A-Za-z_][\u4e00-\u9fa5A-Za-z0-9_.]*)\s*$/)
+    if (!m) return [val]
+
     if (trimmed.startsWith('.')) return [val]
     const cmd = allCommandsRef.current.find(c => c.name === cmdName)
     if (!cmd) return [val]
@@ -1620,6 +1698,13 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
   const lines = useMemo(() => currentText.split('\n'), [currentText])
   const blocks = useMemo(() => buildBlocks(currentText), [currentText])
   const flowLines = useMemo(() => computeFlowLines(blocks), [blocks])
+
+  const getSelectedSourceText = useCallback((): string => {
+    const sorted = [...selectedLines].sort((a, b) => a - b)
+    const ls = currentText.split('\n')
+    const raw = sorted.filter(i => i >= 0 && i < ls.length).map(i => ls[i]).join('\n')
+    return eycToYiFormat(raw)
+  }, [selectedLines, currentText])
 
   // 收集用户定义的子程序名和变量名
   const { userSubNames, userVarNames } = useMemo(() => {
@@ -1816,12 +1901,12 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         return
       }
       // formatCommandLine 会为流程命令额外加4空格，若 flowIndent 已包含流程缩进则需减去以避免翻倍
-      // 但只有裸命令名（无括号）才会被 formatCommandLine 重新格式化，已有括号的不会加4
       let baseIndent = flowIndentRef.current
       const trimmedCmd = effectiveVal.trim()
       const cmdCheckName = trimmedCmd.startsWith('.') ? trimmedCmd : trimmedCmd.split(/[\s(（]/)[0]
       const isBareCmd = /^[\u4e00-\u9fa5A-Za-z_][\u4e00-\u9fa5A-Za-z0-9_.]*\s*$/.test(trimmedCmd)
-      if (isBareCmd && trimmedCmd && FLOW_AUTO_COMPLETE[cmdCheckName] && baseIndent.length >= 4) {
+      const isParenCmd = /^[\u4e00-\u9fa5A-Za-z_][\u4e00-\u9fa5A-Za-z0-9_.]*\s*[\(（].*[\)）]\s*$/.test(trimmedCmd)
+      if ((isBareCmd || isParenCmd) && trimmedCmd && FLOW_AUTO_COMPLETE[cmdCheckName] && baseIndent.length >= 4) {
         baseIndent = baseIndent.slice(0, baseIndent.length - 4)
       }
       const formattedLines = formatCommandLine(baseIndent + effectiveVal)
@@ -1950,6 +2035,30 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
   const commitRef = useRef<(overrideVal?: string) => void>(commit)
   commitRef.current = commit
 
+  // 窗口失焦兜底提交：处理 Win 键/Alt+Tab 打断编辑导致的未格式化状态
+  useEffect(() => {
+    const flushEditing = (): void => {
+      if (editCellRef.current) {
+        commitRef.current()
+      }
+    }
+
+    const onWindowBlur = (): void => {
+      flushEditing()
+    }
+
+    const onVisibilityChange = (): void => {
+      if (document.hidden) flushEditing()
+    }
+
+    window.addEventListener('blur', onWindowBlur)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.removeEventListener('blur', onWindowBlur)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [])
+
   const startEditCell = useCallback((li: number, ci: number, cellText: string, fieldIdx?: number, sliceField?: boolean) => {
     if (fieldIdx === undefined) return // 无字段映射（tick 单元格等），不可编辑
     setSelectedLines(new Set())
@@ -1986,8 +2095,9 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         const stripCount = lineMaxDepth * 4
         const leadingSpaces = text.match(/^ */)?.[0] || ''
         const actualStrip = Math.min(stripCount, leadingSpaces.length)
-        // 即使空行没有足够的前导空格，flowIndent 也要按流程深度设置，保证新输入的命令有正确缩进
-        flowIndent = ' '.repeat(stripCount)
+        // 已有内容的行使用真实剥离的缩进，避免嵌套流程起始行在反复点击后重复右移；
+        // 只有空行/无足够前导空格时才回退到流程深度占位，保证新输入命令仍能落在正确层级。
+        flowIndent = ' '.repeat(actualStrip > 0 ? actualStrip : stripCount)
         if (actualStrip > 0) {
           text = text.slice(actualStrip)
         }
@@ -2095,9 +2205,14 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
     }
     if (ctrl && e.key === 'a') {
       e.preventDefault()
-      const inp = e.currentTarget
-      inp.selectionStart = 0
-      inp.selectionEnd = inp.value.length
+      const ls = prevRef.current.split('\n')
+      const all = new Set<number>()
+      for (let i = 0; i < ls.length; i++) all.add(i)
+      setSelectedLines(all)
+      dragAnchor.current = 0
+      setAcVisible(false)
+      setEditCell(null)
+      wrapperRef.current?.focus()
       return
     }
 
@@ -2545,6 +2660,18 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
       // 输入为空时按退格/删除键
       if (editCell && editCell.cellIndex < 0 && editVal.trim() === '' && lines.length > 1) {
         const li = editCell.lineIndex
+        const firstDeclLine = (() => {
+          const parsed = parseLines(lines.join('\n'))
+          for (let i = 0; i < parsed.length; i++) {
+            const tp = parsed[i].type
+            if (tp !== 'blank' && tp !== 'comment' && tp !== 'code' && tp !== 'version' && tp !== 'supportLib') return i
+          }
+          return -1
+        })()
+        if (li === firstDeclLine) {
+          e.preventDefault()
+          return
+        }
         // 检查当前行是否属于流程控制结构（如果/如果真/判断）
         const flowStruct = getFlowStructureAround(lines, li)
         if (flowStruct) {
@@ -2566,6 +2693,11 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
             const prevSection = sections[sectionIdx - 1]
             if (prevSection.count > 1) {
               // 上方区段有多余行：删除其最后一行
+              if (prevSection.endLine === firstDeclLine) {
+                commit()
+                setTimeout(() => startEditLine(prevSection.endLine), 0)
+                return
+              }
               pushUndo(currentText)
               const nl = [...lines]; nl.splice(prevSection.endLine, 1)
               const nt = nl.join('\n')
@@ -2820,7 +2952,23 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         }
       }, 50)
     },
-  }), [currentText, onChange, pushUndo])
+    editorAction: (action: string) => {
+      if (action === 'copy') {
+        if (selectedLines.size > 0) {
+          void navigator.clipboard.writeText(getSelectedSourceText())
+        }
+        return
+      }
+      if (action === 'selectAll') {
+        const ls = currentText.split('\n')
+        const all = new Set<number>()
+        for (let i = 0; i < ls.length; i++) all.add(i)
+        setSelectedLines(all)
+        dragAnchor.current = 0
+        return
+      }
+    },
+  }), [currentText, onChange, pushUndo, selectedLines, getSelectedSourceText])
 
   // 查找代码行中第一个有参数的有效命令
   const findCmdWithParams = useCallback((codeLine: string): CompletionItem | null => {
@@ -2984,7 +3132,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         <>
           {slots.map((seg, d) => (
             <span key={d} className={`eyc-flow-seg ${seg ? `eyc-flow-${seg.type}` : ''} ${seg?.isLoop ? 'eyc-flow-loop' : ''} ${seg?.isMarker ? 'eyc-flow-marker' : ''}${(seg?.isInnerThrough || seg?.isInnerEnd) ? ' eyc-flow-no-outer' : ''}${seg?.hasPrevFlowEnd ? ' eyc-flow-has-prev-end' : ''}${seg?.hasOuterLink ? ' eyc-flow-has-outer-link' : ''}${seg?.outerHidden ? ' eyc-flow-outer-hidden' : ''}${seg?.hasInnerLink ? ' eyc-flow-has-inner-link' : ''}${seg?.isStraightEnd ? ' eyc-flow-straight-end' : ''}`}>
-              {seg?.isMarker && seg.type === 'branch' && !seg?.outerHidden && <span className="eyc-flow-inner-vert" />}
+              {seg?.isMarker && seg.type === 'branch' && seg?.markerInnerVert && !seg?.outerHidden && <span className="eyc-flow-inner-vert" />}
               {seg?.type === 'branch' && !seg?.isMarker && seg?.hasInnerVert && <span className="eyc-flow-inner-vert eyc-flow-inner-through" />}
               {seg?.type === 'branch' && !seg?.isMarker && seg?.hasInnerLink && <span className="eyc-flow-outer-resume" />}
               {seg?.type === 'branch' && !seg?.isMarker && seg?.hasInnerLink && <span className="eyc-flow-outer-horz" />}
@@ -2998,7 +3146,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
               {seg?.type === 'end' && !seg?.isMarker && !seg?.isStraightEnd && !seg?.isLoop && <span className="eyc-flow-arrow-down" />}
               {seg?.isStraightEnd && <span className="eyc-flow-arrow-down" />}
               {seg?.hasInnerVert && !seg?.hasInnerLink && <span className="eyc-flow-inner-vert eyc-flow-inner-through" />}
-              {seg?.hasInnerVert && seg?.hasInnerLink && seg?.type !== 'branch' && <><span className="eyc-flow-inner-vert eyc-flow-inner-through" /><span className="eyc-flow-inner-link-horz" /><span className="eyc-flow-inner-link-arrow" /></>}
+              {seg?.hasInnerLink && seg?.type !== 'branch' && <><span className="eyc-flow-inner-link-horz" /><span className="eyc-flow-inner-link-arrow" /></>}
               {seg?.isInnerThrough && <span className="eyc-flow-inner-vert eyc-flow-inner-through" />}
               {seg?.isInnerEnd && <><span className="eyc-flow-inner-vert eyc-flow-inner-end" /><span className="eyc-flow-arrow-down eyc-flow-inner-arrow-down" /></>}
             </span>
@@ -3025,7 +3173,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         {slots.map((seg, d) => {
           // 内侧竖线延续：标记分支/标记结束/hasInnerVert/isInnerThrough/isInnerEnd
           const hasInnerCont = seg && (
-            (seg.isMarker && (seg.type === 'branch' || seg.type === 'end'))
+            (seg.isMarker && ((seg.type === 'branch' && seg.markerInnerVert) || seg.type === 'end'))
             || (seg.hasInnerVert)
             || (seg.isInnerThrough)
             || (seg.isInnerEnd)
@@ -3036,7 +3184,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
           const isEndMarker = seg && seg.type === 'end' && seg.isMarker && !seg.hasExtraEnds
           // 需要同时绘制外侧和内侧两条线：标记分支行 / 含内侧竖线的穿越行
           const needsBothLines = seg && hasInnerCont && hasCont && (
-            (seg.isMarker && seg.type === 'branch')
+            (seg.isMarker && seg.type === 'branch' && seg.markerInnerVert)
             || seg.hasInnerVert
           )
           return (
@@ -3065,17 +3213,83 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
     // 选中最后一行
     const lastLine = lines.length - 1
     if (lastLine >= 0) {
+      dragStartPos.current = { x: e.clientX, y: e.clientY }
+      wasDragSelect.current = false
       dragAnchor.current = lastLine
       setSelectedLines(new Set([lastLine]))
       isDragging.current = true
+      wrapperRef.current?.focus()
+
+      // 仅在“点击未拖动”时进入最后一行编辑；若发生拖动则保持多选结果
+      const handleMouseUp = (): void => {
+        window.removeEventListener('mouseup', handleMouseUp)
+        if (!wasDragSelect.current) {
+          startEditLine(lastLine)
+        }
+      }
+      window.addEventListener('mouseup', handleMouseUp)
     } else {
       setSelectedLines(new Set())
     }
-  }, [lines.length])
+  }, [lines.length, startEditLine])
 
   return (
     <div className="eyc-table-editor ebackcolor1" onClick={() => onCommandClear?.()}>
-      <div className="eyc-table-wrapper" ref={wrapperRef} onMouseDown={handleWrapperMouseDown} tabIndex={0} style={{ outline: 'none' }}>
+      <div
+        className="eyc-table-wrapper"
+        ref={wrapperRef}
+        onMouseDown={handleWrapperMouseDown}
+        onCopy={(e) => {
+          if (selectedLines.size === 0) return
+          e.preventDefault()
+          e.clipboardData.setData('text/plain', getSelectedSourceText())
+        }}
+        onPaste={(e) => {
+          const clipText = e.clipboardData.getData('text/plain')
+          if (!clipText) return
+          e.preventDefault()
+          const pastedLines = sanitizePastedTextForCurrent(clipText, currentText).split('\n').map(l => l.replace(/\r$/, ''))
+          const ls = currentText.split('\n')
+          const protectedLine = (() => {
+            const parsed = parseLines(ls.join('\n'))
+            for (let i = 0; i < parsed.length; i++) {
+              const tp = parsed[i].type
+              if (tp !== 'blank' && tp !== 'comment' && tp !== 'code' && tp !== 'version' && tp !== 'supportLib') return i
+            }
+            return -1
+          })()
+          pushUndo(currentText)
+          if (selectedLines.size > 0) {
+            const sorted = [...selectedLines].sort((a, b) => a - b)
+            const deletable = new Set<number>()
+            for (const i of selectedLines) {
+              if (i < 0 || i >= ls.length) continue
+              if (i === protectedLine) continue
+              deletable.add(i)
+            }
+            const sortedDeletable = [...deletable].sort((a, b) => a - b)
+            const insertAt = sortedDeletable.length > 0
+              ? sortedDeletable[0]
+              : (protectedLine >= 0 ? Math.min(protectedLine + 1, ls.length) : ls.length)
+            const nl = ls.filter((_, i) => !deletable.has(i))
+            nl.splice(insertAt, 0, ...pastedLines)
+            const nt = nl.join('\n')
+            setCurrentText(nt); prevRef.current = nt; onChange(nt)
+            const newSel = new Set<number>()
+            for (let i = 0; i < pastedLines.length; i++) newSel.add(insertAt + i)
+            setSelectedLines(newSel)
+          } else {
+            const nl = [...ls, ...pastedLines]
+            const nt = nl.join('\n')
+            setCurrentText(nt); prevRef.current = nt; onChange(nt)
+            const newSel = new Set<number>()
+            for (let i = 0; i < pastedLines.length; i++) newSel.add(ls.length + i)
+            setSelectedLines(newSel)
+          }
+        }}
+        tabIndex={0}
+        style={{ outline: 'none' }}
+      >
         {blocks.map((blk, bi) => {
           if (blk.kind === 'table') {
             // 表格行中所有数据行的行号
@@ -3121,6 +3335,10 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
                                 className="eyc-cell-input"
                                 style={{ gridArea: '1/1' }}
                                 value={editVal}
+                                onMouseDown={(e) => {
+                                  if (e.button !== 0) return
+                                  pendingInputDragRef.current = { lineIndex: row.lineIndex, x: e.clientX, y: e.clientY }
+                                }}
                                 onChange={e => { setEditVal(e.target.value); liveUpdate(e.target.value) }}
                                 onBlur={() => commit()}
                                 onKeyDown={onKey}
@@ -3201,6 +3419,10 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
                     ref={inputRef}
                     className="eyc-inline-input"
                     value={editVal}
+                    onMouseDown={(e) => {
+                      if (e.button !== 0) return
+                      pendingInputDragRef.current = { lineIndex: blk.lineIndex, x: e.clientX, y: e.clientY }
+                    }}
                     onChange={e => {
                       const v = e.target.value
                       // 命令行括号保护：阻止 IME/粘贴等修改括号外的内容

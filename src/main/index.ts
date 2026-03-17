@@ -56,6 +56,24 @@ app.whenReady().then(() => {
     BrowserWindow.fromWebContents(event.sender)?.close()
   })
 
+  ipcMain.handle('dialog:confirmSaveBeforeClose', async (event, fileLabel: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow()
+    if (!win) return 'cancel'
+    const result = await dialog.showMessageBox(win, {
+      type: 'question',
+      title: '未保存更改',
+      message: `文件“${fileLabel}”已修改。`,
+      detail: '是否在关闭前保存更改？',
+      buttons: ['保存', '不保存', '取消'],
+      defaultId: 0,
+      cancelId: 2,
+      noLink: true,
+    })
+    if (result.response === 0) return 'save'
+    if (result.response === 1) return 'discard'
+    return 'cancel'
+  })
+
   // 项目管理 IPC
   ipcMain.handle('project:getDefaultPath', () => {
     const docs = app.getPath('documents')
@@ -106,7 +124,7 @@ app.whenReady().then(() => {
       }, null, 2)
       writeFileSync(join(projectDir, '_启动窗口.efw'), efwData, 'utf-8')
 
-      const eycData = '.\u7248\u672c 2\n.\u7a0b\u5e8f\u96c6 \u7a97\u53e3\u7a0b\u5e8f\u96c6_\u542f\u52a8\u7a97\u53e3\n\n.\u5b50\u7a0b\u5e8f __\u542f\u52a8\u7a97\u53e3_\u521b\u5efa\u5b8c\u6bd5\n\n'
+      const eycData = '.\u7248\u672c 2\n.\u7a0b\u5e8f\u96c6 \u7a97\u53e3\u7a0b\u5e8f\u96c6_\u542f\u52a8\u7a97\u53e3\n\n.\u5b50\u7a0b\u5e8f _\u542f\u52a8\u7a97\u53e3_\u521b\u5efa\u5b8c\u6bd5\n\n'
       writeFileSync(join(projectDir, '_启动窗口.eyc'), eycData, 'utf-8')
 
       files.push('File=EFW|_启动窗口.efw|1')

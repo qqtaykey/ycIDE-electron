@@ -473,6 +473,12 @@ function transpileEycContent(eycContent: string, fileName: string): string {
   let inSub = false
   let subName = ''
   let subBody = ''
+  let blockIndent = 1
+  let loopTempIndex = 0
+
+  const emitSubLine = (code: string) => {
+    subBody += `${'    '.repeat(Math.max(1, blockIndent))}${code}\n`
+  }
 
   for (const rawLine of lines) {
     // 剥离流程标记零宽字符（\u200C/\u200D/\u2060/\u200B）
@@ -487,6 +493,7 @@ function transpileEycContent(eycContent: string, fileName: string): string {
       const parts = line.substring(4).split(',').map(s => s.trim())
       subName = parts[0] || 'unnamed'
       subBody = ''
+      blockIndent = 1
       inSub = true
       continue
     }
@@ -495,7 +502,7 @@ function transpileEycContent(eycContent: string, fileName: string): string {
       const parts = line.substring(5).split(',').map(s => s.trim())
       const varName = parts[0] || 'v'
       const varType = parts[1] || '整数型'
-      subBody += `    ${mapTypeToCType(varType)} ${varName};\n`
+      emitSubLine(`${mapTypeToCType(varType)} ${varName};`)
       continue
     }
 
@@ -505,9 +512,49 @@ function transpileEycContent(eycContent: string, fileName: string): string {
         continue
       }
 
+      // 流程控制语句
+      if (line.startsWith('.')) {
+        const flowCall = parseCommandCall(line.substring(1).trim())
+        const flowName = flowCall?.name || ''
+
+        if (flowName === '如果' || flowName === '如果真' || flowName === '判断') {
+          const cond = formatArgForC(flowCall?.args?.[0] || '0')
+          emitSubLine(`if (${cond}) {`)
+          blockIndent++
+          continue
+        }
+
+        if (flowName === '否则' || flowName === '默认') {
+          blockIndent = Math.max(1, blockIndent - 1)
+          emitSubLine('} else {')
+          blockIndent++
+          continue
+        }
+
+        if (flowName === '如果结束' || flowName === '如果真结束' || flowName === '判断结束') {
+          blockIndent = Math.max(1, blockIndent - 1)
+          emitSubLine('}')
+          continue
+        }
+
+        if (flowName === '计次循环首') {
+          const countExpr = formatArgForC(flowCall?.args?.[0] || '0')
+          const varName = (flowCall?.args?.[1] || '').trim() || `__loop_${loopTempIndex++}`
+          emitSubLine(`for (${varName} = 1; ${varName} <= (${countExpr}); ${varName}++) {`)
+          blockIndent++
+          continue
+        }
+
+        if (flowName === '计次循环尾') {
+          blockIndent = Math.max(1, blockIndent - 1)
+          emitSubLine('}')
+          continue
+        }
+      }
+
       // 注释行
       if (line.startsWith("'")) {
-        subBody += `    /* ${line.slice(1).trim()} */\n`
+        emitSubLine(`/* ${line.slice(1).trim()} */`)
         continue
       }
 
@@ -516,28 +563,30 @@ function transpileEycContent(eycContent: string, fileName: string): string {
       if (assignMatch) {
         const varName = assignMatch[1]
         const expr = convertFullWidthOps(assignMatch[2])
-        subBody += `    ${varName} = ${expr};\n`
+        emitSubLine(`${varName} = ${expr};`)
         continue
       }
 
+      const callableLine = line.startsWith('.') ? line.substring(1).trim() : line
+
       // 提取命令名并在支持库中查找
-      const cmdName = extractCommandName(line)
+      const cmdName = extractCommandName(callableLine)
       const resolved = commandMap.get(cmdName)
 
       if (resolved) {
         // 命令在支持库中找到 - 解析参数并生成C代码
-        const call = parseCommandCall(line)
+        const call = parseCommandCall(callableLine)
         const args = call ? call.args : []
         const cCode = generateCCodeForCommand(resolved, args)
-        subBody += `    ${cCode}\n`
+        emitSubLine(cCode)
       } else {
         // 非支持库命令 - 尝试作为用户自定义子程序调用
-        const call = parseCommandCall(line)
+        const call = parseCommandCall(callableLine)
         if (call && call.name) {
           const cArgs = call.args.map(a => formatArgForC(a)).join(', ')
-          subBody += `    ${call.name}(${cArgs});\n`
+          emitSubLine(`${call.name}(${cArgs});`)
         } else {
-          subBody += `    /* ${line} */\n`
+          emitSubLine(`/* ${line} */`)
         }
       }
     }
@@ -654,9 +703,10 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
     for (const ctrl of winInfo.controls) {
       if (ctrl.type === 'Button' || ctrl.type === '按钮') {
         mainCode += `WEAK_FUNC void ${ctrl.name}_被单击(void) { }\n`
+        mainCode += `WEAK_FUNC void _${ctrl.name.replace(/^_+/, '')}_被单击(void) { ${ctrl.name}_被单击(); }\n`
       }
     }
-    mainCode += 'WEAK_FUNC void __启动窗口_创建完毕(void) { }\n\n'
+    mainCode += 'WEAK_FUNC void __启动窗口_创建完毕(void) { }\n'
 
     // 窗口过程
     mainCode += '/* 窗口过程函数 */\n'
@@ -676,7 +726,7 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
       if (ctrl.type === 'Button' || ctrl.type === '按钮') {
         mainCode += `        case IDC_${ctrl.name.toUpperCase()}:\n`
         mainCode += '            if (wmEvent == BN_CLICKED) {\n'
-        mainCode += `                ${ctrl.name}_被单击();\n`
+        mainCode += `                _${ctrl.name.replace(/^_+/, '')}_被单击();\n`
         mainCode += '            }\n'
         mainCode += '            break;\n'
       }

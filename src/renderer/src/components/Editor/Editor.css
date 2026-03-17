@@ -9,10 +9,10 @@
 /* 标签页 */
 .editor-tabs {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   height: 36px;
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
   flex-shrink: 0;
   overflow-x: auto;
 }
@@ -40,8 +40,8 @@
 .editor-tab.active {
   background: var(--bg-primary);
   color: var(--text-primary);
-  border-bottom: 1px solid var(--bg-primary);
-  margin-bottom: -1px;
+  border-top: 1px solid var(--bg-primary);
+  margin-top: -1px;
 }
 .editor-tab:hover {
   color: var(--text-primary);

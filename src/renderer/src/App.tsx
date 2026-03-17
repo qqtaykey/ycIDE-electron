@@ -244,6 +244,18 @@ function App(): React.JSX.Element {
     currentProjectDirRef.current = currentProjectDir
   }, [currentProjectDir])
 
+  const handleAppClose = useCallback(async () => {
+    const hasUnsaved = editorRef.current?.hasModifiedTabs?.() ?? false
+    if (hasUnsaved) {
+      const action = await window.api?.dialog?.confirmSaveBeforeClose('未保存文件')
+      if (action === 'cancel') return
+      if (action === 'save') {
+        editorRef.current?.saveAll()
+      }
+    }
+    window.api?.window.close()
+  }, [])
+
   const handleMenuAction = useCallback(async (action: string) => {
     switch (action) {
       // 文件菜单
@@ -284,7 +296,7 @@ function App(): React.JSX.Element {
                   visible: true, enabled: true, properties: c.properties || {},
                 }))
               }
-              restoredTabs.push({ id: fp, label: fileName, language: 'efw', value: '', savedValue: '', filePath: fp, formData })
+              restoredTabs.push({ id: fp, label: fileName, language: 'efw', value: '', savedValue: JSON.stringify(formData, null, 2), filePath: fp, formData })
             } else if (ext === 'eyc') {
               restoredTabs.push({ id: fp, label: fileName, language: 'eyc', value: content, savedValue: content, filePath: fp })
             }
@@ -308,7 +320,7 @@ function App(): React.JSX.Element {
         setCurrentProjectDir('')
         break
       case 'file:exit':
-        window.close()
+        await handleAppClose()
         break
 
       // 编辑菜单
@@ -413,7 +425,7 @@ function App(): React.JSX.Element {
         }
         break
     }
-  }, [buildProjectTreeFromEpp, applyTheme, handleCompile, handleCompileStatic, handleCompileRun, handleStop])
+  }, [buildProjectTreeFromEpp, applyTheme, handleCompile, handleCompileStatic, handleCompileRun, handleStop, handleAppClose])
 
   // 双击资源管理器文件时打开
   const handleOpenFile = useCallback(async (fileId: string, fileName: string) => {
@@ -440,7 +452,7 @@ function App(): React.JSX.Element {
           visible: true, enabled: true, properties: c.properties || {},
         }))
       }
-      editorRef.current?.openFile({ id: filePath, label: fileName, language: 'efw', value: '', savedValue: '', filePath, formData })
+      editorRef.current?.openFile({ id: filePath, label: fileName, language: 'efw', value: '', savedValue: JSON.stringify(formData, null, 2), filePath, formData })
     } else if (ext === 'eyc') {
       const content = await window.api?.project?.readFile(filePath)
       if (!content) return
@@ -493,7 +505,7 @@ function App(): React.JSX.Element {
             label: '_启动窗口.efw',
             language: 'efw',
             value: '',
-            savedValue: '',
+            savedValue: JSON.stringify(formData, null, 2),
             filePath: efwPath,
             formData,
           }])
@@ -581,7 +593,7 @@ function App(): React.JSX.Element {
 
   return (
     <div className="app">
-      <TitleBar onMenuAction={handleMenuAction} hasProject={!!currentProjectDir} hasOpenFile={(openProjectFiles?.length ?? 0) > 0} themes={themeList} currentTheme={currentTheme} />
+      <TitleBar onMenuAction={handleMenuAction} onWindowClose={() => { void handleAppClose() }} hasProject={!!currentProjectDir} hasOpenFile={(openProjectFiles?.length ?? 0) > 0} themes={themeList} currentTheme={currentTheme} />
       <Toolbar
         hasControlSelected={multiSelectCount >= 2}
         onAlign={setAlignAction}
@@ -623,21 +635,21 @@ function App(): React.JSX.Element {
             projectDir={currentProjectDir}
             onProjectTreeRefresh={refreshProjectTree}
           />
-          {showOutput && (
-            <OutputPanel
-              height={outputHeight}
-              onResize={setOutputHeight}
-              onClose={() => setShowOutput(false)}
-              messages={outputMessages}
-              commandDetail={commandDetail}
-              highlightParamIndex={highlightParamIndex}
-              problems={fileProblems}
-              forceTab={forceOutputTab}
-              onProblemClick={(p) => editorRef.current?.navigateToLine(p.line)}
-            />
-          )}
         </div>
       </div>
+      {showOutput && (
+        <OutputPanel
+          height={outputHeight}
+          onResize={setOutputHeight}
+          onClose={() => setShowOutput(false)}
+          messages={outputMessages}
+          commandDetail={commandDetail}
+          highlightParamIndex={highlightParamIndex}
+          problems={fileProblems}
+          forceTab={forceOutputTab}
+          onProblemClick={(p) => editorRef.current?.navigateToLine(p.line)}
+        />
+      )}
       <StatusBar
         onToggleOutput={() => setShowOutput(!showOutput)}
         errorCount={fileProblems.filter(p => p.severity === 'error').length}
