@@ -494,22 +494,36 @@ function App(): React.JSX.Element {
         if (!dir) break
         const existingFiles = projectTree[0]?.children
           ?.find(c => c.id === '_cat_globals')?.children?.map(c => c.label) || []
+        const globalFileName = '全局变量.egv'
+        const filePath = dir + '\\' + globalFileName
+
+        // 优先使用编辑器中的最新内容（含未保存修改），再回退到磁盘内容
+        const editorFiles = editorRef.current?.getEditorFiles()
+        const fromEditor = editorFiles?.[globalFileName]
+        const fromDisk = fromEditor === undefined ? await window.api?.project?.readFile(filePath) : undefined
+        const baseContent = (fromEditor ?? fromDisk ?? '.版本 2\n\n').replace(/\r\n/g, '\n')
+
         let n = 1
-        while (existingFiles.includes('全局变量' + n + '.egv')) n++
-        const newFileName = '全局变量' + n + '.egv'
+        while (new RegExp('^\\.全局变量\\s+全局变量' + n + '(?:,|\\s|$)', 'm').test(baseContent)) n++
         const varName = '全局变量' + n
-        const content = '.版本 2\n.全局变量 ' + varName + ', 整数型\n\n'
-        await window.api?.project?.addFile(dir, newFileName, 'EGV', content)
-        setProjectTree(prev => prev.map(root => ({
-          ...root,
-          children: root.children?.map(cat =>
-            cat.id === '_cat_globals'
-              ? { ...cat, children: [...(cat.children || []), { id: newFileName, label: newFileName, type: 'module' as const }] }
-              : cat
-          )
-        })))
-        const filePath = dir + '\\' + newFileName
-        editorRef.current?.openFile({ id: filePath, label: newFileName, language: 'egv', value: content, savedValue: content, filePath })
+        const appendLine = '.全局变量 ' + varName + ', 整数型'
+        const content = baseContent.trimEnd() + '\n' + appendLine + '\n\n'
+
+        if (!existingFiles.includes(globalFileName)) {
+          await window.api?.project?.addFile(dir, globalFileName, 'EGV', content)
+          setProjectTree(prev => prev.map(root => ({
+            ...root,
+            children: root.children?.map(cat =>
+              cat.id === '_cat_globals'
+                ? { ...cat, children: [...(cat.children || []), { id: globalFileName, label: globalFileName, type: 'module' as const }] }
+                : cat
+            )
+          })))
+        } else {
+          await window.api?.file?.save(filePath, content)
+        }
+
+        editorRef.current?.upsertFile({ id: filePath, label: globalFileName, language: 'egv', value: content, savedValue: content, filePath })
         break
       }
       case 'insert:dataType':

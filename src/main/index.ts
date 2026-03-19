@@ -323,7 +323,11 @@ app.whenReady().then(() => {
       const eppContent = readFileSync(eppPath, 'utf-8')
       const flag = fileType === 'EFW' ? '1' : '0'
       const newLine = `File=${fileType}|${fileName}|${flag}`
-      writeFileSync(eppPath, eppContent.trimEnd() + '\n' + newLine + '\n', 'utf-8')
+      const escapedFileName = fileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const existed = new RegExp(`^File=[^|]+\\|${escapedFileName}\\|\\d+$`, 'm').test(eppContent)
+      if (!existed) {
+        writeFileSync(eppPath, eppContent.trimEnd() + '\n' + newLine + '\n', 'utf-8')
+      }
     }
     return filePath
   })

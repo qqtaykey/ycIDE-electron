@@ -197,6 +197,7 @@ export interface EditorHandle {
   editorAction: (action: string) => void
   getEditorFiles: () => Record<string, string>
   openFile: (tab: EditorTab) => void
+  upsertFile: (tab: EditorTab) => void
   insertDeclaration: () => void
   insertLocalVariable: () => void
   navigateToLine: (line: number) => void
@@ -625,6 +626,27 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
         if (prev.some(t => t.id === incoming.id)) {
           setActiveTabId(incoming.id)
           return prev
+        }
+        const merged = [...prev, incoming]
+        onOpenTabsChange?.(merged)
+        setActiveTabId(incoming.id)
+        return merged
+      })
+      if (incoming.language === 'efw') onSidebarTab?.('property')
+    },
+    upsertFile: (tab: EditorTab) => {
+      const incoming = normalizeIncomingTab(tab)
+      setTabs(prev => {
+        const idx = prev.findIndex(t => t.id === incoming.id)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = {
+            ...next[idx],
+            ...incoming,
+          }
+          onOpenTabsChange?.(next)
+          setActiveTabId(incoming.id)
+          return next
         }
         const merged = [...prev, incoming]
         onOpenTabsChange?.(merged)
