@@ -245,6 +245,23 @@
   flex-shrink: 0;
 }
 
+.output-problem-design {
+  font-style: italic;
+}
+
+.output-problem-file {
+  color: var(--text-secondary);
+  font-size: 11px;
+  background: var(--hover-bg, rgba(255,255,255,0.08));
+  border-radius: 3px;
+  padding: 0 4px;
+  flex-shrink: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .output-problem-summary {
   padding: 4px 0;
   font-size: 12px;

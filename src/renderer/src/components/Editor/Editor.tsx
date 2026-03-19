@@ -16,7 +16,7 @@ function registerEycLanguage(monaco: Monaco): void {
   // 注册语言
   monaco.languages.register({
     id: 'eyc',
-    extensions: ['.eyc'],
+    extensions: ['.eyc', '.egv'],
     aliases: ['易语言源码', 'EYC', 'eyc'],
   })
 
@@ -192,6 +192,7 @@ export interface EditorHandle {
   save: () => void
   saveAll: () => void
   closeActiveTab: () => void
+  clearAllTabs: () => void
   hasModifiedTabs: () => boolean
   editorAction: (action: string) => void
   getEditorFiles: () => Record<string, string>
@@ -225,12 +226,12 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
   }
 
   const getTabSaveContent = (tab: EditorTab): string => {
-    if (tab.language === 'eyc') return eycToYiFormat(tab.value)
+    if (tab.language === 'eyc' || tab.language === 'egv') return eycToYiFormat(tab.value)
     return getTabPersistContent(tab)
   }
 
   const normalizeIncomingTab = (tab: EditorTab): EditorTab => {
-    if (tab.language !== 'eyc') return tab
+    if (tab.language !== 'eyc' && tab.language !== 'egv') return tab
     return {
       ...tab,
       value: eycToInternalFormat(tab.value),
@@ -306,6 +307,13 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     if (!activeTabId) return
     void closeTabWithPrompt(activeTabId)
   }, [activeTabId, closeTabWithPrompt])
+
+  // 清空全部标签（用于关闭项目）
+  const clearAllTabs = useCallback(() => {
+    setTabs([])
+    setActiveTabId(null)
+    onOpenTabsChange?.([])
+  }, [onOpenTabsChange])
 
   // 磁盘级重命名：更新项目中未打开的 .eyc 文件
   // 磁盘级重命名：更新项目中未打开的 .eyc 文件（仅控件改名使用）
@@ -409,12 +417,21 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
           if (field) {
             newForm = { ...form, [field]: value }
           } else {
-            newForm = form
+            // 其他属性（如逻辑型、枚举型等）存入 properties
+            newForm = { ...form, properties: { ...form.properties, [propName]: value } }
           }
         }
         onSelectControl?.({ kind: 'form', form: newForm })
       } else {
-        const fieldMap: Record<string, string> = { '左边': 'left', '顶边': 'top', '宽度': 'width', '高度': 'height', '标题': 'text' }
+        const fieldMap: Record<string, string> = {
+          '左边': 'left',
+          '顶边': 'top',
+          '宽度': 'width',
+          '高度': 'height',
+          '标题': 'text',
+          '内容': 'text',
+          '文本': 'text',
+        }
         const boolMap: Record<string, { field: string; invert?: boolean }> = {
           '可视': { field: 'visible' },
           '禁止': { field: 'enabled', invert: true },
@@ -526,6 +543,7 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     save: saveCurrentFile,
     saveAll: saveAllFiles,
     closeActiveTab: closeActiveFile,
+    clearAllTabs,
     hasModifiedTabs: () => tabs.some(t => isTabModified(t)),
     editorAction: (action: string) => {
       const active = tabs.find(t => t.id === activeTabId)
@@ -553,7 +571,7 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
         const fileName = t.filePath?.replace(/^.*[\\/]/, '') || t.label
         if (t.language === 'efw' && t.formData) {
           files[fileName] = JSON.stringify(t.formData, null, 2)
-        } else if (t.language === 'eyc') {
+        } else if (t.language === 'eyc' || t.language === 'egv') {
           files[fileName] = eycToYiFormat(t.value)
         } else {
           files[fileName] = t.value
@@ -586,7 +604,7 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     },
     updateFormProperty,
     navigateToEventSub,
-  }), [saveCurrentFile, saveAllFiles, closeActiveFile, tabs, activeTabId, onOpenTabsChange, onSidebarTab, updateFormProperty, navigateToEventSub])
+  }), [saveCurrentFile, saveAllFiles, closeActiveFile, clearAllTabs, tabs, activeTabId, onOpenTabsChange, onSidebarTab, updateFormProperty, navigateToEventSub])
 
   // 接收外部打开的项目文件
   useEffect(() => {
@@ -622,7 +640,7 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
     onActiveTabChange?.(activeTabId)
     const activeTab = tabs.find(t => t.id === activeTabId)
     if (activeTab) {
-      const langMap: Record<string, string> = { eyc: '易语言源码', efw: '窗口设计', typescript: 'TypeScript', javascript: 'JavaScript', html: 'HTML', css: 'CSS', json: 'JSON', python: 'Python', plaintext: '纯文本' }
+      const langMap: Record<string, string> = { eyc: '易语言源码', egv: '全局变量', efw: '窗口设计', typescript: 'TypeScript', javascript: 'JavaScript', html: 'HTML', css: 'CSS', json: 'JSON', python: 'Python', plaintext: '纯文本' }
       onDocTypeChange?.(langMap[activeTab.language] || activeTab.language)
     } else {
       onDocTypeChange?.('')
@@ -654,6 +672,7 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
         // 已在该标签页上，直接导航
         eycEditorRef.current?.navigateOrCreateSub(subName, params)
       } else {
+        onSidebarTab?.('project')
         pendingNavigateRef.current = { subName, params }
         setActiveTabId(existingTab.id)
       }
@@ -671,10 +690,11 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
         onOpenTabsChange?.(merged)
         return merged
       })
+      onSidebarTab?.('project')
       pendingNavigateRef.current = { subName, params }
       setActiveTabId(eycPath)
     }
-  }, [tabs, activeTabId, onOpenTabsChange, buildEventSubName])
+  }, [tabs, activeTabId, onOpenTabsChange, buildEventSubName, onSidebarTab])
 
   // 双击可视化设计器窗口 → 跳转到 .eyc 文件并定位/创建窗口默认事件子程序
   const handleFormDblClick = useCallback(async (formData: DesignForm, defaultEvent: LibUnitEvent | null) => {
@@ -827,7 +847,7 @@ const Editor = forwardRef<EditorHandle, { onSelectControl?: (target: SelectionTa
             onControlDoubleClick={handleControlDblClick}
             onFormDoubleClick={handleFormDblClick}
           />
-        ) : activeTab.language === 'eyc' ? (
+        ) : (activeTab.language === 'eyc' || activeTab.language === 'egv') ? (
           <EycTableEditor
             ref={eycEditorRef}
             value={activeTab.value}

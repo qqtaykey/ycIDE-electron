@@ -33,6 +33,8 @@ function App(): React.JSX.Element {
   const [commandDetail, setCommandDetail] = useState<CommandDetail | null>(null)
   const commandCacheRef = useRef<Map<string, CommandDetail | null>>(new Map())
   const [fileProblems, setFileProblems] = useState<FileProblem[]>([])
+  const [designProblems, setDesignProblems] = useState<FileProblem[]>([])
+  const openTabsRef = useRef<EditorTab[]>([])
   const [cursorLine, setCursorLine] = useState<number | undefined>(undefined)
   const [cursorColumn, setCursorColumn] = useState<number | undefined>(undefined)
   const [docType, setDocType] = useState('')
@@ -58,11 +60,44 @@ function App(): React.JSX.Element {
     return () => { window.api.off('compiler:processExit') }
   }, [])
 
+  // 检查设计时诊断：扫描所有 efw 标签页中的控件类型，找出依赖库未加载的
+  const checkDesignProblems = useCallback(async (tabs: EditorTab[]) => {
+    try {
+      const units = await window.api.library.getWindowUnits() as Array<{ name: string; englishName?: string }>
+      const knownTypes = new Set<string>(
+        units.flatMap(u => [u.name, u.englishName].filter((n): n is string => !!n))
+      )
+      const problems: FileProblem[] = []
+      for (const tab of tabs) {
+        if (tab.language !== 'efw' || !tab.formData) continue
+        for (const ctrl of tab.formData.controls) {
+          if (!knownTypes.has(ctrl.type)) {
+            problems.push({
+              line: 0,
+              column: 0,
+              severity: 'error',
+              file: tab.label,
+              message: `窗口“${tab.formData.name}”中的控件“${ctrl.name}”(${ctrl.type})所依赖的支持库未加载`,
+            })
+          }
+        }
+      }
+      setDesignProblems(problems)
+    } catch {
+      // 无法获取窗口单元列表时忽略
+    }
+  }, [])
+
+  // 硬件加载或卸载时重新检查
+  const handleLibraryChange = useCallback(() => {
+    checkDesignProblems(openTabsRef.current)
+  }, [checkDesignProblems])
+
   // 编译运行
   const handleCompileRun = useCallback(async () => {
     if (!currentProjectDir || isCompiling) return
     // 有无效命令时阻断运行，切换到问题面板
-    if (fileProblems.length > 0) {
+    if (fileProblems.length > 0 || designProblems.length > 0) {
       setShowOutput(true)
       setForceOutputTab('problems')
       setTimeout(() => setForceOutputTab(null), 100)
@@ -78,12 +113,12 @@ function App(): React.JSX.Element {
     setIsCompiling(false)
     setForceOutputTab(null)
     if (result?.success) setIsRunning(true)
-  }, [currentProjectDir, isCompiling, targetArch, fileProblems])
+  }, [currentProjectDir, isCompiling, targetArch, fileProblems, designProblems])
 
   // 普通编译
   const handleCompile = useCallback(async () => {
     if (!currentProjectDir || isCompiling) return
-    if (fileProblems.length > 0) {
+    if (fileProblems.length > 0 || designProblems.length > 0) {
       setShowOutput(true)
       setForceOutputTab('problems')
       setTimeout(() => setForceOutputTab(null), 100)
@@ -98,12 +133,12 @@ function App(): React.JSX.Element {
     await window.api.compiler.compile(currentProjectDir, editorFiles, 'normal', targetArch)
     setIsCompiling(false)
     setForceOutputTab(null)
-  }, [currentProjectDir, isCompiling, targetArch, fileProblems])
+  }, [currentProjectDir, isCompiling, targetArch, fileProblems, designProblems])
 
   // 静态编译
   const handleCompileStatic = useCallback(async () => {
     if (!currentProjectDir || isCompiling) return
-    if (fileProblems.length > 0) {
+    if (fileProblems.length > 0 || designProblems.length > 0) {
       setShowOutput(true)
       setForceOutputTab('problems')
       setTimeout(() => setForceOutputTab(null), 100)
@@ -118,7 +153,7 @@ function App(): React.JSX.Element {
     await window.api.compiler.compile(currentProjectDir, editorFiles, 'static', targetArch)
     setIsCompiling(false)
     setForceOutputTab(null)
-  }, [currentProjectDir, isCompiling, fileProblems])
+  }, [currentProjectDir, isCompiling, fileProblems, designProblems])
 
   // 停止运行
   const handleStop = useCallback(() => {
@@ -194,6 +229,7 @@ function App(): React.JSX.Element {
   const buildProjectTreeFromEpp = useCallback((projectName: string, files: Array<{ type: string; fileName: string; flag: number }>): TreeNode[] => {
     const windowFiles: TreeNode[] = []
     const sourceFiles: TreeNode[] = []
+    const globalVarFiles: TreeNode[] = []
     const resourceFiles: TreeNode[] = []
 
     for (const f of files) {
@@ -201,6 +237,8 @@ function App(): React.JSX.Element {
         windowFiles.push({ id: f.fileName, label: f.fileName, type: 'window' })
       } else if (f.type === 'EYC') {
         sourceFiles.push({ id: f.fileName, label: f.fileName, type: 'module' })
+      } else if (f.type === 'EGV') {
+        globalVarFiles.push({ id: f.fileName, label: f.fileName, type: 'module' })
       } else {
         resourceFiles.push({ id: f.fileName, label: f.fileName, type: 'resource' })
       }
@@ -209,6 +247,7 @@ function App(): React.JSX.Element {
     const categories: TreeNode[] = []
     categories.push({ id: '_cat_windows', label: '窗口', type: 'folder', expanded: true, children: windowFiles })
     categories.push({ id: '_cat_sources', label: '程序集', type: 'folder', expanded: true, children: sourceFiles })
+    categories.push({ id: '_cat_globals', label: '全局变量', type: 'folder', expanded: true, children: globalVarFiles })
     categories.push({ id: '_cat_constants', label: '常量表', type: 'folder', expanded: false, children: [] })
     categories.push({ id: '_cat_datatypes', label: '自定义数据类型', type: 'folder', expanded: false, children: [] })
     categories.push({ id: '_cat_resources', label: '资源', type: 'folder', expanded: false, children: resourceFiles })
@@ -216,14 +255,16 @@ function App(): React.JSX.Element {
     return [{ id: 'root', label: projectName, type: 'folder', expanded: true, children: categories }]
   }, [])
 
-  // 标签页变化时保存到项目目录
+  // 标签页变化时保存到项目目录，并重新检查设计时诊断
   const handleOpenTabsChange = useCallback((tabs: EditorTab[]) => {
+    openTabsRef.current = tabs
     const dir = currentProjectDirRef.current
     if (dir) {
       const tabPaths = tabs.filter(t => t.filePath).map(t => t.filePath!)
       window.api?.project?.saveOpenTabs(dir, tabPaths)
     }
-  }, [])
+    checkDesignProblems(tabs)
+  }, [checkDesignProblems])
 
   // 刷新项目树（窗口重命名后调用）
   const refreshProjectTree = useCallback(async () => {
@@ -271,38 +312,62 @@ function App(): React.JSX.Element {
         setCurrentProjectDir(dir)
         if (eppInfo.platform) setTargetArch(eppInfo.platform)
         setProjectTree(buildProjectTreeFromEpp(eppInfo.projectName, eppInfo.files))
+
+        const buildTabFromPath = async (fp: string): Promise<EditorTab | null> => {
+          const fileName = fp.split('\\').pop() || ''
+          const ext = fileName.split('.').pop()?.toLowerCase()
+          const content = await window.api?.project?.readFile(fp)
+          if (content === null || content === undefined) return null
+
+          if (ext === 'efw') {
+            const efwData = JSON.parse(content)
+            const formData: DesignForm = {
+              name: efwData.name || fileName.replace('.efw', ''),
+              title: efwData.title || '',
+              width: efwData.width || 592,
+              height: efwData.height || 384,
+              sourceFile: efwData.sourceFile,
+              properties: efwData.properties || undefined,
+              controls: (efwData.controls || []).map((c: any) => ({
+                id: c.id, type: c.type, name: c.name,
+                left: c.x ?? c.left ?? 0, top: c.y ?? c.top ?? 0,
+                width: c.width ?? 100, height: c.height ?? 30,
+                text: c.properties?.['标题'] ?? c.properties?.['内容'] ?? c.properties?.['文本'] ?? c.text ?? c.name ?? '',
+                visible: c.visible ?? true, enabled: c.enabled ?? true, properties: c.properties || {},
+              }))
+            }
+            return { id: fp, label: fileName, language: 'efw', value: '', savedValue: JSON.stringify(formData, null, 2), filePath: fp, formData }
+          }
+
+          if (ext === 'eyc' || ext === 'egv') {
+            return { id: fp, label: fileName, language: ext, value: content, savedValue: content, filePath: fp }
+          }
+
+          return null
+        }
+
         // 恢复之前打开的标签页
         const savedPaths = await window.api?.project?.loadOpenTabs(dir)
+        const restoredTabs: EditorTab[] = []
         if (savedPaths && savedPaths.length > 0) {
-          const restoredTabs: EditorTab[] = []
           for (const fp of savedPaths) {
-            const fileName = fp.split('\\').pop() || ''
-            const ext = fileName.split('.').pop()?.toLowerCase()
-            const content = await window.api?.project?.readFile(fp)
-            if (!content) continue
-            if (ext === 'efw') {
-              const efwData = JSON.parse(content)
-              const formData: DesignForm = {
-                name: efwData.name || fileName.replace('.efw', ''),
-                title: efwData.title || '',
-                width: efwData.width || 592,
-                height: efwData.height || 384,
-                sourceFile: efwData.sourceFile,
-                controls: (efwData.controls || []).map((c: any) => ({
-                  id: c.id, type: c.type, name: c.name,
-                  left: c.x ?? c.left ?? 0, top: c.y ?? c.top ?? 0,
-                  width: c.width ?? 100, height: c.height ?? 30,
-                  text: c.properties?.['标题'] ?? c.name ?? '',
-                  visible: true, enabled: true, properties: c.properties || {},
-                }))
-              }
-              restoredTabs.push({ id: fp, label: fileName, language: 'efw', value: '', savedValue: JSON.stringify(formData, null, 2), filePath: fp, formData })
-            } else if (ext === 'eyc') {
-              restoredTabs.push({ id: fp, label: fileName, language: 'eyc', value: content, savedValue: content, filePath: fp })
-            }
+            const tab = await buildTabFromPath(fp)
+            if (tab) restoredTabs.push(tab)
           }
-          if (restoredTabs.length > 0) setOpenProjectFiles(restoredTabs)
         }
+
+        // 未恢复到任何标签页时，默认打开 epp 中标记的主活动文件（flag=1）
+        if (restoredTabs.length === 0) {
+          const mainFile = eppInfo.files.find((f: { type: string; fileName: string; flag: number }) => f.flag === 1)
+            || eppInfo.files.find((f: { type: string; fileName: string; flag: number }) => f.type === 'EFW')
+            || eppInfo.files[0]
+          if (mainFile) {
+            const mainTab = await buildTabFromPath(dir + '\\' + mainFile.fileName)
+            if (mainTab) restoredTabs.push(mainTab)
+          }
+        }
+
+        if (restoredTabs.length > 0) setOpenProjectFiles(restoredTabs)
         break
       }
       case 'file:save':
@@ -315,9 +380,22 @@ function App(): React.JSX.Element {
         editorRef.current?.closeActiveTab()
         break
       case 'file:closeProject':
+        {
+          const hasUnsaved = editorRef.current?.hasModifiedTabs?.() ?? false
+          if (hasUnsaved) {
+            const action = await window.api?.dialog?.confirmSaveBeforeClose('未保存文件')
+            if (action === 'cancel') break
+            if (action === 'save') {
+              editorRef.current?.saveAll()
+            }
+          }
+        }
+        editorRef.current?.clearAllTabs()
         setOpenProjectFiles([])
         setProjectTree([])
         setCurrentProjectDir('')
+        setSelection(null)
+        setSidebarTab('project')
         break
       case 'file:exit':
         await handleAppClose()
@@ -411,6 +489,29 @@ function App(): React.JSX.Element {
         break
       }
       case 'insert:globalVar':
+      {
+        const dir = currentProjectDirRef.current
+        if (!dir) break
+        const existingFiles = projectTree[0]?.children
+          ?.find(c => c.id === '_cat_globals')?.children?.map(c => c.label) || []
+        let n = 1
+        while (existingFiles.includes('全局变量' + n + '.egv')) n++
+        const newFileName = '全局变量' + n + '.egv'
+        const varName = '全局变量' + n
+        const content = '.版本 2\n.全局变量 ' + varName + ', 整数型\n\n'
+        await window.api?.project?.addFile(dir, newFileName, 'EGV', content)
+        setProjectTree(prev => prev.map(root => ({
+          ...root,
+          children: root.children?.map(cat =>
+            cat.id === '_cat_globals'
+              ? { ...cat, children: [...(cat.children || []), { id: newFileName, label: newFileName, type: 'module' as const }] }
+              : cat
+          )
+        })))
+        const filePath = dir + '\\' + newFileName
+        editorRef.current?.openFile({ id: filePath, label: newFileName, language: 'egv', value: content, savedValue: content, filePath })
+        break
+      }
       case 'insert:dataType':
       case 'insert:dllCmd':
       case 'insert:window':
@@ -444,19 +545,20 @@ function App(): React.JSX.Element {
         width: efwData.width || 592,
         height: efwData.height || 384,
         sourceFile: efwData.sourceFile,
+        properties: efwData.properties || undefined,
         controls: (efwData.controls || []).map((c: any) => ({
           id: c.id, type: c.type, name: c.name,
           left: c.x ?? c.left ?? 0, top: c.y ?? c.top ?? 0,
           width: c.width ?? 100, height: c.height ?? 30,
-          text: c.properties?.['\u6807\u9898'] ?? c.name ?? '',
-          visible: true, enabled: true, properties: c.properties || {},
+          text: c.properties?.['标题'] ?? c.properties?.['内容'] ?? c.properties?.['文本'] ?? c.text ?? c.name ?? '',
+          visible: c.visible ?? true, enabled: c.enabled ?? true, properties: c.properties || {},
         }))
       }
       editorRef.current?.openFile({ id: filePath, label: fileName, language: 'efw', value: '', savedValue: JSON.stringify(formData, null, 2), filePath, formData })
-    } else if (ext === 'eyc') {
+    } else if (ext === 'eyc' || ext === 'egv') {
       const content = await window.api?.project?.readFile(filePath)
       if (!content) return
-      editorRef.current?.openFile({ id: filePath, label: fileName, language: 'eyc', value: content, savedValue: content, filePath })
+      editorRef.current?.openFile({ id: filePath, label: fileName, language: ext, value: content, savedValue: content, filePath })
     }
   }, [])
 
@@ -486,6 +588,7 @@ function App(): React.JSX.Element {
             width: efwData.width || 592,
             height: efwData.height || 384,
             sourceFile: efwData.sourceFile,
+            properties: efwData.properties || undefined,
             controls: (efwData.controls || []).map((c: any) => ({
               id: c.id,
               type: c.type,
@@ -494,9 +597,9 @@ function App(): React.JSX.Element {
               top: c.y ?? c.top ?? 0,
               width: c.width ?? 100,
               height: c.height ?? 30,
-              text: c.properties?.['标题'] ?? c.name ?? '',
-              visible: true,
-              enabled: true,
+              text: c.properties?.['标题'] ?? c.properties?.['内容'] ?? c.properties?.['文本'] ?? c.text ?? c.name ?? '',
+              visible: c.visible ?? true,
+              enabled: c.enabled ?? true,
               properties: c.properties || {},
             }))
           }
@@ -614,7 +717,7 @@ function App(): React.JSX.Element {
         onRedo={() => handleMenuAction('edit:redo')}
       />
       <div className="app-body">
-        <Sidebar width={sidebarWidth} onResize={setSidebarWidth} selection={selection} activeTab={sidebarTab} onTabChange={setSidebarTab} onSelectControl={setSelection} onPropertyChange={(kind, ctrlId, prop, val) => editorRef.current?.updateFormProperty(kind, ctrlId, prop, val)} projectTree={projectTree} onOpenFile={handleOpenFile} activeFileId={activeFileId ? activeFileId.replace(/^.*[\\/]/, '') : null} projectDir={currentProjectDir} onEventNavigate={(sel, eventName, eventArgs) => editorRef.current?.navigateToEventSub(sel, eventName, eventArgs)} />
+        <Sidebar width={sidebarWidth} onResize={setSidebarWidth} selection={selection} activeTab={sidebarTab} onTabChange={setSidebarTab} onSelectControl={setSelection} onPropertyChange={(kind, ctrlId, prop, val) => editorRef.current?.updateFormProperty(kind, ctrlId, prop, val)} projectTree={projectTree} onOpenFile={handleOpenFile} activeFileId={activeFileId ? activeFileId.replace(/^.*[\\/]/, '') : null} projectDir={currentProjectDir} onEventNavigate={(sel, eventName, eventArgs) => editorRef.current?.navigateToEventSub(sel, eventName, eventArgs)} onLibraryChange={handleLibraryChange} />
         <div className="app-main">
           <Editor
             ref={editorRef}
@@ -645,15 +748,15 @@ function App(): React.JSX.Element {
           messages={outputMessages}
           commandDetail={commandDetail}
           highlightParamIndex={highlightParamIndex}
-          problems={fileProblems}
+          problems={[...fileProblems, ...designProblems]}
           forceTab={forceOutputTab}
           onProblemClick={(p) => editorRef.current?.navigateToLine(p.line)}
         />
       )}
       <StatusBar
         onToggleOutput={() => setShowOutput(!showOutput)}
-        errorCount={fileProblems.filter(p => p.severity === 'error').length}
-        warningCount={fileProblems.filter(p => p.severity === 'warning').length}
+        errorCount={[...fileProblems, ...designProblems].filter(p => p.severity === 'error').length}
+        warningCount={[...fileProblems, ...designProblems].filter(p => p.severity === 'warning').length}
         cursorLine={cursorLine}
         cursorColumn={cursorColumn}
         docType={docType}

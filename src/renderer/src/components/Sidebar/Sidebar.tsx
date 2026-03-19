@@ -30,6 +30,8 @@ interface SidebarProps {
   activeFileId?: string | null
   projectDir?: string
   onEventNavigate?: (selection: SelectionTarget, eventName: string, eventArgs: Array<{ name: string; description: string; dataType: string; isByRef: boolean }>) => void
+  /** 支持库加载或卸载时的回调 */
+  onLibraryChange?: () => void
 }
 
 interface LibItem {
@@ -286,6 +288,8 @@ function getFormFieldValue(propName: string, form: DesignForm): string | number 
 function getControlFieldValue(propName: string, control: DesignControl): string | number | boolean | undefined {
   switch (propName) {
     case '标题': return control.text
+    case '内容': return control.text
+    case '文本': return control.text
     case '左边': return control.left
     case '顶边': return control.top
     case '宽度': return control.width
@@ -298,6 +302,9 @@ function getControlFieldValue(propName: string, control: DesignControl): string 
 
 /** 获取窗口属性的显示值 */
 function resolveFormPropValue(prop: LibUnitProperty, form: DesignForm): string | number | boolean {
+  // 优先读动态存储的属性值（用户已修改过的）
+  const stored = form.properties?.[prop.name]
+  if (stored !== undefined) return stored
   const field = getFormFieldValue(prop.name, form)
   if (field !== undefined) return field
   return getDefaultPropValue(prop)
@@ -439,9 +446,18 @@ function EditableTextCell({ value, onChange }: { value: string; onChange: (v: st
   return <span className="prop-value-text" onClick={() => setEditing(true)}>{value || '\u00A0'}</span>
 }
 
-/** 可编辑逻辑型属性单元格（单击切换） */
+/** 可编辑逻辑型属性单元格（下拉选择） */
 function EditableBoolCell({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }): React.JSX.Element {
-  return <span className="prop-value-text prop-value-bool" onClick={() => onChange(!value)}>{value ? '真' : '假'}</span>
+  return (
+    <select
+      className="prop-edit-select"
+      value={value ? '1' : '0'}
+      onChange={e => onChange(e.target.value === '1')}
+    >
+      <option value="1">真</option>
+      <option value="0">假</option>
+    </select>
+  )
 }
 
 /** 可编辑枚举/选择属性单元格（下拉框） */
@@ -630,7 +646,7 @@ function PropertyPanel({ selection, windowUnits, onSelectControl, onPropertyChan
   )
 }
 
-function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectControl, onPropertyChange, projectTree, onOpenFile, activeFileId, projectDir, onEventNavigate }: SidebarProps): React.JSX.Element {
+function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectControl, onPropertyChange, projectTree, onOpenFile, activeFileId, projectDir, onEventNavigate, onLibraryChange }: SidebarProps): React.JSX.Element {
   const [windowUnits, setWindowUnits] = useState<LibWindowUnit[]>([])
   const [projectNames, setProjectNames] = useState<string[]>([])
 
@@ -641,9 +657,10 @@ function Sidebar({ width, onResize, selection, activeTab, onTabChange, onSelectC
 
   useEffect(() => {
     loadWindowUnits()
-    window.api.on('library:loaded', loadWindowUnits)
+    const handler = () => { loadWindowUnits(); onLibraryChange?.() }
+    window.api.on('library:loaded', handler)
     return () => { window.api.off('library:loaded') }
-  }, [loadWindowUnits])
+  }, [loadWindowUnits, onLibraryChange])
 
   // 加载项目中所有 .efw 的窗口名称（用于项目级窗口重名检查，控件只在窗口内检查）
   useEffect(() => {

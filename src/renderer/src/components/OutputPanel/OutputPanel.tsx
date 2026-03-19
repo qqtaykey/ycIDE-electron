@@ -30,6 +30,8 @@ export interface FileProblem {
   column: number
   message: string
   severity: 'error' | 'warning'
+  /** 来源文件名（如 _启动窗口.efw），设计时诊断时使用 */
+  file?: string
 }
 
 type OutputTab = 'compile' | 'hint' | 'problems'
@@ -232,8 +234,11 @@ function OutputPanel({ height, onResize, onClose, messages = [], commandDetail, 
                   }}
                 >
                   <span className={`output-problem-icon ${p.severity}`}>{p.severity === 'error' ? '✕' : '⚠'}</span>
+                  {p.file && <span className="output-problem-file">{p.file}</span>}
                   <span className="output-problem-msg">{p.message}</span>
-                  <span className="output-problem-loc">第 {p.line} 行, 第 {p.column} 列</span>
+                  {(p.line > 0 || p.column > 0)
+                    ? <span className="output-problem-loc">第 {p.line} 行, 第 {p.column} 列</span>
+                    : <span className="output-problem-loc output-problem-design">设计时</span>}
                 </div>
               ))}
             </>

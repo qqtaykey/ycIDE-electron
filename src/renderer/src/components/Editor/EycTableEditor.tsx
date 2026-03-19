@@ -1254,7 +1254,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
       setSelectedLines(rangeSet(dragAnchor.current, lineIndex))
     } else {
       dragAnchor.current = lineIndex
-      setSelectedLines(new Set([lineIndex]))
+      // 普通单击不立即标记行选中，避免蓝色闪烁；只有实际拖动时才设置
     }
     isDragging.current = true
     // 聚焦 wrapper 以便接收键盘事件（Delete等）
@@ -1266,16 +1266,20 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
     const onMove = (e: MouseEvent): void => {
       if (!isDragging.current && pendingInputDragRef.current) {
         const p = pendingInputDragRef.current
-        const dx = e.clientX - p.x
-        const dy = e.clientY - p.y
-        if (dx * dx + dy * dy > 25) {
-          if (editCellRef.current) commitRef.current()
-          dragStartPos.current = { x: p.x, y: p.y }
-          dragAnchor.current = p.lineIndex
-          setSelectedLines(new Set([p.lineIndex]))
-          isDragging.current = true
-          wasDragSelect.current = true
-          wrapperRef.current?.focus()
+        // 判断鼠标是否已离开 input 元素边界
+        const inputEl = inputRef.current
+        if (inputEl) {
+          const rect = inputEl.getBoundingClientRect()
+          const outside = e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom
+          if (outside) {
+            if (editCellRef.current) commitRef.current()
+            dragStartPos.current = { x: p.x, y: p.y }
+            dragAnchor.current = p.lineIndex
+            setSelectedLines(new Set([p.lineIndex]))
+            isDragging.current = true
+            wasDragSelect.current = true
+            wrapperRef.current?.focus()
+          }
         }
       }
       if (!isDragging.current || dragAnchor.current === null) return
@@ -1284,8 +1288,11 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
         const dy = e.clientY - dragStartPos.current.y
         if (dx * dx + dy * dy > 25) wasDragSelect.current = true
       }
+      // 只有确认是拖动后才更新行选中，避免普通点击时也出现蓝色高亮
+      if (!wasDragSelect.current) return
       const li = findLineAtY(e.clientY)
       if (li >= 0) {
+        // 确保锚点行也被选中（首次拖入超过阈值时）
         setSelectedLines(rangeSet(dragAnchor.current, li))
       }
     }
@@ -1555,7 +1562,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
     acWordStartRef.current = wordStart
 
     // 检查是否在"组件名."后面 → 显示成员命令
-    let sourceList = allCommandsRef.current
+    let sourceList: CompletionItem[] = [...userVarCompletionItems, ...allCommandsRef.current]
     if (wordStart > 0 && val[wordStart - 1] === '.') {
       // 提取点号前的组件名
       let objEnd = wordStart - 1
@@ -1602,7 +1609,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
     setAcItems(matches)
     setAcIndex(0)
     setAcVisible(true)
-  }, [editCell])
+  }, [editCell, userVarCompletionItems])
 
   /** 应用补全项：替换当前输入词为命令名 */
   const applyCompletion = useCallback((displayItem: AcDisplayItem) => {
@@ -1699,6 +1706,28 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
   const blocks = useMemo(() => buildBlocks(currentText), [currentText])
   const flowLines = useMemo(() => computeFlowLines(blocks), [blocks])
 
+  // 只对实际渲染的可见行按顺序分配连续行号（跳过 isHeader / isVirtual）
+  const lineNumMap = useMemo<Map<number, number>>(() => {
+    const map = new Map<number, number>()
+    let display = 0
+    for (const blk of blocks) {
+      if (blk.kind === 'table') {
+        for (const row of blk.rows) {
+          if (!row.isHeader && !map.has(row.lineIndex)) {
+            display++
+            map.set(row.lineIndex, display)
+          }
+        }
+      } else {
+        if (!blk.isVirtual && !map.has(blk.lineIndex)) {
+          display++
+          map.set(blk.lineIndex, display)
+        }
+      }
+    }
+    return map
+  }, [blocks])
+
   const getSelectedSourceText = useCallback((): string => {
     const sorted = [...selectedLines].sort((a, b) => a - b)
     const ls = currentText.split('\n')
@@ -1718,6 +1747,73 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
     return { userSubNames: subs, userVarNames: vars }
   }, [currentText])
   useEffect(() => { userVarNamesRef.current = userVarNames }, [userVarNames])
+
+  // 生成用于补全的用户变量项（局部/参数按当前子程序作用域）
+  const userVarCompletionItems = useMemo<CompletionItem[]>(() => {
+    const parsed = parseLines(currentText)
+    const cursorLine = editCell?.lineIndex ?? -1
+
+    let subStart = -1
+    let subEnd = parsed.length
+    if (cursorLine >= 0 && cursorLine < parsed.length) {
+      for (let i = cursorLine; i >= 0; i--) {
+        const t = parsed[i].type
+        if (t === 'sub') { subStart = i; break }
+        if (t === 'assembly') break
+      }
+      if (subStart >= 0) {
+        for (let i = subStart + 1; i < parsed.length; i++) {
+          const t = parsed[i].type
+          if (t === 'sub' || t === 'assembly') { subEnd = i; break }
+        }
+      }
+    }
+
+    const items: CompletionItem[] = []
+    const seen = new Set<string>()
+    const addVar = (name: string, varType: string, category: string): void => {
+      const nm = (name || '').trim()
+      if (!nm || seen.has(nm)) return
+      seen.add(nm)
+      items.push({
+        name: nm,
+        englishName: '',
+        description: varType ? `${category}（${varType}）` : category,
+        returnType: varType || '',
+        category,
+        libraryName: '用户定义',
+        isMember: false,
+        ownerTypeName: '',
+        params: [],
+      })
+    }
+
+    // 当前子程序的参数/局部变量优先（更贴近当前输入上下文）
+    if (subStart >= 0) {
+      for (let i = subStart + 1; i < subEnd; i++) {
+        const ln = parsed[i]
+        if ((ln.type === 'subParam' || ln.type === 'localVar') && ln.fields[0]) {
+          addVar(ln.fields[0], (ln.fields[1] || '').trim(), ln.type === 'subParam' ? '参数' : '局部变量')
+        }
+      }
+    }
+
+    // 程序集变量
+    for (const ln of parsed) {
+      if (ln.type === 'assemblyVar' && ln.fields[0]) {
+        addVar(ln.fields[0], (ln.fields[1] || '').trim(), '程序集变量')
+      }
+    }
+
+    // 全局变量
+    for (const ln of parsed) {
+      if (ln.type === 'globalVar' && ln.fields[0]) {
+        addVar(ln.fields[0], (ln.fields[1] || '').trim(), '全局变量')
+      }
+    }
+
+    return items
+  }, [currentText, editCell?.lineIndex])
 
   // 有效命令名集合（支持库命令 + 用户子程序 + 流程关键字 + 变量名）
   const validCommandNames = useMemo(() => {
@@ -3210,13 +3306,12 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
       setEditCell(null)
       setAcVisible(false)
     }
-    // 选中最后一行
+    // 点击末尾空白区域：不立即标记行选中蓝色，等 mouseup 确认是否为拖动
     const lastLine = lines.length - 1
     if (lastLine >= 0) {
       dragStartPos.current = { x: e.clientX, y: e.clientY }
       wasDragSelect.current = false
       dragAnchor.current = lastLine
-      setSelectedLines(new Set([lastLine]))
       isDragging.current = true
       wrapperRef.current?.focus()
 
@@ -3224,6 +3319,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
       const handleMouseUp = (): void => {
         window.removeEventListener('mouseup', handleMouseUp)
         if (!wasDragSelect.current) {
+          setSelectedLines(new Set())
           startEditLine(lastLine)
         }
       }
@@ -3303,7 +3399,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
                 <div className="eyc-line-gutter">
                   {blk.rows.map((row, ri) => (
                     <div key={ri} className="eyc-gutter-cell">
-                      <span className="eyc-gutter-linenum">{row.isHeader ? '' : row.lineIndex + 1}</span>
+                      <span className="eyc-gutter-linenum">{row.isHeader ? '' : (lineNumMap.get(row.lineIndex) ?? row.lineIndex + 1)}</span>
                       <span className="eyc-gutter-fold-area" />
                     </div>
                   ))}
@@ -3337,6 +3433,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
                                 value={editVal}
                                 onMouseDown={(e) => {
                                   if (e.button !== 0) return
+                                  // 记录起始位置；如果鼠标拖出 input 边界则切换为跳行拖选
                                   pendingInputDragRef.current = { lineIndex: row.lineIndex, x: e.clientX, y: e.clientY }
                                 }}
                                 onChange={e => { setEditVal(e.target.value); liveUpdate(e.target.value) }}
@@ -3376,11 +3473,12 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
             >
               <div className="eyc-line-gutter">
                 <div className="eyc-gutter-cell">
-                  <span className="eyc-gutter-linenum">{blk.isVirtual ? '' : blk.lineIndex + 1}</span>
+                  <span className="eyc-gutter-linenum">{blk.isVirtual ? '' : (lineNumMap.get(blk.lineIndex) ?? blk.lineIndex + 1)}</span>
                   <span className="eyc-gutter-fold-area">
                     {lineCmd && (isLineSelected || (editCell && editCell.lineIndex === blk.lineIndex && editCell.paramIdx === undefined)) && (
                       <span
                         className="eyc-gutter-fold"
+                        onMouseDown={(e) => { e.stopPropagation(); e.preventDefault() }}
                         onClick={(e) => {
                           e.stopPropagation()
                           setExpandedLines(prev => {
@@ -3402,6 +3500,8 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
                   if ((e.target as HTMLElement).tagName === 'INPUT') return
                   // 拖选后不进入编辑模式，保留行选中状态
                   if (wasDragSelect.current) { wasDragSelect.current = false; return }
+                  // 普通单击进入编辑模式前清除任何行选中
+                  setSelectedLines(new Set())
                   // 点击代码行时触发命令提示（显示命令全部信息）
                   const rawCode = (blk.codeLine || '').replace(FLOW_AUTO_TAG, '')
                   const cmdName = findFirstCommandName(rawCode)
@@ -3421,6 +3521,7 @@ const EycTableEditor = forwardRef<EycTableEditorHandle, EycTableEditorProps>(fun
                     value={editVal}
                     onMouseDown={(e) => {
                       if (e.button !== 0) return
+                      // 记录起始位置；如果鼠标拖出 input 边界则切换为跳行拖选
                       pendingInputDragRef.current = { lineIndex: blk.lineIndex, x: e.clientX, y: e.clientY }
                     }}
                     onChange={e => {

@@ -56,6 +56,7 @@ export interface DesignForm {
   height: number
   sourceFile?: string  // 关联的 .eyc 源代码文件名
   controls: DesignControl[]
+  properties?: Record<string, string | number | boolean>  // 支持库属性值
 }
 
 /** 选中目标：控件 或 窗口自身 */
@@ -681,6 +682,27 @@ function VisualDesigner({ form, onChange, onSelectControl, windowUnits = [], ext
             }}>{ctrl.text}</span>
           </div>
         )
+      case 'ycUI按钮': {
+        const isPrimary = ctrl.properties['主色模式'] === true || ctrl.properties['主色模式'] === '真'
+        const radius = typeof ctrl.properties['圆角半径'] === 'number'
+          ? ctrl.properties['圆角半径']
+          : 4
+        const bg = isPrimary ? '#0F6CBD' : '#F3F3F3'
+        const textColor = isPrimary ? '#fff' : '#1a1a1a'
+        const border = isPrimary ? '1px solid #0F6CBD' : '1px solid #d1d1d1'
+        return (
+          <div style={{
+            ...common,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: bg,
+            border,
+            borderRadius: radius,
+            color: textColor,
+            cursor: 'default',
+            userSelect: 'none',
+          }}>{ctrl.text}</div>
+        )
+      }
       case '进度条':
         return (
           <div style={{

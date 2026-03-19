@@ -37,6 +37,9 @@ interface WindowControlInfo {
   width: number
   height: number
   text: string
+  visible: boolean
+  disabled: boolean
+  extraProps: Record<string, unknown>  // 支持库自定义属性原始值
 }
 
 // 窗口文件信息
@@ -44,6 +47,14 @@ interface WindowFileInfo {
   width: number
   height: number
   title: string
+  visible: boolean
+  disabled: boolean
+  border: number       // 0无边框 1单线 2可调(default) 3对话框 4工具窗 5可调工具窗
+  maxButton: boolean
+  minButton: boolean
+  controlBox: boolean
+  topmost: boolean
+  startPos: number     // 0手工 1居中(default)
   controls: WindowControlInfo[]
 }
 
@@ -201,44 +212,55 @@ function getWin32ClassName(ctrlType: string): string {
     'ComboBox': 'COMBOBOX', '组合框': 'COMBOBOX',
     'GroupBox': 'BUTTON', '分组框': 'BUTTON',
     '图片框': 'STATIC',
+    'ycUI按钮': 'ycButton',
   }
   return map[ctrlType] || 'STATIC'
 }
 
-// 获取控件的 Win32 样式
+// 获取控件的 Win32 样式（不含 WS_VISIBLE，由外层 visFlag 控制）
 function getWin32Style(ctrlType: string): string {
   const map: Record<string, string> = {
-    'Button': 'WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON',
-    '按钮': 'WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON',
-    'Label': 'WS_CHILD | WS_VISIBLE | SS_LEFT',
-    '标签': 'WS_CHILD | WS_VISIBLE | SS_LEFT',
-    'Edit': 'WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL',
-    '编辑框': 'WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL',
-    'TextBox': 'WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL',
-    '文本框': 'WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL',
-    'CheckBox': 'WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX',
-    '复选框': 'WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX',
-    '选择框': 'WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX',
-    'ListBox': 'WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL | LBS_NOTIFY',
-    '列表框': 'WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL | LBS_NOTIFY',
-    'ComboBox': 'WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL',
-    '组合框': 'WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL',
-    'GroupBox': 'WS_CHILD | WS_VISIBLE | BS_GROUPBOX',
-    '分组框': 'WS_CHILD | WS_VISIBLE | BS_GROUPBOX',
-    '图片框': 'WS_CHILD | WS_VISIBLE | SS_LEFT',
+    'Button': 'WS_CHILD | BS_PUSHBUTTON',
+    '按钮': 'WS_CHILD | BS_PUSHBUTTON',
+    'Label': 'WS_CHILD | SS_LEFT',
+    '标签': 'WS_CHILD | SS_LEFT',
+    'Edit': 'WS_CHILD | WS_BORDER | ES_AUTOHSCROLL',
+    '编辑框': 'WS_CHILD | WS_BORDER | ES_AUTOHSCROLL',
+    'TextBox': 'WS_CHILD | WS_BORDER | ES_AUTOHSCROLL',
+    '文本框': 'WS_CHILD | WS_BORDER | ES_AUTOHSCROLL',
+    'CheckBox': 'WS_CHILD | BS_AUTOCHECKBOX',
+    '复选框': 'WS_CHILD | BS_AUTOCHECKBOX',
+    '选择框': 'WS_CHILD | BS_AUTOCHECKBOX',
+    'ListBox': 'WS_CHILD | WS_BORDER | WS_VSCROLL | LBS_NOTIFY',
+    '列表框': 'WS_CHILD | WS_BORDER | WS_VSCROLL | LBS_NOTIFY',
+    'ComboBox': 'WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL',
+    '组合框': 'WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL',
+    'GroupBox': 'WS_CHILD | BS_GROUPBOX',
+    '分组框': 'WS_CHILD | BS_GROUPBOX',
+    '图片框': 'WS_CHILD | SS_LEFT',
+    'ycUI按钮': 'WS_CHILD',
   }
-  return map[ctrlType] || 'WS_CHILD | WS_VISIBLE | SS_LEFT'
+  return map[ctrlType] || 'WS_CHILD | SS_LEFT'
 }
 
 // 解析窗口文件
 function parseWindowFile(efwPath: string): WindowFileInfo {
-  const info: WindowFileInfo = { width: 592, height: 384, title: '窗口', controls: [] }
+  const info: WindowFileInfo = { width: 592, height: 384, title: '窗口', visible: true, disabled: false, border: 2, maxButton: true, minButton: true, controlBox: true, topmost: false, startPos: 1, controls: [] }
   if (!existsSync(efwPath)) return info
   try {
     const data = JSON.parse(readFileSync(efwPath, 'utf-8'))
     info.width = data.formWidth || data.width || 592
     info.height = data.formHeight || data.height || 384
     info.title = data.formTitle || data.title || data.name || '窗口'
+    const p = data.properties || {}
+    if (p['可视'] === false) info.visible = false
+    if (p['禁止'] === true) info.disabled = true
+    if (typeof p['边框'] === 'number') info.border = p['边框']
+    if (p['最大化按鈕'] === false) info.maxButton = false
+    if (p['最小化按鈕'] === false) info.minButton = false
+    if (p['控制按鈕'] === false) info.controlBox = false
+    if (p['总在最前'] === true) info.topmost = true
+    if (typeof p['位置'] === 'number') info.startPos = p['位置']
     if (Array.isArray(data.controls)) {
       for (const c of data.controls) {
         const props = c.properties || {}
@@ -249,7 +271,10 @@ function parseWindowFile(efwPath: string): WindowFileInfo {
           y: c.y ?? c.top ?? 0,
           width: c.width ?? 80,
           height: c.height ?? 24,
-          text: props['标题'] || props['文本'] || props['title'] || props['text'] || c.name || '',
+          text: props['标题'] || props['内容'] || props['文本'] || props['title'] || props['text'] || c.text || c.name || '',
+          visible: c.visible ?? true,
+          disabled: c.enabled === false || props['禁止'] === true,
+          extraProps: { ...props },
         })
       }
     }
@@ -471,7 +496,49 @@ function transpileEycContent(eycContent: string, fileName: string): string {
 
   const lines = eycContent.split('\n')
   let result = `/* 由 ycIDE 自动从 ${fileName} 生成 */\n`
-  result += '#include <windows.h>\n#include <stdio.h>\n\n'
+  result += '#include <windows.h>\n#include <stdio.h>\n#include <stdint.h>\n\n'
+
+  // ---- 第一遍：收集并输出 自定义数据类型 ----
+  {
+    let inDataType = false
+    let structName = ''
+    let structFields = ''
+    for (const rawLine of lines) {
+      const line = rawLine.replace(/[\u200B\u200C\u200D\u2060]/g, '').trim()
+      if (line.startsWith('.数据类型 ')) {
+        // 保存上一个结构体
+        if (inDataType && structName) {
+          result += `struct ${structName} {\n${structFields}};\n\n`
+        }
+        const parts = line.substring(5).split(',').map(s => s.trim())
+        structName = parts[0] || 'UnknownType'
+        structFields = ''
+        inDataType = true
+        continue
+      }
+      if (inDataType) {
+        // 遇到新的块（子程序/程序集/版本）则结束当前结构体
+        if (line.startsWith('.子程序 ') || line.startsWith('.程序集') || line.startsWith('.版本')) {
+          result += `struct ${structName} {\n${structFields}};\n\n`
+          inDataType = false
+          structName = ''
+          structFields = ''
+          continue
+        }
+        if (line.startsWith('.成员 ')) {
+          const parts = line.substring(3).split(',').map(s => s.trim())
+          const fieldName = parts[0] || 'field'
+          const fieldType = parts[1] || '整数型'
+          structFields += `    ${mapTypeToCType(fieldType)} ${fieldName};\n`
+        }
+        // 其他行（注释等）跳过
+      }
+    }
+    // 最后一个结构体
+    if (inDataType && structName) {
+      result += `struct ${structName} {\n${structFields}};\n\n`
+    }
+  }
 
   let inSub = false
   let subName = ''
@@ -542,8 +609,11 @@ function transpileEycContent(eycContent: string, fileName: string): string {
 
         if (flowName === '计次循环首') {
           const countExpr = formatArgForC(flowCall?.args?.[0] || '0')
-          const varName = (flowCall?.args?.[1] || '').trim() || `__loop_${loopTempIndex++}`
-          emitSubLine(`for (${varName} = 1; ${varName} <= (${countExpr}); ${varName}++) {`)
+          const userVar = (flowCall?.args?.[1] || '').trim()
+          // C++ 允许在 for 内部声明循环变量，避免重复声明问题
+          const loopVar = userVar || `__loop_${loopTempIndex++}`
+          const initDecl = userVar ? `${userVar} = 1` : `int64_t ${loopVar} = 1`
+          emitSubLine(`for (${initDecl}; ${loopVar} <= (${countExpr}); ${loopVar}++) {`)
           blockIndent++
           continue
         }
@@ -603,9 +673,9 @@ function transpileEycContent(eycContent: string, fileName: string): string {
   return result
 }
 
-// 生成 main.c 入口文件
-function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<string, string>): string[] {
-  const mainCPath = join(tempDir, 'main.c')
+// 生成 main.cpp 入口文件
+function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<string, string>, linkMode: string = 'normal'): string[] {
+  const mainCPath = join(tempDir, 'main.cpp')
   const additionalCFiles: string[] = []
 
   let mainCode = '/* 由 ycIDE 自动生成 */\n'
@@ -619,7 +689,7 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
     let efwFile = project.files.find(f => f.fileName === '_启动窗口.efw')
     if (!efwFile) efwFile = project.files.find(f => f.type === 'EFW')
 
-    let winInfo: WindowFileInfo = { width: 592, height: 384, title: project.projectName, controls: [] }
+    let winInfo: WindowFileInfo = { width: 592, height: 384, title: project.projectName, visible: true, disabled: false, border: 2, maxButton: true, minButton: true, controlBox: true, topmost: false, startPos: 1, controls: [] }
     if (efwFile) {
       // 优先从编辑器内存中获取
       const editorContent = editorFiles?.get(efwFile.fileName)
@@ -629,6 +699,15 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
           winInfo.width = data.width || 592
           winInfo.height = data.height || 384
           winInfo.title = data.title || data.name || project.projectName
+          const p = data.properties || {}
+          if (p['可视'] === false) winInfo.visible = false
+          if (p['禁止'] === true) winInfo.disabled = true
+          if (typeof p['边框'] === 'number') winInfo.border = p['边框']
+          if (p['最大化按钮'] === false) winInfo.maxButton = false
+          if (p['最小化按钮'] === false) winInfo.minButton = false
+          if (p['控制按钮'] === false) winInfo.controlBox = false
+          if (p['总在最前'] === true) winInfo.topmost = true
+          if (typeof p['位置'] === 'number') winInfo.startPos = p['位置']
           if (Array.isArray(data.controls)) {
             for (const c of data.controls) {
               const props = c.properties || {}
@@ -636,7 +715,10 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
                 type: c.type || '', name: c.name || '',
                 x: c.x ?? c.left ?? 0, y: c.y ?? c.top ?? 0,
                 width: c.width ?? 80, height: c.height ?? 24,
-                text: props['标题'] || props['文本'] || c.name || '',
+                text: props['标题'] || props['内容'] || props['文本'] || c.text || c.name || '',
+                visible: c.visible ?? true,
+                disabled: c.enabled === false || props['禁止'] === true,
+                extraProps: { ...props },
               })
             }
           }
@@ -652,6 +734,21 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
     mainCode += `static int g_nWidth = ${winInfo.width};\n`
     mainCode += `static int g_nHeight = ${winInfo.height};\n`
     mainCode += 'static HINSTANCE g_hInstance;\n\n'
+    // 在全局区生成窗口组件库初始化函数的 extern "C" 声明（仅静态编译模式，跳过系统核心库）
+    {
+      const arch = project.platform === 'x86' ? 'x86' : 'x64'
+      for (const lib of libraryManager.getLoadedLibraryFiles()) {
+        if (libraryManager.isCore(lib.name)) continue
+        const info = libraryManager.getLibInfo(lib.name)
+        if (!info || !info.windowUnits || info.windowUnits.length === 0) continue
+        if (linkMode !== 'static') continue  // 普通编译走 .fne 动态加载，不需要声明
+        const staticLib = libraryManager.findStaticLib(lib.name, arch)
+        if (staticLib) {
+          mainCode += `extern "C" BOOL ${lib.name}_Init(HINSTANCE);\n`
+        }
+      }
+      mainCode += '\n'
+    }
 
     // 控件ID
     if (winInfo.controls.length > 0) {
@@ -674,7 +771,7 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
 
       sendMessage({ type: 'info', text: `正在转换源文件: ${f.fileName}` })
       const cCode = transpileEycContent(content, f.fileName)
-      const cFileName = f.fileName.replace(/\.eyc$/i, '.c')
+      const cFileName = f.fileName.replace(/\.eyc$/i, '.cpp')
       const cFilePath = join(tempDir, cFileName)
       writeFileSync(cFilePath, cCode, 'utf-8')
       additionalCFiles.push(cFilePath)
@@ -690,21 +787,45 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
     let ctrlId = 1001
     for (const ctrl of winInfo.controls) {
       const className = getWin32ClassName(ctrl.type)
-      const style = getWin32Style(ctrl.type)
+      const baseStyle = getWin32Style(ctrl.type)
+      const visFlag = ctrl.visible ? ' | WS_VISIBLE' : ''
+      const disFlag = ctrl.disabled ? ' | WS_DISABLED' : ''
+      const style = `${baseStyle}${visFlag}${disFlag}`
       const text = ctrl.text || ctrl.name
       mainCode += `    hCtrl = CreateWindowExW(0, L"${className}", L"${text}",\n`
       mainCode += `        ${style},\n`
       mainCode += `        ${ctrl.x}, ${ctrl.y}, ${ctrl.width}, ${ctrl.height},\n`
       mainCode += `        hWndParent, (HMENU)${ctrlId++}, g_hInstance, NULL);\n`
-      mainCode += '    SendMessage(hCtrl, WM_SETFONT, (WPARAM)hFont, TRUE);\n\n'
+      mainCode += '    SendMessage(hCtrl, WM_SETFONT, (WPARAM)hFont, TRUE);\n'
+      // 通用窗口组件属性：通过标准 WCM_SETPROP 协议 (WM_APP+1) 设置
+      // wParam = 属性在 FNE 元数据中的声明索引，lParam = 属性值
+      // 任何按此协议实现 WndProc 的第三方组件库均自动支持
+      const unitInfo = libraryManager.getAllWindowUnits().find(u => u.name === ctrl.type || u.englishName === ctrl.type)
+      if (unitInfo && Object.keys(ctrl.extraProps).length > 0) {
+        for (let pi = 0; pi < unitInfo.properties.length; pi++) {
+          const prop = unitInfo.properties[pi]
+          const value = ctrl.extraProps[prop.name]
+          if (value === undefined) continue
+          if (prop.typeName === '文本型') continue  // 文本由 CreateWindowExW 第3参数处理
+          let lparamCode: string
+          if (prop.typeName === '逻辑型') {
+            lparamCode = (value === true || value === '真') ? 'TRUE' : 'FALSE'
+          } else {
+            lparamCode = typeof value === 'number' ? String(value) : '0'
+          }
+          mainCode += `    SendMessage(hCtrl, WM_APP + 1, ${pi}, (LPARAM)${lparamCode});\n`
+        }
+      }
+      mainCode += '\n'
     }
     mainCode += '}\n\n'
 
     // 弱链接事件处理函数
+    const isClickable = (t: string) => ['Button', '按钮', 'ycUI按钮'].includes(t)
     mainCode += '/* 事件处理函数默认实现 */\n'
     mainCode += '#define WEAK_FUNC __attribute__((weak))\n'
     for (const ctrl of winInfo.controls) {
-      if (ctrl.type === 'Button' || ctrl.type === '按钮') {
+      if (isClickable(ctrl.type)) {
         mainCode += `WEAK_FUNC void ${ctrl.name}_被单击(void) { }\n`
         mainCode += `WEAK_FUNC void _${ctrl.name.replace(/^_+/, '')}_被单击(void) { ${ctrl.name}_被单击(); }\n`
       }
@@ -726,7 +847,7 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
 
     ctrlId = 1001
     for (const ctrl of winInfo.controls) {
-      if (ctrl.type === 'Button' || ctrl.type === '按钮') {
+      if (isClickable(ctrl.type)) {
         mainCode += `        case IDC_${ctrl.name.toUpperCase()}:\n`
         mainCode += '            if (wmEvent == BN_CLICKED) {\n'
         mainCode += `                _${ctrl.name.replace(/^_+/, '')}_被单击();\n`
@@ -769,6 +890,24 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
     mainCode += '        }\n'
     mainCode += '    }\n'
     mainCode += '    g_hInstance = hInstance;\n'
+    // 初始化有窗口组件的支持库（跳过系统核心库）
+    {
+      const arch = project.platform === 'x86' ? 'x86' : 'x64'
+      for (const lib of libraryManager.getLoadedLibraryFiles()) {
+        if (libraryManager.isCore(lib.name)) continue
+        const info = libraryManager.getLibInfo(lib.name)
+        if (!info || !info.windowUnits || info.windowUnits.length === 0) continue
+        const staticLib = libraryManager.findStaticLib(lib.name, arch)
+        if (linkMode === 'static' && staticLib) {
+          // 静态编译：直接调用（声明已在全局区生成）
+          mainCode += `    ${lib.name}_Init(hInstance);\n`
+        } else {
+          // 普通/调试编译：用绝对路径直接加载 IDE lib 目录中的 .fne，DllMain 自动注册窗口类
+          const fnePath = lib.fnePath.replace(/\\/g, '\\\\')
+          mainCode += `    LoadLibraryW(L"${fnePath}");\n`
+        }
+      }
+    }
     mainCode += '    WNDCLASSEXW wcex;\n'
     mainCode += '    wcex.cbSize = sizeof(WNDCLASSEXW);\n'
     mainCode += '    wcex.style = CS_HREDRAW | CS_VREDRAW;\n'
@@ -786,16 +925,59 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
     mainCode += '        MessageBoxW(NULL, L"窗口类注册失败!", L"错误", MB_ICONERROR);\n'
     mainCode += '        return 1;\n'
     mainCode += '    }\n'
-    mainCode += '    DWORD dwStyle = WS_OVERLAPPEDWINDOW;\n'
+    // 根据边框属性计算窗口样式
+    {
+      let dwStyle = 'WS_OVERLAPPED | WS_CAPTION'
+      let dwExStyle = winInfo.topmost ? 'WS_EX_TOPMOST' : '0'
+      switch (winInfo.border) {
+        case 0: // 无边框
+          dwStyle = 'WS_POPUP'
+          break
+        case 1: // 单线边框
+          dwStyle = 'WS_OVERLAPPED | WS_CAPTION | WS_BORDER'
+          break
+        case 2: // 可调边框（默认）
+        default:
+          dwStyle = 'WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME'
+          break
+        case 3: // 对话框边框
+          dwStyle = 'WS_OVERLAPPED | WS_CAPTION'
+          dwExStyle = (winInfo.topmost ? 'WS_EX_TOPMOST | ' : '') + 'WS_EX_DLGMODALFRAME'
+          break
+        case 4: // 工具窗口边框
+          dwStyle = 'WS_OVERLAPPED | WS_CAPTION'
+          dwExStyle = (winInfo.topmost ? 'WS_EX_TOPMOST | ' : '') + 'WS_EX_TOOLWINDOW'
+          break
+        case 5: // 可调工具窗口边框
+          dwStyle = 'WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME'
+          dwExStyle = (winInfo.topmost ? 'WS_EX_TOPMOST | ' : '') + 'WS_EX_TOOLWINDOW'
+          break
+      }
+      if (winInfo.border !== 0) {
+        if (winInfo.controlBox) dwStyle += ' | WS_SYSMENU'
+        if (winInfo.minButton && winInfo.controlBox) dwStyle += ' | WS_MINIMIZEBOX'
+        if (winInfo.maxButton && winInfo.controlBox) dwStyle += ' | WS_MAXIMIZEBOX'
+      }
+      mainCode += `    DWORD dwStyle = ${dwStyle};\n`
+      mainCode += `    DWORD dwExStyle = ${dwExStyle};\n`
+    }
     mainCode += '    RECT rc = { 0, 0, g_nWidth, g_nHeight };\n'
-    mainCode += '    AdjustWindowRectEx(&rc, dwStyle, FALSE, 0);\n'
+    mainCode += '    AdjustWindowRectEx(&rc, dwStyle, FALSE, dwExStyle);\n'
     mainCode += '    int winW = rc.right - rc.left;\n'
     mainCode += '    int winH = rc.bottom - rc.top;\n'
-    mainCode += '    int screenW = GetSystemMetrics(SM_CXSCREEN);\n'
-    mainCode += '    int screenH = GetSystemMetrics(SM_CYSCREEN);\n'
-    mainCode += '    int posX = (screenW - winW) / 2;\n'
-    mainCode += '    int posY = (screenH - winH) / 2;\n'
-    mainCode += '    HWND hWnd = CreateWindowExW(0, g_szClassName, g_szTitle,\n'
+    // 根据位置属性决定起始坐标
+    if (winInfo.startPos === 0) {
+      // 手工调整 - 系统默认
+      mainCode += '    int posX = CW_USEDEFAULT;\n'
+      mainCode += '    int posY = CW_USEDEFAULT;\n'
+    } else {
+      // 居中（默认）
+      mainCode += '    int screenW = GetSystemMetrics(SM_CXSCREEN);\n'
+      mainCode += '    int screenH = GetSystemMetrics(SM_CYSCREEN);\n'
+      mainCode += '    int posX = (screenW - winW) / 2;\n'
+      mainCode += '    int posY = (screenH - winH) / 2;\n'
+    }
+    mainCode += '    HWND hWnd = CreateWindowExW(dwExStyle, g_szClassName, g_szTitle,\n'
     mainCode += '        dwStyle,\n'
     mainCode += '        posX, posY, winW, winH,\n'
     mainCode += '        NULL, NULL, hInstance, NULL);\n'
@@ -803,7 +985,8 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
     mainCode += '        MessageBoxW(NULL, L"窗口创建失败!", L"错误", MB_ICONERROR);\n'
     mainCode += '        return 1;\n'
     mainCode += '    }\n'
-    mainCode += '    ShowWindow(hWnd, nCmdShow);\n'
+    if (winInfo.disabled) mainCode += '    EnableWindow(hWnd, FALSE);\n'
+    mainCode += `    ShowWindow(hWnd, ${winInfo.visible ? 'nCmdShow' : 'SW_HIDE'});\n`
     mainCode += '    UpdateWindow(hWnd);\n'
     mainCode += '    MSG msg;\n'
     mainCode += '    while (GetMessage(&msg, NULL, 0, 0)) {\n'
@@ -824,7 +1007,7 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
 
       sendMessage({ type: 'info', text: `正在转换源文件: ${f.fileName}` })
       const cCode = transpileEycContent(content, f.fileName)
-      const cFileName = f.fileName.replace(/\.eyc$/i, '.c')
+      const cFileName = f.fileName.replace(/\.eyc$/i, '.cpp')
       const cFilePath = join(tempDir, cFileName)
       writeFileSync(cFilePath, cCode, 'utf-8')
       additionalCFiles.push(cFilePath)
@@ -920,14 +1103,17 @@ export async function compileProject(options: CompileOptions, editorFiles?: Map<
     mkdirSync(tempDir, { recursive: true })
     mkdirSync(outputDir, { recursive: true })
 
-    // 生成C代码
-    sendMessage({ type: 'info', text: '正在生成C代码...' })
-    const additionalCFiles = generateMainC(project, tempDir, editorFiles)
+    // ========== 支持库链接 ==========
+    const linkMode = options.linkMode || 'normal'
+    const loadedLibs = libraryManager.getLoadedLibraryFiles()
+    sendMessage({ type: 'info', text: `编译模式: ${linkMode === 'static' ? '静态编译' : '普通编译'}` })
 
-    // 构建 clang 参数
-    const outputName = project.projectName || 'output'
+    // 生成C++代码
+    sendMessage({ type: 'info', text: '正在生成C++代码...' })
+    const additionalCFiles = generateMainC(project, tempDir, editorFiles, linkMode)
+    const outputName = project.projectName
     const outputExe = join(outputDir, outputName + '.exe')
-    const mainC = join(tempDir, 'main.c')
+    const mainC = join(tempDir, 'main.cpp')
 
     const args: string[] = [
       '-o', outputExe,
@@ -952,10 +1138,6 @@ export async function compileProject(options: CompileOptions, editorFiles?: Map<
     args.push('-lkernel32', '-luser32', '-lgdi32', '-lmsvcrt', '-lucrt', '-lvcruntime')
 
     // ========== 支持库链接 ==========
-    const linkMode = options.linkMode || 'normal'
-    const loadedLibs = libraryManager.getLoadedLibraryFiles()
-    sendMessage({ type: 'info', text: `编译模式: ${linkMode === 'static' ? '静态编译' : '普通编译'}` })
-
     if (loadedLibs.length > 0) {
       sendMessage({ type: 'info', text: `已加载 ${loadedLibs.length} 个支持库，正在处理链接依赖...` })
     }
@@ -966,10 +1148,16 @@ export async function compileProject(options: CompileOptions, editorFiles?: Map<
     for (const lib of loadedLibs) {
       const staticLib = libraryManager.findStaticLib(lib.name, arch)
 
+      // 窗口组件静态库需要额外链接的系统库
+      const winUnitExtraDeps: Record<string, string[]> = {
+        ycui: ['d2d1.lib', 'dwrite.lib'],
+      }
+      const extraDeps = (staticLib && winUnitExtraDeps[lib.name]) ? winUnitExtraDeps[lib.name] : []
+
       if (linkMode === 'static') {
         // 静态编译：只使用 .lib，没有则报错
         if (staticLib) {
-          args.push(staticLib)
+          args.push(staticLib, ...extraDeps)
           sendMessage({ type: 'info', text: `  ✓ ${lib.libName} (${lib.name}) - 静态链接: ${basename(staticLib)}` })
         } else {
           sendMessage({ type: 'error', text: `错误: 支持库「${lib.libName}」(${lib.name}) 没有静态库(.lib)，无法进行静态编译` })
@@ -977,10 +1165,18 @@ export async function compileProject(options: CompileOptions, editorFiles?: Map<
           linkFailed = true
         }
       } else {
-        // 普通编译：优先 .lib，没有则复制 .fne 到输出目录
+        // 普通/调试编译：优先 .lib，没有则复制 .fne 到输出目录
         if (staticLib) {
-          args.push(staticLib)
-          sendMessage({ type: 'info', text: `  ✓ ${lib.libName} (${lib.name}) - 静态链接: ${basename(staticLib)}` })
+          // 有窗口组件的库（如 ycui）在普通编译下走 .fne 动态加载，避免引入额外系统 .lib 依赖
+          const info = libraryManager.getLibInfo(lib.name)
+          const hasWinUnit = info?.windowUnits && info.windowUnits.length > 0
+          if (hasWinUnit) {
+            // 普通编译时窗口组件库用绝对路径 LoadLibraryW，无需复制
+            sendMessage({ type: 'info', text: `  ✓ ${lib.libName} (${lib.name}) - 动态加载: ${lib.name}.fne` })
+          } else {
+            args.push(staticLib)
+            sendMessage({ type: 'info', text: `  ✓ ${lib.libName} (${lib.name}) - 静态链接: ${basename(staticLib)}` })
+          }
         } else {
           fnesToCopy.push(lib)
           sendMessage({ type: 'info', text: `  ○ ${lib.libName} (${lib.name}) - 动态依赖，将复制 .fne 到输出目录` })

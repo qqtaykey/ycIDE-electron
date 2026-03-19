@@ -124,7 +124,7 @@ app.whenReady().then(() => {
       }, null, 2)
       writeFileSync(join(projectDir, '_启动窗口.efw'), efwData, 'utf-8')
 
-      const eycData = '.\u7248\u672c 2\n.\u7a0b\u5e8f\u96c6 \u7a97\u53e3\u7a0b\u5e8f\u96c6_\u542f\u52a8\u7a97\u53e3\n\n.\u5b50\u7a0b\u5e8f _\u542f\u52a8\u7a97\u53e3_\u521b\u5efa\u5b8c\u6bd5\n\n'
+      const eycData = '.\u7248\u672c 2\n.\u7a0b\u5e8f\u96c6 \u7a97\u53e3\u7a0b\u5e8f\u96c6_\u542f\u52a8\u7a97\u53e3\n\n'
       writeFileSync(join(projectDir, '_启动窗口.eyc'), eycData, 'utf-8')
 
       files.push('File=EFW|_启动窗口.efw|1')
