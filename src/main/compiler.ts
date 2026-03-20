@@ -88,6 +88,31 @@ interface LibraryConstantDef extends ConstantDef {
   type: 'null' | 'number' | 'bool' | 'text'
 }
 
+type EventChannel = 'WM_COMMAND' | 'WM_NOTIFY' | 'WM_HSCROLL' | 'WM_VSCROLL'
+
+interface LibraryEventBindingSpec {
+  library?: string
+  unit: string
+  unitEnglishName?: string
+  event: string
+  channel: EventChannel
+  code?: string
+}
+
+interface LibraryCompileProtocol {
+  version?: string | number
+  eventBindings?: LibraryEventBindingSpec[]
+}
+
+interface NormalizedEventBinding {
+  library: string
+  unit: string
+  unitEnglishName: string
+  event: string
+  channel: EventChannel
+  code: string
+}
+
 // 正在运行的进程
 let runningProcess: ChildProcess | null = null
 
@@ -369,6 +394,101 @@ function resolveScrollMessage(className: string, eventName: string): 'WM_HSCROLL
 
   if (cls === 'MSCTLS_TRACKBAR32') return 'WM_HSCROLL'
   if (cls === 'SCROLLBAR') return 'WM_HSCROLL'
+  return null
+}
+
+function normalizeKey(text: string): string {
+  return (text || '').replace(/\s+/g, '').toLowerCase()
+}
+
+function parseEventBindingsFromProtocol(content: string, libName: string): NormalizedEventBinding[] {
+  let json: LibraryCompileProtocol
+  try {
+    json = JSON.parse(content) as LibraryCompileProtocol
+  } catch {
+    return []
+  }
+
+  if (!json || !Array.isArray(json.eventBindings)) return []
+
+  const result: NormalizedEventBinding[] = []
+  for (const item of json.eventBindings) {
+    if (!item || typeof item !== 'object') continue
+    const channel = item.channel
+    if (!channel || !['WM_COMMAND', 'WM_NOTIFY', 'WM_HSCROLL', 'WM_VSCROLL'].includes(channel)) continue
+
+    const unit = normalizeKey(item.unit || '')
+    const event = normalizeKey(item.event || '')
+    if (!unit || !event) continue
+
+    const normalized: NormalizedEventBinding = {
+      library: normalizeKey(item.library || libName),
+      unit,
+      unitEnglishName: normalizeKey(item.unitEnglishName || ''),
+      event,
+      channel,
+      code: (item.code || '').trim(),
+    }
+
+    // WM_COMMAND / WM_NOTIFY 需要通知码，滚动消息不需要。
+    if ((channel === 'WM_COMMAND' || channel === 'WM_NOTIFY') && !normalized.code) continue
+    result.push(normalized)
+  }
+  return result
+}
+
+function loadEventBindingProtocols(): NormalizedEventBinding[] {
+  const bindings: NormalizedEventBinding[] = []
+  const libs = libraryManager.getList().filter(l => l.loaded)
+
+  for (const lib of libs) {
+    const dir = dirname(lib.filePath)
+    const candidates = [
+      join(dir, `${lib.name}.events.json`),
+      join(dir, `${lib.name}.protocol.json`),
+      join(dir, `${lib.name}.compile-protocol.json`),
+    ]
+
+    for (const p of candidates) {
+      if (!existsSync(p)) continue
+      try {
+        const content = readFileSync(p, 'utf-8')
+        const parsed = parseEventBindingsFromProtocol(content, lib.name)
+        if (parsed.length > 0) {
+          bindings.push(...parsed)
+          sendMessage({ type: 'info', text: `已加载支持库事件协议: ${basename(p)} (${parsed.length} 条)` })
+        }
+      } catch {
+        sendMessage({ type: 'warning', text: `警告: 读取支持库事件协议失败: ${p}` })
+      }
+      break
+    }
+  }
+
+  return bindings
+}
+
+function resolveEventByProtocol(
+  bindings: NormalizedEventBinding[],
+  libraryFileName: string,
+  unitName: string,
+  unitEnglishName: string,
+  eventName: string,
+): { channel: EventChannel; code: string } | null {
+  if (bindings.length === 0) return null
+
+  const lib = normalizeKey(libraryFileName)
+  const unit = normalizeKey(unitName)
+  const unitEn = normalizeKey(unitEnglishName)
+  const event = normalizeKey(eventName)
+  if (!event) return null
+
+  for (const b of bindings) {
+    if (b.library && b.library !== lib) continue
+    const unitMatch = b.unit === unit || (!!b.unitEnglishName && b.unitEnglishName === unitEn)
+    if (!unitMatch || b.event !== event) continue
+    return { channel: b.channel, code: b.code }
+  }
   return null
 }
 
@@ -1133,14 +1253,46 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
     const notifyEventBindings: NotifyEventBinding[] = []
     const scrollEventBindings: ScrollEventBinding[] = []
     const allUnits = libraryManager.getAllWindowUnits()
+    const protocolBindings = loadEventBindingProtocols()
+    const unresolvedEvents = new Set<string>()
+    const loadedLibs = libraryManager.getList().filter(l => l.loaded)
+    const libNameToFileName = new Map<string, string>()
+    for (const lib of loadedLibs) {
+      libNameToFileName.set(normalizeKey(lib.libName || ''), lib.name)
+      libNameToFileName.set(normalizeKey(lib.name), lib.name)
+    }
 
     for (const ctrl of winInfo.controls) {
       const className = getWin32ClassName(ctrl.type)
       const unit = allUnits.find(u => u.name === ctrl.type || u.englishName === ctrl.type)
       const events = unit?.events || []
+      const libraryFileName = unit ? (libNameToFileName.get(normalizeKey(unit.libraryName)) || '') : ''
       for (const ev of events) {
-        const notifyCode = resolveCommandNotifyCode(className, ev.name)
         const handlerName = `_${ctrl.name.replace(/^_+/, '')}_${ev.name}`
+        const proto = resolveEventByProtocol(
+          protocolBindings,
+          libraryFileName,
+          unit?.name || ctrl.type,
+          unit?.englishName || '',
+          ev.name,
+        )
+
+        if (proto) {
+          if (proto.channel === 'WM_COMMAND') {
+            commandEventBindings.push({ ctrlName: ctrl.name, notifyCode: proto.code, handlerName })
+            continue
+          }
+          if (proto.channel === 'WM_NOTIFY') {
+            notifyEventBindings.push({ ctrlName: ctrl.name, notifyCode: proto.code, handlerName })
+            continue
+          }
+          if (proto.channel === 'WM_HSCROLL' || proto.channel === 'WM_VSCROLL') {
+            scrollEventBindings.push({ ctrlName: ctrl.name, message: proto.channel, handlerName })
+            continue
+          }
+        }
+
+        const notifyCode = resolveCommandNotifyCode(className, ev.name)
         if (notifyCode) {
           commandEventBindings.push({ ctrlName: ctrl.name, notifyCode, handlerName })
           continue
@@ -1153,6 +1305,13 @@ function generateMainC(project: ProjectInfo, tempDir: string, editorFiles?: Map<
         const scrollMsg = resolveScrollMessage(className, ev.name)
         if (scrollMsg) {
           scrollEventBindings.push({ ctrlName: ctrl.name, message: scrollMsg, handlerName })
+          continue
+        }
+
+        const unresolvedKey = `${ctrl.type}:${ev.name}`
+        if (!unresolvedEvents.has(unresolvedKey)) {
+          unresolvedEvents.add(unresolvedKey)
+          sendMessage({ type: 'warning', text: `未解析事件绑定: 组件「${ctrl.type}」事件「${ev.name}」，请在支持库协议中补充 eventBindings` })
         }
       }
     }
