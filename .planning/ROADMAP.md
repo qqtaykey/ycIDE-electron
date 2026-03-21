@@ -13,7 +13,7 @@ This roadmap delivers a full third-party support-library migration pipeline from
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Inventory & Baseline Lock** - Identify complete migration scope and establish authoritative tracking.
-- [ ] **Phase 2: Deterministic Encoding Conversion** - Convert GBK/mixed assets to UTF-8 with repeatable validation and reporting.
+- [x] **Phase 2: Deterministic Encoding Conversion** - Convert GBK/mixed assets to UTF-8 with repeatable validation and reporting. (completed 2026-03-21)
 - [ ] **Phase 3: x64 Adaptation & Dual-Arch Gates** - Make each target library x64-safe while retaining x86 comparison diagnostics.
 - [ ] **Phase 4: ycIDE Integration Verification** - Prove migrated libraries load and behave correctly in current ycIDE contracts.
 - [ ] **Phase 5: Atomic Promotion & Completion Traceability** - Promote verified libraries safely into `支持库源码` with reversible delivery records.
@@ -84,7 +84,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Inventory & Baseline Lock | 0/TBD | Not started | - |
-| 2. Deterministic Encoding Conversion | 0/TBD | Not started | - |
+| 2. Deterministic Encoding Conversion | 0/TBD | Complete    | 2026-03-21 |
 | 3. x64 Adaptation & Dual-Arch Gates | 0/TBD | Not started | - |
 | 4. ycIDE Integration Verification | 0/TBD | Not started | - |
 | 5. Atomic Promotion & Completion Traceability | 0/TBD | Not started | - |
