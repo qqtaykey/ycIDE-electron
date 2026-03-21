@@ -41,7 +41,9 @@ Plans:
   2. Workflow explicitly flags mixed/uncertain encoding files instead of silently rewriting them.
   3. Maintainer receives a per-library conversion report listing converted files, flagged files, and verification outcome.
   4. Converted outputs preserve required text semantics so representative compile/load/runtime paths continue to behave correctly.
-**Plans**: TBD
+**Plans**: 1 plans
+Plans:
+- [ ] 02-01-PLAN.md — Build deterministic GBK→UTF-8 conversion pipeline with strict blockers, per-library reporting, and ENCD contract tests
 
 ### Phase 3: x64 Adaptation & Dual-Arch Gates
 **Goal**: Each targeted library is x64-compatible and validated for ABI-sensitive correctness, with x86 preserved for diagnostics.
