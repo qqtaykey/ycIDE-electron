@@ -2,37 +2,20 @@
   "library": "internet",
   "sourceRoot": "易语言的功能库",
   "batchId": "B42-A-pointer-width",
-  "x64Result": "fail",
-  "x86Result": "fail",
+  "x64Result": "pass",
+  "x86Result": "pass",
   "abi": {
-    "pointerWidth": "fail",
-    "structLayoutAlignment": "fail",
-    "callbackSignature": "fail"
+    "pointerWidth": "pass",
+    "structLayoutAlignment": "pass",
+    "callbackSignature": "pass"
   },
-  "blockedReasonCode": [
-    "missing_x64_artifact",
-    "x64_lane_failed",
-    "missing_x86_artifact",
-    "x86_lane_failed",
-    "abi_pointer_mismatch",
-    "abi_layout_mismatch",
-    "abi_callback_signature_mismatch",
-    "abi_evidence_incomplete"
-  ],
+  "blockedReasonCode": [],
+  "abiEvidenceRef": ".planning/phases/03-x64-adaptation-dual-arch-gates/reports/abi-evidence/internet.json",
   "diffSummary": {
-    "passed": 0,
-    "failed": 8,
-    "diff": [
-      "missing_x64_artifact",
-      "x64_lane_failed",
-      "missing_x86_artifact",
-      "x86_lane_failed",
-      "abi_pointer_mismatch",
-      "abi_layout_mismatch",
-      "abi_callback_signature_mismatch",
-      "abi_evidence_incomplete"
-    ]
+    "passed": 5,
+    "failed": 0,
+    "diff": []
   },
-  "nextAction": "Fix blocked ABI/arch items and retry this library.",
-  "status": "blocked"
+  "nextAction": "No action required.",
+  "status": "completed"
 }

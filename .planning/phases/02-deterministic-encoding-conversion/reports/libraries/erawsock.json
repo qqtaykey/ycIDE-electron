@@ -1,10 +1,10 @@
 {
   "library": "erawsock",
   "sourceRoot": "易语言的功能库",
-  "total": 42,
-  "scanned": 42,
+  "total": 44,
+  "scanned": 44,
   "converted": 42,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "cppCode/erawsock_11_SetAdapter.cpp",
     "cppCode/erawsock_12_CloseAdapter.cpp"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

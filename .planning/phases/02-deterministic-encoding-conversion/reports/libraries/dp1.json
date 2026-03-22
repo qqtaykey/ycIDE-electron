@@ -1,10 +1,10 @@
 {
   "library": "dp1",
   "sourceRoot": "易语言的功能库",
-  "total": 29,
-  "scanned": 29,
+  "total": 31,
+  "scanned": 31,
   "converted": 29,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "cppCode/dp1_3_Encrypt.cpp",
     "cppCode/dp1_4_Decrypt.cpp"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

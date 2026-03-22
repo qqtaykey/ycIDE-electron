@@ -1,10 +1,10 @@
 {
   "library": "exmlparser",
   "sourceRoot": "易语言的功能库",
-  "total": 62,
-  "scanned": 62,
+  "total": 64,
+  "scanned": 64,
   "converted": 62,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "cppCode/exmlparser_11_InsertNode.cpp",
     "cppCode/exmlparser_12_InsertAttr.cpp"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

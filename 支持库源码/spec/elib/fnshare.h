@@ -1,4 +1,4 @@
-/*
+﻿/*
     版权声明：
     本文件版权为易语言作者吴涛所有, 仅授权给第三方用作开发易语言支持库, 禁止用于其他任何场合。
 */
@@ -36,9 +36,10 @@ inline T NotifySysPtr(INT nMsg, DWORD_PTR dwParam1 = 0, DWORD_PTR dwParam2 = 0) 
 #define ealloc __LIB2_DEFFUNNAME(jy_ealloc)
 inline void* ealloc(int size)
 {
-    void* pMem = (void*)NotifySys(NRS_MALLOC, size, 0);
+    ULONG_PTR pMemAddr = static_cast<ULONG_PTR>(static_cast<DWORD>(NotifySys(NRS_MALLOC, size, 0)));
+    void* pMem = reinterpret_cast<void*>(pMemAddr);
     memset(pMem, 0, size);
-    return (void*)pMem;
+    return pMem;
 }
 
 // 释放从易语言里申请的内存

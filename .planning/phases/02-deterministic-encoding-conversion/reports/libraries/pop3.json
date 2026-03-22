@@ -1,10 +1,10 @@
 {
   "library": "pop3",
   "sourceRoot": "易语言的功能库",
-  "total": 55,
-  "scanned": 55,
+  "total": 57,
+  "scanned": 57,
   "converted": 55,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "cppCode/pop3_11_DisConnectPop3Server.cpp",
     "cppCode/pop3_12_GetMailInfo.cpp"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

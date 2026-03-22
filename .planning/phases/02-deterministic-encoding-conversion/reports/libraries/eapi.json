@@ -1,10 +1,10 @@
 {
   "library": "eapi",
   "sourceRoot": "易语言的功能库",
-  "total": 120,
-  "scanned": 120,
+  "total": 122,
+  "scanned": 122,
   "converted": 120,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "cppCode/eapi_11_SimulateKey.cpp",
     "cppCode/eapi_12_GetDllList.cpp"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

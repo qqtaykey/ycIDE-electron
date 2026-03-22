@@ -2,8 +2,8 @@
 
 ## Phase 3 boundary
 
-- no Phase 4 integration verification
-- no Phase 5 promotion actions
+- No Phase 4 integration verification
+- No Phase 5 promotion actions
 
 ## Execution model
 
@@ -17,26 +17,26 @@
 ## Commands
 
 ```bash
-npm run x64:adapt
-npm run x64:check
 npm run test:migration:x64
-npm run test:migration && npm run test:migration:x64
+node scripts/migration/x64-adaptation.mjs --write --apply-remediation-batch=1
+node scripts/migration/x64-adaptation.mjs --check
 ```
 
 ## Blocked-library retry procedure
 
-1. Run `npm run x64:check` and inspect blocked enums in:
+1. Run `npm run test:migration:x64`.
+2. Run `node scripts/migration/x64-adaptation.mjs --write --apply-remediation-batch=1`.
+3. Inspect queue and blocked enums in:
+   - `.planning/phases/03-x64-adaptation-dual-arch-gates/reports/blocked-remediation-queue.json`
    - `.planning/phases/03-x64-adaptation-dual-arch-gates/reports/libraries/*.json`
-2. Fix ABI or arch artifacts for blocked libraries.
-3. Re-run `npm run x64:adapt`.
-4. Re-run `npm run x64:check`.
-5. Repeat until blocked libraries are zero.
+4. Run `node scripts/migration/x64-adaptation.mjs --check`.
+5. If blocked libraries remain, repeat steps 2-4 until `blockedLibraries` is 0.
 
 ## Reporting
 
 - Library main view fields:
   - `library`, `batchId`, `x64Result`, `x86Result`,
   - `abi.pointerWidth`, `abi.structLayoutAlignment`, `abi.callbackSignature`,
-  - `blockedReasonCode`, `nextAction`, `status`
+  - `blockedReasonCode`, `abiEvidenceRef`, `nextAction`, `status`
 - Phase summary includes progress thermometer:
   - `completedLibraries`, `blockedLibraries`, `remainingLibraries`

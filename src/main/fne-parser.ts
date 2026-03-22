@@ -296,6 +296,13 @@ export interface LibInfo {
   version: string
   description: string
   author: string
+  zipCode: string
+  address: string
+  phone: string
+  qq: string
+  email: string
+  homePage: string
+  otherInfo: string
   fileName: string
   commands: LibCommand[]
   dataTypes: LibDataType[]
@@ -427,6 +434,13 @@ export function parseFneFile(fnePath: string): LibInfo | null {
     version: `${pLibInfo.m_nMajorVersion}.${pLibInfo.m_nMinorVersion}.${pLibInfo.m_nBuildNumber}`,
     description: (pLibInfo.m_szExplain as string) || '',
     author: (pLibInfo.m_szAuthor as string) || '',
+    zipCode: (pLibInfo.m_szZipCode as string) || '',
+    address: (pLibInfo.m_szAddress as string) || '',
+    phone: (pLibInfo.m_szPhoto as string) || '',
+    qq: (pLibInfo.m_szFax as string) || '',
+    email: (pLibInfo.m_szEmail as string) || '',
+    homePage: (pLibInfo.m_szHomePage as string) || '',
+    otherInfo: (pLibInfo.m_szOther as string) || '',
     fileName,
     commands: [],
     dataTypes: [],

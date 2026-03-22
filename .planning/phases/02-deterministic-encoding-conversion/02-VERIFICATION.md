@@ -1,20 +1,22 @@
 ---
 phase: 02-deterministic-encoding-conversion
-verified: 2026-03-21T04:52:10.4367785Z
-status: human_needed
+verified: 2026-03-21T14:39:22.7275719+07:00
+status: passed
 score: 5/5 must-haves verified
-human_verification:
-  - test: "Representative converted-library semantic readability spot check"
-    expected: "Sample files listed in per-library reports remain readable, contain expected domain tokens/comments, and show no mojibake artifacts"
-    why_human: "Automated checks validate deterministic hashes and token/line invariants, but cannot fully judge human readability/semantic intent across real corpus samples"
+re_verification:
+  previous_status: human_needed
+  human_gap_closed: true
+  evidence:
+    - ".planning/phases/02-deterministic-encoding-conversion/reports/human-spotcheck.json"
+    - ".planning/phases/02-deterministic-encoding-conversion/02-HUMAN-UAT.md"
 ---
 
 # Phase 2: Deterministic Encoding Conversion Verification Report
 
 **Phase Goal:** Maintainers can reliably convert targeted library content to UTF-8 without silent corruption.  
 **Verified:** 2026-03-21T04:52:10.4367785Z  
-**Status:** human_needed  
-**Re-verification:** No — initial verification
+**Status:** passed  
+**Re-verification:** Yes — ENCD-04 human spot-check closed
 
 ## Goal Achievement
 
@@ -56,7 +58,7 @@ human_verification:
 | ENCD-01 | `02-01-PLAN.md` | Repeatable conversion workflow converts targeted GBK content to UTF-8 per unmigrated library | ✓ SATISFIED | Deterministic baseline order + sorted file order + rewrite logic in `convert-encoding.mjs`; ENCD-01 test passes (`encoding-conversion.spec.mjs:15-27`). |
 | ENCD-02 | `02-01-PLAN.md` | Detect/flag mixed or uncertain files instead of silent rewrite | ✓ SATISFIED | Explicit block reasons `mixed_or_uncertain` and `high_risk_mojibake` + unchanged-file assertions in ENCD-02 test (`convert-encoding.mjs:108,116`; `encoding-conversion.spec.mjs:38-45`). |
 | ENCD-03 | `02-01-PLAN.md` | Produce per-library conversion report (converted, flagged, verification result) | ✓ SATISFIED | Report fields and status persisted (`convert-encoding.mjs:58-69,77-80,88`), report artifacts present, ENCD-03 passes (`encoding-conversion.spec.mjs:49-66`). |
-| ENCD-04 | `02-01-PLAN.md` | Converted outputs preserve functional text semantics required by compile/load/runtime paths | ? NEEDS HUMAN | Automated semantic invariants pass (`encoding-conversion.spec.mjs:72-76`), but full representative semantic readability/intent across real converted corpus still requires human spot-checking. |
+| ENCD-04 | `02-01-PLAN.md` | Converted outputs preserve functional text semantics required by compile/load/runtime paths | ✓ SATISFIED | Human spot-check evidence recorded in `reports/human-spotcheck.json` and `02-HUMAN-UAT.md` (5 sampled libraries/files, all readable, no mojibake markers). |
 
 **Orphaned requirements check:** No orphaned Phase 2 requirement IDs found. `REQUIREMENTS.md` maps Phase 2 to ENCD-01..04 only, and all four are present in plan `requirements`.
 
@@ -70,16 +72,11 @@ No blocker/warning stub anti-patterns detected in verified phase artifacts.
 
 ### Human Verification Required
 
-### 1. Representative converted-library semantic readability spot check
-
-**Test:** Open several real converted files from `sampleFiles` entries in multiple per-library reports under `.planning/phases/02-deterministic-encoding-conversion/reports/libraries/*.json`, and compare readability against expected domain language/comments/tokens.  
-**Expected:** Files remain semantically readable with no mojibake artifacts; key domain tokens and comments remain intact.  
-**Why human:** Automated checks verify determinism and invariants but cannot fully validate nuanced human-readable semantic correctness across diverse real-world corpus text.
+None. Required ENCD-04 human spot-check has been completed and recorded.
 
 ### Gaps Summary
 
-No implementation gaps found in automated verification (truths/artifacts/wiring all verified).  
-Phase is **human_needed** only because ENCD-04 semantic-preservation confidence for representative real corpus samples requires manual spot-check confirmation.
+No implementation or human-verification gaps remain for Phase 2. ENCD-04 human evidence is now recorded and traceable.
 
 ---
 

@@ -1,10 +1,10 @@
 {
   "library": "isapi",
   "sourceRoot": "易语言的功能库",
-  "total": 105,
-  "scanned": 105,
+  "total": 107,
+  "scanned": 107,
   "converted": 105,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "cppCode/isapi_11_DecodeText.cpp",
     "cppCode/isapi_12_GetKeyField.cpp"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

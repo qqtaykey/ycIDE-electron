@@ -76,7 +76,22 @@ test('ENCD-04 preserves text semantics for converted outputs', async () => {
   await cleanupFixtureRepo(fixture.repoRoot)
 })
 
-async function createFixtureRepo() {
+test('ENCD-04 successful library is synced into 支持库源码', async () => {
+  const fixture = await createFixtureRepo({ includeRiskFiles: false })
+  const result = await runConversion({ repoRoot: fixture.repoRoot, write: true, strictGate: false })
+  const report = result.reports.find((r) => r.library === fixture.libraryName)
+  assert.equal(report?.status, 'success')
+  assert.equal(report?.syncedToMigrated, true)
+
+  const migratedFile = path.join(fixture.repoRoot, '支持库源码', fixture.libraryName, 'gbk-source.txt')
+  const sourceFile = fixture.gbkPath
+  const migratedContent = await fs.readFile(migratedFile, 'utf8')
+  const sourceContent = await fs.readFile(sourceFile, 'utf8')
+  assert.equal(migratedContent, sourceContent, 'migrated file must match converted source content')
+  await cleanupFixtureRepo(fixture.repoRoot)
+})
+
+async function createFixtureRepo(options = {}) {
   const repoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'encoding-conv-'))
   const libraryName = 'lib-alpha'
   const libraryRoot = path.join(repoRoot, '第三方相关文件', '易语言的功能库', libraryName)
@@ -95,8 +110,10 @@ async function createFixtureRepo() {
   await fs.writeFile(gbkPath, iconv.encode(gbkSourceText, 'gbk'))
   await fs.writeFile(utf8BomPath, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(utf8BomText, 'utf8')]))
   await fs.writeFile(extlessPath, extlessText, 'utf8')
-  await fs.writeFile(mixedPath, Buffer.from([0x80, 0x80, 0xff, 0x61, 0x62]))
-  await fs.writeFile(mojibakePath, mojibakeText, 'utf8')
+  if (options.includeRiskFiles !== false) {
+    await fs.writeFile(mixedPath, Buffer.from([0x80, 0x80, 0xff, 0x61, 0x62]))
+    await fs.writeFile(mojibakePath, mojibakeText, 'utf8')
+  }
   await fs.writeFile(binaryPath, crypto.randomBytes(64))
 
   const baseline = {

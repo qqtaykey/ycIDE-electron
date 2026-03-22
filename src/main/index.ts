@@ -423,6 +423,11 @@ app.whenReady().then(() => {
     BrowserWindow.getAllWindows().forEach(w => w.webContents.send('library:loaded'))
     return result
   })
+  ipcMain.handle('library:applySelection', async (_event, selectedNames: string[]) => {
+    const result = libraryManager.applySelection(selectedNames)
+    BrowserWindow.getAllWindows().forEach(w => w.webContents.send('library:loaded'))
+    return result
+  })
   ipcMain.handle('library:getList', () => {
     return libraryManager.getList()
   })

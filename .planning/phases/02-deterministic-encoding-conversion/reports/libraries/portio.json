@@ -1,10 +1,10 @@
 {
   "library": "portio",
   "sourceRoot": "易语言的功能库",
-  "total": 26,
-  "scanned": 26,
+  "total": 28,
+  "scanned": 28,
   "converted": 26,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "cppCode/portio_3_SetECPMode.cpp",
     "elib/fnshare.cpp"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

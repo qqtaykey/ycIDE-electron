@@ -1,10 +1,10 @@
 {
   "library": "internet",
   "sourceRoot": "易语言的功能库",
-  "total": 47,
-  "scanned": 47,
+  "total": 49,
+  "scanned": 49,
   "converted": 47,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "cppCode/internet_11_PutFtpFile.cpp",
     "cppCode/internet_12_DeleteFtpFile.cpp"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

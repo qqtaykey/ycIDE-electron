@@ -1,10 +1,10 @@
 {
   "library": "opengl",
   "sourceRoot": "易语言的功能库",
-  "total": 148,
-  "scanned": 148,
+  "total": 150,
+  "scanned": 150,
   "converted": 148,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "cppCode/opengl_100_glutWirecylinder.cpp",
     "cppCode/opengl_101_glGetError.cpp"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

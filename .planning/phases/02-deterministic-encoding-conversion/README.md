@@ -6,14 +6,15 @@ This phase converts baseline-targeted libraries to canonical UTF-8 with blocker-
 
 - no x64 adaptation
 - no integration verification
-- no promotion to `支持库源码`
+- conversion output is synced into `支持库源码` for successful libraries (non-promotion sync only)
 
 ## Deterministic execution order
 
 1. Load `.planning/baselines/inventory-baseline.json`.
 2. Process unmigrated libraries in baseline order.
 3. Process files in each library by sorted relative path.
-4. Write reports under `.planning/phases/02-deterministic-encoding-conversion/reports/`.
+4. For each successful library (`blocked == 0`), sync converted tree to `支持库源码/{library}`.
+5. Write reports under `.planning/phases/02-deterministic-encoding-conversion/reports/`.
 
 ## Strict gate semantics
 

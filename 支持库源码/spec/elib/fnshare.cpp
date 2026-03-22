@@ -1,4 +1,4 @@
-// 注意: __E_FNENAME 通过项目预处理器定义设置，不在此处硬编码
+﻿// 注意: __E_FNENAME 通过项目预处理器定义设置，不在此处硬编码
 
 #include "fnshare.h"
 
@@ -30,7 +30,7 @@ INT_PTR __stdcall ProcessNotifyLib(INT nMsg, DWORD_PTR dwParam1, DWORD_PTR dwPar
     {
     case NL_SYS_NOTIFY_FUNCTION:
     {
-        s_pfnNotifySys = (PFN_NOTIFY_SYS)dwParam1;
+        s_pfnNotifySys = reinterpret_cast<PFN_NOTIFY_SYS>(static_cast<ULONG_PTR>(dwParam1));
         if (s_isDebug == 1253600)
         {
             s_isDebug = (int)NotifySys(NRS_GET_PRG_TYPE, 0, 0);

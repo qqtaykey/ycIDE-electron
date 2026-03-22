@@ -3,10 +3,10 @@
   "processedLibraries": 62,
   "failedLibraries": [],
   "totals": {
-    "total": 3343,
-    "scanned": 3343,
+    "total": 3467,
+    "scanned": 3467,
     "converted": 3343,
-    "skipped": 0,
+    "skipped": 124,
     "blocked": 0
   },
   "phaseGatePassed": true

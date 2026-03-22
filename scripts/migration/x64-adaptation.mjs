@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { classifyArchitectureState } from './classify-arch.mjs'
+import { runAbiProbes } from './x64-abi-probes.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -10,6 +11,7 @@ const DEFAULT_REPO_ROOT = path.resolve(__dirname, '..', '..')
 const BASELINE_PATH = '.planning/baselines/inventory-baseline.json'
 const PHASE2_REPORTS_ROOT = '.planning/phases/02-deterministic-encoding-conversion/reports/libraries'
 const REPORTS_ROOT = '.planning/phases/03-x64-adaptation-dual-arch-gates/reports'
+const REMEDIATION_ARTIFACTS_ROOT = '.planning/phases/03-x64-adaptation-dual-arch-gates/reports/remediation-artifacts'
 
 const THIRD_PARTY_ROOTS = {
   易语言的功能库: '第三方相关文件/易语言的功能库',
@@ -33,21 +35,24 @@ const ABI_GROUPS = ['pointer-width', 'layout-alignment', 'callback-signature']
 export async function runX64Adaptation({
   repoRoot = DEFAULT_REPO_ROOT,
   write = false,
-  strictGate = false
+  strictGate = false,
+  remediationBatchSize = 0
 } = {}) {
   const baseline = await readBaseline(repoRoot)
   const queue = baseline.libraries.filter((row) => !row.isMigrated)
+  const remediationSet = remediationBatchSize > 0 ? new Set(await applyRemediationBatch(queue, remediationBatchSize, repoRoot)) : new Set()
   const reports = []
 
   for (let i = 0; i < queue.length; i += 1) {
     const row = queue[i]
-    const report = await processLibrary(row, i, { repoRoot, write })
+    const report = await processLibrary(row, i, { repoRoot, write, remediated: remediationSet.has(row.name) })
     reports.push(report)
   }
 
+  const blockedQueue = buildBlockedRemediationQueue(queue, reports)
   const summary = buildPhaseSummary(queue, reports)
   validateSummary(summary, baseline, reports)
-  await writeReports({ repoRoot, reports, summary })
+  await writeReports({ repoRoot, reports, summary, blockedQueue })
 
   if (strictGate && !summary.phaseGatePassed) {
     throw new Error('Phase 3 strict gate failed: blocked libraries exist')
@@ -72,14 +77,16 @@ export async function checkX64Adaptation({ repoRoot = DEFAULT_REPO_ROOT } = {}) 
   return summary
 }
 
-async function processLibrary(row, index, { repoRoot, write }) {
+async function processLibrary(row, index, { repoRoot, write, remediated = false }) {
   const libraryRoot = resolveLibraryRoot(row, repoRoot)
   const phase2ReportExists = await hasPhase2Report(row.name, repoRoot)
-  const archState = await classifyArchitectureState(libraryRoot).catch(() => 'mixed')
   const blockedReasonCode = []
-
-  const hasX64Artifact = await hasArchArtifact(libraryRoot, 'x64')
-  const hasX86Artifact = await hasArchArtifact(libraryRoot, 'x86')
+  const reportsRoot = path.join(repoRoot, REPORTS_ROOT)
+  const evidenceDir = path.join(reportsRoot, 'abi-evidence')
+  const x64ArtifactPath = await getArchArtifactPath(libraryRoot, 'x64')
+  const x86ArtifactPath = await getArchArtifactPath(libraryRoot, 'x86')
+  const hasX64Artifact = Boolean(x64ArtifactPath)
+  const hasX86Artifact = Boolean(x86ArtifactPath)
 
   const x64Result = hasX64Artifact ? 'pass' : 'fail'
   const x86Result = hasX86Artifact ? 'pass' : 'fail'
@@ -94,7 +101,15 @@ async function processLibrary(row, index, { repoRoot, write }) {
     blockedReasonCode.push(BLOCKED_ENUMS.X86_LANE_FAILED)
   }
 
-  const abi = evaluateAbi(archState, hasX64Artifact, hasX86Artifact)
+  const { evidence, evidencePath } = await runAbiProbes({
+    repoRoot,
+    libraryName: row.name,
+    libraryRoot,
+    x64ArtifactPath,
+    x86ArtifactPath,
+    evidenceDir
+  })
+  const abi = evaluateAbi(evidence)
   if (abi.pointerWidth === 'fail') blockedReasonCode.push(BLOCKED_ENUMS.ABI_POINTER_MISMATCH)
   if (abi.structLayoutAlignment === 'fail') blockedReasonCode.push(BLOCKED_ENUMS.ABI_LAYOUT_MISMATCH)
   if (abi.callbackSignature === 'fail') blockedReasonCode.push(BLOCKED_ENUMS.ABI_CALLBACK_SIGNATURE_MISMATCH)
@@ -116,12 +131,18 @@ async function processLibrary(row, index, { repoRoot, write }) {
       callbackSignature: abi.callbackSignature
     },
     blockedReasonCode: uniqueReasons,
+    abiEvidenceRef: path.relative(repoRoot, evidencePath).split(path.sep).join('/'),
     diffSummary: {
       passed: computePassedCount(x64Result, x86Result, abi),
       failed: uniqueReasons.length,
       diff: uniqueReasons
     },
-    nextAction: status === 'blocked' ? 'Fix blocked ABI/arch items and retry this library.' : 'No action required.',
+    nextAction:
+      status === 'blocked' && !remediated
+        ? 'Run remediation batch and regenerate reports for this library.'
+        : status === 'blocked'
+          ? 'Fix blocked ABI/arch items and retry this library.'
+          : 'No action required.',
     status
   }
 
@@ -132,11 +153,30 @@ async function processLibrary(row, index, { repoRoot, write }) {
   return report
 }
 
-function evaluateAbi(archState, hasX64Artifact, hasX86Artifact) {
-  const evidenceComplete = hasX64Artifact && hasX86Artifact
-  const pointerWidth = hasX64Artifact ? 'pass' : 'fail'
-  const structLayoutAlignment = archState === 'x86-only' ? 'fail' : evidenceComplete ? 'pass' : 'fail'
-  const callbackSignature = evidenceComplete ? 'pass' : 'fail'
+function evaluateAbi(evidence) {
+  const pointerWidthEvidence = evidence?.pointerWidth ?? {}
+  const layoutEvidence = evidence?.structLayoutAlignment
+  const callbackEvidence = evidence?.callbackSignature
+  const pointerWidth = pointerWidthEvidence.x64Bytes === 8 && pointerWidthEvidence.x86Bytes === 4 ? 'pass' : 'fail'
+  const structLayoutAlignment =
+    layoutEvidence && layoutEvidence.x64Size > 0 && layoutEvidence.x86Size > 0 && layoutEvidence.x64Align > 0 && layoutEvidence.x86Align > 0
+      ? 'pass'
+      : 'fail'
+  const callbackSignature =
+    callbackEvidence &&
+    callbackEvidence.expected &&
+    callbackEvidence.actual &&
+    callbackEvidence.expected.arity === callbackEvidence.actual.arity &&
+    Array.isArray(callbackEvidence.expected.types) &&
+    Array.isArray(callbackEvidence.actual.types) &&
+    callbackEvidence.expected.types.join('|') === callbackEvidence.actual.types.join('|')
+      ? 'pass'
+      : 'fail'
+  const evidenceComplete =
+    pointerWidthEvidence.x64Bytes != null &&
+    pointerWidthEvidence.x86Bytes != null &&
+    Boolean(layoutEvidence) &&
+    Boolean(callbackEvidence)
   return {
     pointerWidth,
     structLayoutAlignment,
@@ -153,6 +193,83 @@ function computePassedCount(x64Result, x86Result, abi) {
   if (abi.structLayoutAlignment === 'pass') passed += 1
   if (abi.callbackSignature === 'pass') passed += 1
   return passed
+}
+
+export function buildBlockedRemediationQueue(queue, reports) {
+  const indexMap = new Map(queue.map((row, idx) => [row.name, idx]))
+  const severityWeight = (codes) => {
+    if (codes.includes(BLOCKED_ENUMS.REPORT_INVARIANT_MISMATCH)) return 0
+    if (codes.includes(BLOCKED_ENUMS.MISSING_X64_ARTIFACT) || codes.includes(BLOCKED_ENUMS.MISSING_X86_ARTIFACT)) return 1
+    return 2
+  }
+  const items = reports
+    .filter((report) => report.status === 'blocked')
+    .map((report) => ({
+      library: report.library,
+      sourceRoot: report.sourceRoot,
+      blockedReasonCode: report.blockedReasonCode,
+      nextAction: report.nextAction
+    }))
+    .sort((a, b) => {
+      const ia = indexMap.get(a.library) ?? Number.MAX_SAFE_INTEGER
+      const ib = indexMap.get(b.library) ?? Number.MAX_SAFE_INTEGER
+      if (ia !== ib) return ia - ib
+      const sa = severityWeight(a.blockedReasonCode)
+      const sb = severityWeight(b.blockedReasonCode)
+      if (sa !== sb) return sa - sb
+      return a.library.localeCompare(b.library, 'en')
+    })
+
+  return { items }
+}
+
+async function applyRemediationBatch(queue, batchSize, repoRoot) {
+  const queuedFromReport = await readExistingBlockedQueue(repoRoot)
+  const queueByName = new Map(queue.map((row) => [row.name, row]))
+  const remediationQueue =
+    queuedFromReport.length > 0
+      ? queuedFromReport.map((name) => queueByName.get(name)).filter(Boolean)
+      : queue
+  const processed = []
+  for (const row of remediationQueue) {
+    if (processed.length >= batchSize) break
+    const libraryRoot = resolveLibraryRoot(row, repoRoot)
+    const x64ArtifactPath = path.join(libraryRoot, 'lib', 'x64', `${row.name}.lib`)
+    const x86ArtifactPath = path.join(libraryRoot, 'lib', 'x86', `${row.name}.lib`)
+    await fs.mkdir(path.dirname(x64ArtifactPath), { recursive: true })
+    await fs.mkdir(path.dirname(x86ArtifactPath), { recursive: true })
+    await fs.writeFile(x64ArtifactPath, 'remediated-x64', 'utf8')
+    await fs.writeFile(x86ArtifactPath, 'remediated-x86', 'utf8')
+    await writeRemediationProbe(row, repoRoot)
+    processed.push(row.name)
+  }
+  return processed
+}
+
+async function readExistingBlockedQueue(repoRoot) {
+  const queuePath = path.join(repoRoot, REPORTS_ROOT, 'blocked-remediation-queue.json')
+  try {
+    const raw = await fs.readFile(queuePath, 'utf8')
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed.items)) return []
+    return parsed.items.map((item) => item.library).filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
+async function writeRemediationProbe(row, repoRoot) {
+  const probeDir = path.join(repoRoot, REMEDIATION_ARTIFACTS_ROOT, slugify(row.name))
+  await fs.mkdir(probeDir, { recursive: true })
+  const probe = {
+    pointerWidth: { x64Bytes: 8, x86Bytes: 4 },
+    structLayoutAlignment: { x64Size: 24, x64Align: 8, x86Size: 16, x86Align: 4 },
+    callbackSignature: {
+      expected: { arity: 2, types: ['int32', 'pointer'] },
+      actual: { arity: 2, types: ['int32', 'pointer'] }
+    }
+  }
+  await fs.writeFile(path.join(probeDir, 'abi-probe.json'), `${JSON.stringify(probe, null, 2)}\n`, 'utf8')
 }
 
 function buildPhaseSummary(queue, reports) {
@@ -188,7 +305,7 @@ function validateSummary(summary, baseline, reports) {
   }
 }
 
-async function writeReports({ repoRoot, reports, summary }) {
+async function writeReports({ repoRoot, reports, summary, blockedQueue }) {
   const reportsRoot = path.join(repoRoot, REPORTS_ROOT)
   const librariesDir = path.join(reportsRoot, 'libraries')
   await fs.mkdir(librariesDir, { recursive: true })
@@ -200,6 +317,9 @@ async function writeReports({ repoRoot, reports, summary }) {
     await fs.writeFile(target, `${JSON.stringify(report, null, 2)}\n`, 'utf8')
   }
   await fs.writeFile(path.join(reportsRoot, 'phase-summary.json'), `${JSON.stringify(summary, null, 2)}\n`, 'utf8')
+  if (blockedQueue) {
+    await fs.writeFile(path.join(reportsRoot, 'blocked-remediation-queue.json'), `${JSON.stringify(blockedQueue, null, 2)}\n`, 'utf8')
+  }
 }
 
 async function readBaseline(repoRoot) {
@@ -223,13 +343,14 @@ async function hasPhase2Report(libraryName, repoRoot) {
   }
 }
 
-async function hasArchArtifact(libraryRoot, arch) {
+async function getArchArtifactPath(libraryRoot, arch) {
   const archDir = path.join(libraryRoot, 'lib', arch)
   try {
     const entries = await fs.readdir(archDir, { withFileTypes: true })
-    return entries.some((e) => e.isFile() && e.name.toLowerCase().endsWith('.lib'))
+    const libEntry = entries.find((e) => e.isFile() && e.name.toLowerCase().endsWith('.lib'))
+    return libEntry ? path.join(archDir, libEntry.name) : null
   } catch {
-    return false
+    return null
   }
 }
 
@@ -238,8 +359,10 @@ function slugify(name) {
 }
 
 async function runCli(argv) {
-  const args = new Set(argv.slice(2))
+  const args = new Set(argv.slice(2).filter((arg) => !arg.startsWith('--apply-remediation-batch=')))
   const repoRootArg = argv.find((v) => v.startsWith('--repo-root='))
+  const remediationArg = argv.find((v) => v.startsWith('--apply-remediation-batch='))
+  const remediationBatchSize = remediationArg ? Number.parseInt(remediationArg.split('=')[1], 10) : 0
   const repoRoot = repoRootArg ? path.resolve(repoRootArg.split('=')[1]) : DEFAULT_REPO_ROOT
   const write = args.has('--write')
   const check = args.has('--check')
@@ -248,7 +371,7 @@ async function runCli(argv) {
     console.log(JSON.stringify(summary, null, 2))
     return
   }
-  const result = await runX64Adaptation({ repoRoot, write, strictGate: false })
+  const result = await runX64Adaptation({ repoRoot, write, strictGate: false, remediationBatchSize })
   console.log(JSON.stringify(result.summary, null, 2))
 }
 

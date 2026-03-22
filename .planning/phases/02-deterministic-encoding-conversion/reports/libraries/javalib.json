@@ -1,10 +1,10 @@
 {
   "library": "javalib",
   "sourceRoot": "易语言的功能库",
-  "total": 88,
-  "scanned": 88,
+  "total": 90,
+  "scanned": 90,
   "converted": 88,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "cppCode/javalib_11_NewObject.cpp",
     "cppCode/javalib_12_GetObjectClass.cpp"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

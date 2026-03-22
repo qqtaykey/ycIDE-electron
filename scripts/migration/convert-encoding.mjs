@@ -16,6 +16,7 @@ const THIRD_PARTY_ROOTS = {
 
 const BASELINE_PATH = '.planning/baselines/inventory-baseline.json'
 const REPORTS_ROOT = '.planning/phases/02-deterministic-encoding-conversion/reports'
+const MIGRATED_ROOT = '支持库源码'
 const SAMPLE_SIZE = 5
 
 const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'out', 'test-results', 'third_party'])
@@ -65,7 +66,8 @@ async function processLibrary(row, { repoRoot, write }) {
     blocked: 0,
     blockedReasons: [],
     sampleFiles: [],
-    status: 'success'
+    status: 'success',
+    syncedToMigrated: false
   }
 
   const libraryEncodingState = await classifyEncodingState(libraryRoot).catch(() => 'mixed')
@@ -88,6 +90,11 @@ async function processLibrary(row, { repoRoot, write }) {
   if (report.blocked > 0) report.status = 'failed'
   if (report.scanned !== report.converted + report.skipped + report.blocked) {
     throw new Error(`Invariant failed for ${row.name}: scanned math mismatch`)
+  }
+
+  if (write && report.status === 'success') {
+    await syncLibraryToMigrated(row, { repoRoot })
+    report.syncedToMigrated = true
   }
 
   return report
@@ -187,6 +194,10 @@ function resolveLibraryRoot(row, repoRoot) {
   return path.join(repoRoot, relRoot, row.name)
 }
 
+function resolveMigratedLibraryRoot(row, repoRoot) {
+  return path.join(repoRoot, MIGRATED_ROOT, row.name)
+}
+
 async function collectLibraryFiles(rootDir) {
   const files = []
   const stack = [rootDir]
@@ -207,6 +218,28 @@ async function collectLibraryFiles(rootDir) {
     }
   }
   return files
+}
+
+async function syncLibraryToMigrated(row, { repoRoot }) {
+  const sourceRoot = resolveLibraryRoot(row, repoRoot)
+  const targetRoot = resolveMigratedLibraryRoot(row, repoRoot)
+  await fs.rm(targetRoot, { recursive: true, force: true })
+  await copyDirectory(sourceRoot, targetRoot)
+}
+
+async function copyDirectory(sourceDir, targetDir) {
+  await fs.mkdir(targetDir, { recursive: true })
+  const entries = await fs.readdir(sourceDir, { withFileTypes: true })
+  entries.sort((a, b) => a.name.localeCompare(b.name, 'en'))
+  for (const entry of entries) {
+    const srcPath = path.join(sourceDir, entry.name)
+    const dstPath = path.join(targetDir, entry.name)
+    if (entry.isDirectory()) {
+      await copyDirectory(srcPath, dstPath)
+    } else if (entry.isFile()) {
+      await fs.copyFile(srcPath, dstPath)
+    }
+  }
 }
 
 function containsHighRisk(text, buffer) {

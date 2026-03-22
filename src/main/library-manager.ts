@@ -14,7 +14,7 @@ export interface LibraryItem {
   name: string         // 文件名（不含扩展名，如 krnln）
   filePath: string     // 完整路径
   loaded: boolean      // 是否已加载
-  libInfo: LibInfo | null  // 加载后的信息
+  libInfo: LibInfo | null  // 支持库元信息（扫描或加载后可用）
 }
 
 /** 加载结果（用于 load 方法返回冲突信息） */
@@ -26,6 +26,14 @@ export interface LoadResult {
 
 class LibraryManager {
   private libraries: LibraryItem[] = []
+
+  /** 确保库元信息已解析（用于未加载库的名称/版本展示） */
+  private ensureLibInfo(item: LibraryItem): LibInfo | null {
+    if (item.libInfo) return item.libInfo
+    const info = parseFneFile(item.filePath)
+    if (info) item.libInfo = info
+    return info
+  }
 
   /** 判断是否为核心支持库 */
   isCore(name: string): boolean {
@@ -57,11 +65,12 @@ class LibraryManager {
 
   /** 启动时自动扫描并加载上次已加载的支持库 */
   scanAndAutoLoad(): void {
+    // 必须先读取持久化状态，避免后续核心库加载触发保存时覆盖旧配置
+    const savedNames = this.getSavedLoadedNames()
     this.scan()
     // 核心库始终加载
     this.loadInternal(CORE_LIB_NAME)
     // 加载上次保存的其他支持库
-    const savedNames = this.getSavedLoadedNames()
     for (const name of savedNames) {
       if (name !== CORE_LIB_NAME) {
         this.load(name)
@@ -109,6 +118,11 @@ class LibraryManager {
       }
     }
 
+    // 扫描后预读取元信息，使未加载库也可显示中文名与版本号
+    for (const item of this.libraries) {
+      this.ensureLibInfo(item)
+    }
+
     return this.getList()
   }
 
@@ -118,7 +132,7 @@ class LibraryManager {
     if (!item) return null
     if (item.loaded && item.libInfo) return item.libInfo
 
-    const info = parseFneFile(item.filePath)
+    const info = this.ensureLibInfo(item)
     if (info) {
       item.loaded = true
       item.libInfo = info
@@ -166,7 +180,7 @@ class LibraryManager {
     if (!item) return { success: false, info: null, error: `未找到支持库 ${name}` }
     if (item.loaded && item.libInfo) return { success: true, info: item.libInfo }
 
-    const info = parseFneFile(item.filePath)
+    const info = this.ensureLibInfo(item)
     if (!info) return { success: false, info: null, error: `解析支持库 ${name} 失败` }
 
     // GUID 冲突检查
@@ -191,9 +205,40 @@ class LibraryManager {
     const item = this.libraries.find(l => l.name === name)
     if (!item || !item.loaded) return { success: false, error: '该支持库未加载' }
     item.loaded = false
-    item.libInfo = null
     this.saveLoadedState()
     return { success: true }
+  }
+
+  /** 根据勾选结果批量应用加载状态 */
+  applySelection(selectedNames: string[]): {
+    loadedCount: number
+    unloadedCount: number
+    failed: Array<{ name: string; error: string }>
+  } {
+    const selected = new Set(selectedNames)
+    selected.add(CORE_LIB_NAME)
+    let loadedCount = 0
+    let unloadedCount = 0
+    const failed: Array<{ name: string; error: string }> = []
+
+    // 先卸载未勾选项（核心库除外）
+    for (const item of this.libraries) {
+      if (!item.loaded || this.isCore(item.name) || selected.has(item.name)) continue
+      const result = this.unload(item.name)
+      if (result.success) unloadedCount++
+      else failed.push({ name: item.name, error: result.error || '卸载失败' })
+    }
+
+    // 再加载勾选项
+    for (const item of this.libraries) {
+      if (item.loaded || !selected.has(item.name)) continue
+      const result = this.load(item.name)
+      if (result.success) loadedCount++
+      else failed.push({ name: item.name, error: result.error || '加载失败' })
+    }
+
+    this.saveLoadedState()
+    return { loadedCount, unloadedCount, failed }
   }
 
   /** 加载所有已扫描的支持库 */
@@ -210,13 +255,14 @@ class LibraryManager {
   }
 
   /** 获取支持库列表（不含 libInfo 详情，用于 UI 展示） */
-  getList(): Array<{ name: string; filePath: string; loaded: boolean; isCore: boolean; libName?: string; cmdCount?: number; dtCount?: number }> {
+  getList(): Array<{ name: string; filePath: string; loaded: boolean; isCore: boolean; libName?: string; version?: string; cmdCount?: number; dtCount?: number }> {
     return this.libraries.map(l => ({
       name: l.name,
       filePath: l.filePath,
       loaded: l.loaded,
       isCore: this.isCore(l.name),
       libName: l.libInfo?.name,
+      version: l.libInfo?.version,
       cmdCount: l.libInfo?.commands.length,
       dtCount: l.libInfo?.dataTypes.length,
     }))

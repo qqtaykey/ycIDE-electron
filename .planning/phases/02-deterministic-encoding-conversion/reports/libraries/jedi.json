@@ -1,10 +1,10 @@
 {
   "library": "jedi",
   "sourceRoot": "易语言的界面库",
-  "total": 23,
-  "scanned": 23,
+  "total": 25,
+  "scanned": 25,
   "converted": 23,
-  "skipped": 0,
+  "skipped": 2,
   "blocked": 0,
   "blockedReasons": [],
   "sampleFiles": [
@@ -14,5 +14,6 @@
     "elib/lang.h",
     "elib/lib2.h"
   ],
-  "status": "success"
+  "status": "success",
+  "syncedToMigrated": false
 }

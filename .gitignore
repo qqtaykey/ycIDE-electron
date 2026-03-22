@@ -10,5 +10,10 @@ compiler/
 .vs/
 *.vsidx
 *.tsbuildinfo
+playwright-report/
+test-results/
 test-fne.mjs
 支持库源码/
+.github/
+.planning/
+.vscode/

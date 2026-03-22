@@ -32,6 +32,18 @@ test('X64A-01 deterministic baseline order and x64 result per library', async ()
   for (const report of first.reports) {
     assert.ok(report.x64Result === 'pass' || report.x64Result === 'fail', 'x64Result required per library')
   }
+  const queuePath = path.join(
+    fixture.repoRoot,
+    '.planning',
+    'phases',
+    '03-x64-adaptation-dual-arch-gates',
+    'reports',
+    'blocked-remediation-queue.json'
+  )
+  const hash1 = hashText(await fs.readFile(queuePath, 'utf8'))
+  await run({ repoRoot: fixture.repoRoot, write: true, strictGate: false })
+  const hash2 = hashText(await fs.readFile(queuePath, 'utf8'))
+  assert.equal(hash1, hash2, 'blocked remediation queue order hash must be stable')
   await cleanupFixtureRepo(fixture.repoRoot)
 })
 
@@ -39,7 +51,8 @@ test('X64A-02 ABI matrix includes pointerWidth/structLayoutAlignment/callbackSig
   const fixture = await createFixtureRepo()
   const mod = await import('../../scripts/migration/x64-adaptation.mjs')
   const run = mod.runX64Adaptation
-  const { reports } = await run({ repoRoot: fixture.repoRoot, write: true, strictGate: false })
+  await run({ repoRoot: fixture.repoRoot, write: true, strictGate: false, remediationBatchSize: 1 })
+  const { reports } = await run({ repoRoot: fixture.repoRoot, write: true, strictGate: false, remediationBatchSize: 1 })
 
   for (const report of reports) {
     assert.ok(report.abi, 'abi object required')
@@ -47,6 +60,13 @@ test('X64A-02 ABI matrix includes pointerWidth/structLayoutAlignment/callbackSig
     assert.ok('structLayoutAlignment' in report.abi)
     assert.ok('callbackSignature' in report.abi)
   }
+  const remediated = reports.find((r) => r.status === 'completed')
+  assert.ok(remediated?.abiEvidenceRef, 'completed report must include abiEvidenceRef')
+  const evidence = JSON.parse(await fs.readFile(path.join(fixture.repoRoot, remediated.abiEvidenceRef), 'utf8'))
+  assert.ok('pointerWidth' in evidence)
+  assert.ok('structLayoutAlignment' in evidence)
+  assert.ok('callbackSignature' in evidence)
+  assert.ok('evidenceInputs' in evidence)
   await cleanupFixtureRepo(fixture.repoRoot)
 })
 
@@ -77,6 +97,21 @@ test('X64A-04 x86 lane mandatory and can block even when x64 passes', async () =
   assert.equal(target.x86Result, 'fail')
   assert.equal(target.status, 'blocked')
   assert.ok(target.blockedReasonCode.includes('x86_lane_failed'))
+  await cleanupFixtureRepo(fixture.repoRoot)
+})
+
+test('Gap closure invariants: completed >= 1 after remediation and strict gate stays false with blockers', async () => {
+  const fixture = await createFixtureRepo()
+  const mod = await import('../../scripts/migration/x64-adaptation.mjs')
+  const run = mod.runX64Adaptation
+  await run({ repoRoot: fixture.repoRoot, write: true, strictGate: false })
+  const before = await readSummary(fixture.repoRoot)
+
+  await run({ repoRoot: fixture.repoRoot, write: true, strictGate: false, remediationBatchSize: 1 })
+  const after = await readSummary(fixture.repoRoot)
+  assert.ok(after.completedLibraries >= 1, 'completedLibraries should be >= 1 after remediation batch')
+  assert.ok(after.blockedLibraries <= before.blockedLibraries, 'blockedLibraries must be monotonic non-increase')
+  assert.equal(after.phaseGatePassed, false, 'strict gate must remain false while blocked libraries exist')
   await cleanupFixtureRepo(fixture.repoRoot)
 })
 
@@ -133,4 +168,13 @@ async function createFixtureRepo(options = {}) {
 
 async function cleanupFixtureRepo(repoRoot) {
   await fs.rm(repoRoot, { recursive: true, force: true })
+}
+
+async function readSummary(repoRoot) {
+  const summaryPath = path.join(repoRoot, '.planning', 'phases', '03-x64-adaptation-dual-arch-gates', 'reports', 'phase-summary.json')
+  return JSON.parse(await fs.readFile(summaryPath, 'utf8'))
+}
+
+function hashText(content) {
+  return crypto.createHash('sha256').update(content).digest('hex')
 }
