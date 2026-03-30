@@ -12,6 +12,8 @@
 
 📋 [版本更新说明](版本更新说明.md)
 
+🔧 编译器说明：仓库不包含 `compiler/zig/` 二进制文件，请先按 [compiler/README.md](compiler/README.md) 下载并放置 Zig。
+
 ---
 
 ## 待开发和优化的功能

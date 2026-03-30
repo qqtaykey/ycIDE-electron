@@ -17,3 +17,6 @@ test-fne.mjs
 .planning/
 .vscode/
 resources/Visual Studio 2022 Image Library/
+
+# Zig toolchain binaries are downloaded locally (single binary can exceed GitHub 100MB limit)
+compiler/zig/

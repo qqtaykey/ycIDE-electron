@@ -24,6 +24,12 @@ compiler/
 - 编译按钮：按 `.epp` 的 `Platform` 字段编译目标二进制（windows/linux/macos）。
 - 输出目录按平台拆分：`output/windows/`、`output/linux/`、`output/macos/`。
 
+## 开源仓库说明
+
+- 本仓库默认不提交 `compiler/zig/` 下的二进制文件。
+- 原因：Zig 可执行文件体积较大（常见超过 GitHub 单文件 100MB 限制）。
+- 首次拉取项目后，请开发者按宿主平台自行下载并放置 Zig。
+
 > 当前编译目标仍是 Windows（`*-windows-gnu`）。
 > 在 macOS 上使用 macOS 版 Zig 即可交叉编译 Windows 产物。
 
@@ -40,6 +46,29 @@ compiler/
 - Windows ARM64: `zig-windows-aarch64-*.zip`
 
 下载后解压并确保可执行文件位于 `compiler/zig/zig`（Windows 为 `compiler/zig/zig.exe`）。
+
+## 安装步骤（按宿主平台）
+
+### macOS
+
+1. 从 Zig 官方下载 `zig-macos-aarch64-*.tar.xz`（或对应 x86_64 包）。
+2. 在项目根目录创建 `compiler/zig/`。
+3. 解压后确保可执行文件路径为 `compiler/zig/zig`。
+4. 运行 `compiler/zig/zig version` 验证安装。
+
+### Windows
+
+1. 从 Zig 官方下载 `zig-windows-*.zip`。
+2. 在项目根目录创建 `compiler/zig/`。
+3. 解压后确保可执行文件路径为 `compiler/zig/zig.exe`。
+4. 在终端运行 `compiler\\zig\\zig.exe version` 验证安装。
+
+### Linux
+
+1. 从 Zig 官方下载 `zig-linux-*.tar.xz`。
+2. 在项目根目录创建 `compiler/zig/`。
+3. 解压后确保可执行文件路径为 `compiler/zig/zig`。
+4. 运行 `compiler/zig/zig version` 验证安装。
 
 ### 说明补充
 
