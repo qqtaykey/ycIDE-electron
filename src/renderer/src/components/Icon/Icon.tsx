@@ -1,6 +1,6 @@
 /**
  * SVG Icon component using VS 2022 Image Library icons.
- * Adapts light-theme SVGs for dark theme by CSS filter/class overrides.
+ * Normalizes SVG colors to currentColor so icon tint follows theme tokens.
  */
 
 // Toolbar icons
@@ -169,26 +169,41 @@ export const ICON_MAP: Record<string, string> = {
   'edit': EditSvg,
 }
 
-/** Adapt light-theme SVG for dark theme  */
-function adaptForDarkTheme(raw: string): string {
-  return raw
-    // Remove embedded SVG title tooltip text; UI-level button title/aria-label should be authoritative.
-    .replace(/<title[\s\S]*?<\/title>/gi, '')
-    // Replace light-theme default grey (#212121) with light grey
-    .replace(/fill:\s*#212121/g, 'fill: #cccccc')
-    // Replace light-theme blue (#005dba) with brighter blue
-    .replace(/fill:\s*#005dba/g, 'fill: #3794ff')
-    // Replace light-theme yellow (#996f00) with brighter yellow
-    .replace(/fill:\s*#996f00/g, 'fill: #e8ab53')
-    // Replace light-theme green (#1f801f) with brighter green
-    .replace(/fill:\s*#1f801f/g, 'fill: #89d185')
-    // Replace light-theme purple (#6936aa) with brighter purple
-    .replace(/fill:\s*#6936aa/g, 'fill: #b180d7')
-    // Replace light-theme red (#b30900) with brighter red
-    .replace(/fill:\s*#b30900/g, 'fill: #f14c4c')
-    // Replace light-theme teal (#007f7f) with brighter teal
-    .replace(/fill:\s*#007f7f/g, 'fill: #4ec9b0')
+function stripSvgTitle(raw: string): string {
+  return raw.replace(/<title[\s\S]*?<\/title>/gi, '')
 }
+
+/**
+ * Scope SVG internal CSS class names with a unique prefix to prevent
+ * collisions when multiple SVGs are inlined in the same document.
+ */
+function scopeSvgStyles(svgHtml: string, scope: string): string {
+  // Prefix class names in <style> block: .className → .scope__className
+  // Use (?!\d) to avoid matching decimal numbers like 0.1 in "opacity: 0.1"
+  svgHtml = svgHtml.replace(/<style>([\s\S]*?)<\/style>/gi, (_match, css: string) => {
+    const scopedCss = css.replace(/\.(?!\d)([\w-]+)/g, `.${scope}__$1`)
+    return `<style>${scopedCss}</style>`
+  })
+  // Prefix class names in element attributes: class="cls1 cls2" → class="scope__cls1 scope__cls2"
+  svgHtml = svgHtml.replace(/\bclass="([^"]*)"/gi, (_match, classes: string) => {
+    const scopedClasses = classes.trim().split(/\s+/).filter(Boolean).map(c => `${scope}__${c}`).join(' ')
+    return `class="${scopedClasses}"`
+  })
+  return svgHtml
+}
+
+/** Normalize svg color declarations so tint follows currentColor */
+function normalizeSvgColor(raw: string, scope: string): string {
+  return scopeSvgStyles(
+    stripSvgTitle(raw)
+      .replace(/\s(fill|stroke)="(?!none|currentColor)[^"]*"/gi, ' $1="currentColor"')
+      .replace(/(fill|stroke)\s*:\s*(?!none|currentColor)[^;"]+/gi, '$1: currentColor'),
+    scope
+  )
+}
+
+/** Cache processed SVG strings keyed by "name_mode" */
+const _svgCache = new Map<string, string>()
 
 interface IconProps {
   name: string
@@ -196,18 +211,27 @@ interface IconProps {
   className?: string
   style?: React.CSSProperties
   title?: string
+  preserveOriginalColors?: boolean
 }
 
-export default function Icon({ name, size = 16, className = '', style, title }: IconProps): React.JSX.Element | null {
+export default function Icon({ name, size = 16, className = '', style, title, preserveOriginalColors = false }: IconProps): React.JSX.Element | null {
   const raw = ICON_MAP[name]
   if (!raw) return null
-  const adapted = adaptForDarkTheme(raw)
+  const cacheKey = `${name}_${preserveOriginalColors ? 'o' : 'n'}`
+  let processedSvg = _svgCache.get(cacheKey)
+  if (!processedSvg) {
+    processedSvg = preserveOriginalColors
+      ? scopeSvgStyles(stripSvgTitle(raw), name)
+      : normalizeSvgColor(raw, name)
+    _svgCache.set(cacheKey, processedSvg)
+  }
   return (
     <span
       className={`vs-icon ${className}`}
-      style={{ display: 'inline-flex', width: size, height: size, ...style }}
+      style={{ width: size, height: size, ...style }}
       title={title}
-      dangerouslySetInnerHTML={{ __html: adapted }}
+      aria-label={title}
+      dangerouslySetInnerHTML={{ __html: processedSvg }}
     />
   )
 }

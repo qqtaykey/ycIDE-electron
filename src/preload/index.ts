@@ -1,9 +1,36 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { normalizeRuntimePlatform } from '../shared/platform'
+import { THEME_CONFIG_VERSION } from '../shared/theme'
+import type {
+  SaveAsCustomThemeRequest,
+  SaveAsCustomThemeResult,
+  ThemeImportConflictDecision,
+  ThemeImportValidationDiagnostic,
+  ThemeConfigV2,
+  ThemeDefinition,
+  ThemeId,
+  ThemeResolutionResult,
+  ThemeTokenPayload
+} from '../shared/theme'
 
 const runtimePlatform = normalizeRuntimePlatform(process.platform)
+void THEME_CONFIG_VERSION
 type RecentOpenedItem = { type: 'project' | 'file'; path: string; label: string }
 type ThemeMenuState = { themes: string[]; currentTheme: string }
+type ThemeLifecycleSyncPayload = {
+  config: ThemeConfigV2
+  themes: ThemeId[]
+  currentTheme: ThemeId
+  menuState: ThemeMenuState
+}
+type ThemeImportPrepareResult =
+  | { status: 'canceled' }
+  | { status: 'invalid'; diagnostics: ThemeImportValidationDiagnostic[]; sourceFilePath: string | null }
+  | { status: 'conflict'; importedTheme: ThemeDefinition; existingThemeId: ThemeId; allowedDecisions: ThemeImportConflictDecision['decision'][]; sourceFilePath: string | null }
+  | { status: 'ready'; importedTheme: ThemeDefinition; targetThemeId: ThemeId; sourceFilePath: string | null }
+type ThemeImportCommitResult =
+  | ({ success: true; importedThemeId: ThemeId; overwritten: boolean } & ThemeLifecycleSyncPayload)
+  | ({ success: false; code: 'invalid_payload' | 'conflict_decision_required' | 'invalid_conflict_decision' | 'duplicate_name' | 'theme_not_found' | 'commit_failed'; message: string; diagnostics?: ThemeImportValidationDiagnostic[] })
 
 // 向渲染进程安全暴露的 API
 const api = {
@@ -11,7 +38,8 @@ const api = {
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
-    close: () => ipcRenderer.send('window:close')
+    close: () => ipcRenderer.send('window:close'),
+    forceClose: () => ipcRenderer.send('window:forceClose')
   },
   // 文件操作
   file: {
@@ -86,6 +114,7 @@ const api = {
     loadAll: () => ipcRenderer.invoke('library:loadAll'),
     applySelection: (selectedNames: string[]) => ipcRenderer.invoke('library:applySelection', selectedNames),
     getList: () => ipcRenderer.invoke('library:getList'),
+    getStoreCards: () => ipcRenderer.invoke('library:getStoreCards'),
     getInfo: (name: string) => ipcRenderer.invoke('library:getInfo', name),
     getAllCommands: () => ipcRenderer.invoke('library:getAllCommands'),
     getAllDataTypes: () => ipcRenderer.invoke('library:getAllDataTypes'),
@@ -110,15 +139,45 @@ const api = {
   },
   // 主题管理
   theme: {
-    getList: () => ipcRenderer.invoke('theme:getList') as Promise<string[]>,
-    load: (name: string) => ipcRenderer.invoke('theme:load', name) as Promise<{ name: string; colors: Record<string, string> } | null>,
-    getCurrent: () => ipcRenderer.invoke('theme:getCurrent') as Promise<string>,
-    setCurrent: (name: string) => ipcRenderer.invoke('theme:setCurrent', name),
+    getList: () => ipcRenderer.invoke('theme:getList') as Promise<ThemeId[]>,
+    load: (name: ThemeId) => ipcRenderer.invoke('theme:load', name) as Promise<ThemeDefinition | null>,
+    getCurrent: () => ipcRenderer.invoke('theme:getCurrent') as Promise<ThemeResolutionResult>,
+    saveCurrent: (name: ThemeId, themePayload?: ThemeTokenPayload) =>
+      ipcRenderer.invoke('theme:saveCurrent', name, themePayload) as Promise<ThemeConfigV2>,
+    setCurrent: (name: ThemeId) => ipcRenderer.invoke('theme:setCurrent', name) as Promise<ThemeConfigV2>,
+    saveAsCustom: (request: SaveAsCustomThemeRequest) =>
+      ipcRenderer.invoke('theme:saveAsCustom', request) as Promise<SaveAsCustomThemeResult>,
+    createFromCurrent: (request: { name: string; themePayload?: ThemeTokenPayload }) =>
+      ipcRenderer.invoke('theme:createFromCurrent', request) as Promise<
+        | ({ success: true; themeId: ThemeId; sourceThemeId: ThemeId } & ThemeLifecycleSyncPayload)
+        | ({ success: false; code: 'invalid_name' | 'duplicate_name' | 'source_theme_missing' | 'save_failed'; message: string })
+      >,
+    rename: (request: { themeId: ThemeId; newName: string }) =>
+      ipcRenderer.invoke('theme:rename', request) as Promise<
+        | ({ success: true; oldThemeId: ThemeId; newThemeId: ThemeId } & ThemeLifecycleSyncPayload)
+        | ({ success: false; code: 'invalid_name' | 'builtin_readonly' | 'theme_not_found' | 'duplicate_name' | 'rename_failed'; message: string })
+      >,
+    delete: (request: { themeId: ThemeId; confirmThemeName: string }) =>
+      ipcRenderer.invoke('theme:delete', request) as Promise<
+        | ({ success: true; deletedThemeId: ThemeId; notice: string | null } & ThemeLifecycleSyncPayload)
+        | ({ success: false; code: 'builtin_readonly' | 'theme_not_found' | 'confirm_name_mismatch' | 'delete_failed'; message: string })
+      >,
+    export: (request: { themeId: ThemeId }) =>
+      ipcRenderer.invoke('theme:export', request) as Promise<
+        | { success: true; filePath: string; fileName: string; themeId: ThemeId }
+        | { success: false; canceled?: true; code?: 'theme_not_found' | 'export_failed'; message?: string }
+      >,
+    import: (request?: { filePath?: string; fileContent?: string }) =>
+      ipcRenderer.invoke('theme:import', request) as Promise<ThemeImportPrepareResult>,
+    importCommit: (request: { importedTheme: ThemeDefinition; decision?: ThemeImportConflictDecision }) =>
+      ipcRenderer.invoke('theme:importCommit', request) as Promise<ThemeImportCommitResult>,
   },
   // 对话框
   dialog: {
     confirmSaveBeforeClose: (fileLabel: string) =>
       ipcRenderer.invoke('dialog:confirmSaveBeforeClose', fileLabel) as Promise<'save' | 'discard' | 'cancel'>,
+    confirmUnsavedThemeDraftClose: (intent: 'close-button' | 'overlay' | 'escape' | 'app-exit') =>
+      ipcRenderer.invoke('dialog:confirmUnsavedThemeDraftClose', intent) as Promise<'save' | 'discard' | 'continue'>,
   },
   // 诊断日志
   debug: {

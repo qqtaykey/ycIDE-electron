@@ -1,16 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import './LibraryDialog.css'
-
-interface LibItem {
-  name: string
-  filePath: string
-  loaded: boolean
-  isCore: boolean
-  libName?: string
-  version?: string
-  cmdCount?: number
-  dtCount?: number
-}
+import type { StoreLibraryCard } from '../../../../shared/library-store'
 
 interface LibInfoDetail {
   name: string
@@ -36,25 +26,31 @@ interface LibraryDialogProps {
   onClose: () => void
 }
 
+const platformLabelMap: Record<string, string> = {
+  windows: 'Windows',
+  macos: 'macOS',
+  linux: 'Linux',
+}
+
 function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element | null {
-  const [libs, setLibs] = useState<LibItem[]>([])
+  const [libs, setLibs] = useState<StoreLibraryCard[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [statusText, setStatusText] = useState('')
   const [detailText, setDetailText] = useState('')
-  const [selectedLibName, setSelectedLibName] = useState<string>('')
+  const [selectedLibId, setSelectedLibId] = useState<string>('')
 
-  const formatLibDetail = (lib: LibItem, info: LibInfoDetail | null): string => {
+  const formatLibDetail = (lib: StoreLibraryCard, info: LibInfoDetail | null): string => {
     if (!info) {
-      return `相关文件：\n${lib.filePath}\n\n未能读取该支持库详细信息。`
+      return `支持库标识：\n${lib.id}\n\n未能读取该支持库详细信息。`
     }
     return [
-      '相关文件：',
-      lib.filePath,
+      '支持库标识：',
+      lib.id,
       '',
       `数字签名：${info.guid || '-'}`,
       `说明： ${info.description || '-'}`,
-      `提供了${info.dataTypes.length}种数据类型，${info.commands.length}种命令，${info.constants.length}个常量。`,
+      `提供了${info.dataTypes.length}种类型定义，${info.commands.length}种命令，${info.constants.length}个常量。`,
       '',
       '----- 支持库的作者信息 -----',
       `作者姓名：${info.author || '-'}`,
@@ -69,23 +65,23 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
   }
 
   const refreshList = useCallback(async (preserveStatusText = false) => {
-    const list = await window.api.library.getList()
+    const list = await window.api.library.getStoreCards()
     setLibs(list)
-    const defaultSelected = new Set<string>(list.filter((lib: LibItem) => lib.loaded).map((lib: LibItem) => lib.name))
+    const defaultSelected = new Set<string>(list.filter((lib: StoreLibraryCard) => lib.isLoaded).map((lib: StoreLibraryCard) => lib.id))
     setSelected(defaultSelected)
     if (list.length === 0) {
-      setSelectedLibName('')
+      setSelectedLibId('')
       setDetailText('')
       return
     }
-    const preferName = selectedLibName && list.some((lib: LibItem) => lib.name === selectedLibName) ? selectedLibName : list[0].name
-    const target = list.find((lib: LibItem) => lib.name === preferName)
+    const preferId = selectedLibId && list.some((lib: StoreLibraryCard) => lib.id === selectedLibId) ? selectedLibId : list[0].id
+    const target = list.find((lib: StoreLibraryCard) => lib.id === preferId)
     if (!target) return
-    setSelectedLibName(preferName)
-    const info = await window.api.library.getInfo(preferName) as LibInfoDetail | null
+    setSelectedLibId(preferId)
+    const info = await window.api.library.getInfo(preferId) as LibInfoDetail | null
     setDetailText(formatLibDetail(target, info))
     if (!preserveStatusText) setStatusText('')
-  }, [selectedLibName])
+  }, [selectedLibId])
 
   useEffect(() => {
     if (open) refreshList()
@@ -101,11 +97,11 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
   }
 
   const selectAll = (): void => {
-    setSelected(new Set(libs.map(lib => lib.name)))
+    setSelected(new Set(libs.map(lib => lib.id)))
   }
 
   const selectNone = (): void => {
-    const coreNames = libs.filter(lib => lib.isCore).map(lib => lib.name)
+    const coreNames = libs.filter(lib => lib.isCore).map(lib => lib.id)
     setSelected(new Set(coreNames))
   }
 
@@ -123,11 +119,11 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
     setLoading(false)
   }
 
-  const showLibDetail = async (name: string): Promise<void> => {
-    const lib = libs.find(item => item.name === name)
+  const showLibDetail = async (id: string): Promise<void> => {
+    const lib = libs.find(item => item.id === id)
     if (!lib) return
-    setSelectedLibName(name)
-    const info = await window.api.library.getInfo(name) as LibInfoDetail | null
+    setSelectedLibId(id)
+    const info = await window.api.library.getInfo(id) as LibInfoDetail | null
     setDetailText(formatLibDetail(lib, info))
     setStatusText('')
   }
@@ -149,68 +145,51 @@ function LibraryDialog({ open, onClose }: LibraryDialogProps): React.JSX.Element
         </div>
 
         <div className="lib-dialog-list">
-          <table className="lib-table">
-            <thead>
-              <tr>
-                <th className="lib-col-check">选择</th>
-                <th>文件名</th>
-                <th>支持库名称</th>
-                <th>版本</th>
-                <th>命令数</th>
-                <th>数据类型</th>
-                <th>状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              {libs.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="lib-empty">
-                    未找到支持库清单，请将 *.ycmd.json 文件放入 lib 子目录
-                  </td>
-                </tr>
-              ) : (
-                libs.map(lib => (
-                  <tr key={lib.name} className={lib.loaded ? 'lib-loaded' : ''}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        className="lib-checkbox"
-                        checked={selected.has(lib.name)}
-                        disabled={loading || lib.isCore}
-                        onChange={e => toggleOne(lib.name, e.target.checked)}
-                      />
-                    </td>
-                    <td>
-                      <button
-                        className={`lib-link ${selectedLibName === lib.name ? 'lib-link-active' : ''}`}
-                        disabled={loading}
-                        onClick={() => showLibDetail(lib.name)}
-                      >
-                        {lib.name}
-                      </button>
-                    </td>
-                    <td>
-                      <button
-                        className={`lib-link ${selectedLibName === lib.name ? 'lib-link-active' : ''}`}
-                        disabled={loading}
-                        onClick={() => showLibDetail(lib.name)}
-                      >
-                        {lib.libName || '-'}{lib.isCore ? ' (核心)' : ''}
-                      </button>
-                    </td>
-                    <td>{lib.version || '-'}</td>
-                    <td>{lib.cmdCount ?? '-'}</td>
-                    <td>{lib.dtCount ?? '-'}</td>
-                    <td>
-                      <span className={`lib-status ${lib.loaded ? 'lib-status-ok' : ''}`}>
-                        {lib.loaded ? '已加载' : '未加载'}
+          {libs.length === 0 ? (
+            <div className="lib-empty">
+              未找到支持库清单，请将 *.ycmd.json 文件放入 lib 子目录
+            </div>
+          ) : (
+            <div className="lib-card-grid">
+              {libs.map(lib => (
+                <div key={lib.id} className={`lib-card ${lib.isLoaded ? 'lib-card-loaded' : ''}`}>
+                  <div className="lib-card-header">
+                    <input
+                      type="checkbox"
+                      className="lib-checkbox"
+                      checked={selected.has(lib.id)}
+                      disabled={loading || lib.isCore}
+                      onChange={e => toggleOne(lib.id, e.target.checked)}
+                    />
+                    <button
+                      className={`lib-link ${selectedLibId === lib.id ? 'lib-link-active' : ''}`}
+                      disabled={loading}
+                      onClick={() => showLibDetail(lib.id)}
+                    >
+                      {lib.displayName || lib.id}{lib.isCore ? ' (核心)' : ''}
+                    </button>
+                  </div>
+                  <div className="lib-card-subtitle">{lib.id}</div>
+                  <div className="lib-card-version">版本：{lib.version || '-'}</div>
+                  <div className="lib-card-platforms">
+                    {lib.supportedPlatforms.map(platform => (
+                      <span key={`${lib.id}-${platform}`} className="lib-platform-tag">
+                        {platformLabelMap[platform] || platform}
                       </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                    ))}
+                  </div>
+                  <div className="lib-card-states">
+                    <span className={`lib-state-badge ${lib.isDownloaded ? 'lib-state-downloaded' : 'lib-state-missing'}`}>
+                      {lib.isDownloaded ? '已下载' : '未下载'}
+                    </span>
+                    <span className={`lib-state-badge ${lib.isLoaded ? 'lib-state-loaded' : ''}`}>
+                      {lib.isLoaded ? '已加载' : '未加载'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <textarea

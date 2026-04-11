@@ -13,10 +13,12 @@ playwright-report/
 test-results/
 test-fne.mjs
 支持库源码/
-.github/
+.github/*
+!.github/workflows/
+!.github/workflows/*.yml
 .planning/
 .vscode/
 resources/Visual Studio 2022 Image Library/
 
-# Zig toolchain binaries are downloaded locally (single binary can exceed GitHub 100MB limit)
-compiler/zig/
+# Compiler toolchains are local assets and should not be versioned
+compiler/

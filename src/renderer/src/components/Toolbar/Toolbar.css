@@ -24,6 +24,9 @@
   border-radius: 4px;
   color: var(--text-primary);
 }
+.toolbar-btn .vs-icon {
+  color: var(--toolbar-icon-color) !important;
+}
 .toolbar-btn:hover {
   background: var(--bg-hover);
 }
@@ -31,15 +34,24 @@
   background: var(--bg-active);
 }
 .toolbar-btn:disabled {
-  opacity: 0.35;
+  opacity: 1;
   cursor: default;
   pointer-events: none;
+}
+.toolbar-btn:disabled .vs-icon {
+  color: var(--toolbar-icon-disabled-color) !important;
 }
 .toolbar-btn-run {
   color: var(--success);
 }
 .toolbar-btn-stop {
-  color: #f14c4c;
+  color: var(--error);
+}
+.toolbar-btn-run .vs-icon {
+  color: var(--success);
+}
+.toolbar-btn-stop .vs-icon {
+  color: var(--error);
 }
 
 .toolbar-separator {
@@ -54,17 +66,21 @@
   padding: 0 4px;
   font-size: 12px;
   color: var(--text-primary);
-  background: var(--bg-input, #3c3c3c);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 3px;
   outline: none;
   cursor: pointer;
 }
+.toolbar-select option {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
 .toolbar-select:hover {
-  border-color: var(--accent, #007acc);
+  border-color: var(--accent);
 }
 .toolbar-select:focus {
-  border-color: var(--accent, #007acc);
+  border-color: var(--accent);
 }
 
 .toolbar-spacer {
