@@ -28,6 +28,7 @@ interface ThemeManagerProps {
   hasUnsavedDraft?: boolean
   tokenValues?: Record<string, string>
   flowLineConfig?: FlowLineModeConfig
+  preserveToolbarIconOriginalColors?: boolean
   canUndo?: boolean
   onClose: () => void
   onSelectTheme: (themeId: string) => Promise<void> | void
@@ -36,11 +37,13 @@ interface ThemeManagerProps {
   onFlowLineModeChange?: (mode: FlowLineMode) => void
   onFlowLineMainColorChange?: (value: string) => void
   onFlowLineDepthStepChange?: (key: keyof FlowLineMultiConfig, value: number) => void
+  onPreserveToolbarIconOriginalColorsChange?: (value: boolean) => void
   onResetToken?: (groupId: ThemeTokenGroupId, tokenKey: string) => void
   onResetGroup?: (groupId: ThemeTokenGroupId) => void
   onResetAll?: () => void
   onUndo?: () => void
   onRestoreBaseline?: () => void
+  onDeleteTheme: (themeId: string, confirmThemeName: string) => Promise<ThemeManagerActionResult>
   onExportTheme: (themeId: string) => Promise<ThemeManagerActionResult>
   onSaveTheme: (themeId: string) => Promise<ThemeManagerActionResult>
   onSaveAsTheme: (sourceThemeId: string, name: string) => Promise<ThemeManagerActionResult>
@@ -69,6 +72,7 @@ function ThemeManager({
   hasUnsavedDraft = false,
   tokenValues = {},
   flowLineConfig = DEFAULT_FLOW_LINE_MODE_CONFIG,
+  preserveToolbarIconOriginalColors = false,
   canUndo = false,
   onClose,
   onSelectTheme,
@@ -77,18 +81,21 @@ function ThemeManager({
   onFlowLineModeChange,
   onFlowLineMainColorChange,
   onFlowLineDepthStepChange,
+  onPreserveToolbarIconOriginalColorsChange,
   onResetToken,
   onResetGroup,
   onResetAll,
   onUndo,
   onRestoreBaseline,
   onExportTheme,
+  onDeleteTheme,
   onSaveTheme,
   onSaveAsTheme,
   onRenameTheme,
   onImportThemePrepare,
   onImportThemeCommit,
 }: ThemeManagerProps): React.JSX.Element | null {
+  const TOOLBAR_ICON_TOKEN_KEYS = new Set(['--toolbar-icon-color', '--toolbar-icon-disabled-color'])
   const [selectedThemeId, setSelectedThemeId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
@@ -348,9 +355,9 @@ function ThemeManager({
     void handleAction(() => onSaveTheme(selectedThemeId))
   }
 
-  const handleThemeContextMenu = (event: React.MouseEvent<HTMLButtonElement>, themeId: string) => {
+  const handleThemeContextMenu = (event: React.MouseEvent, themeId: string) => {
     event.preventDefault()
-    setSelectedThemeId(themeId)
+    if (themeId) setSelectedThemeId(themeId)
     setThemeContextMenu({
       themeId,
       left: event.clientX,
@@ -379,6 +386,25 @@ function ThemeManager({
     const targetThemeId = themeContextMenu.themeId
     setThemeContextMenu(null)
     void handleAction(() => onExportTheme(targetThemeId))
+  }
+
+  const handleContextDeleteTheme = async () => {
+    if (!themeContextMenu?.themeId) return
+    const targetThemeId = themeContextMenu.themeId
+    setThemeContextMenu(null)
+    if (BUILTIN_THEME_IDS.includes(targetThemeId)) {
+      setFeedback('内置主题不可删除。')
+      return
+    }
+    const confirmed = window.confirm(`确定要删除主题"${targetThemeId}"吗？此操作不可撤销。`)
+    if (!confirmed) return
+    await handleAction(async () => {
+      const result = await onDeleteTheme(targetThemeId, targetThemeId)
+      if (result.success && selectedThemeId === targetThemeId) {
+        setSelectedThemeId(currentTheme)
+      }
+      return result
+    })
   }
 
   const cancelRenameEditor = () => {
@@ -446,7 +472,7 @@ function ThemeManager({
           <button type="button" className="theme-manager-close" onClick={onClose} aria-label="关闭主题管理器">×</button>
         </header>
         <div className="theme-manager-body">
-          <section className="theme-manager-list" aria-label="主题列表">
+          <section className="theme-manager-list" aria-label="主题列表" onContextMenu={(event) => { if (event.target === event.currentTarget) handleThemeContextMenu(event, '') }}>
             {orderedThemes.map((themeId, index) => {
               const isActive = themeId === currentTheme
               const isBuiltin = BUILTIN_THEME_IDS.includes(themeId)
@@ -530,7 +556,7 @@ function ThemeManager({
                   type="button"
                   className="theme-manager-context-menu-item"
                   onClick={handleContextExportTheme}
-                  disabled={submitting}
+                  disabled={!themeContextMenu.themeId || submitting}
                 >
                   导出主题
                 </button>
@@ -538,9 +564,17 @@ function ThemeManager({
                   type="button"
                   className="theme-manager-context-menu-item"
                   onClick={() => openRenameEditor(themeContextMenu.themeId)}
-                  disabled={BUILTIN_THEME_IDS.includes(themeContextMenu.themeId) || submitting}
+                  disabled={!themeContextMenu.themeId || BUILTIN_THEME_IDS.includes(themeContextMenu.themeId) || submitting}
                 >
                   重命名
+                </button>
+                <button
+                  type="button"
+                  className="theme-manager-context-menu-item"
+                  onClick={() => { void handleContextDeleteTheme() }}
+                  disabled={!themeContextMenu.themeId || BUILTIN_THEME_IDS.includes(themeContextMenu.themeId) || submitting}
+                >
+                  删除主题
                 </button>
               </div>
             )}
@@ -571,8 +605,6 @@ function ThemeManager({
               >
                 保存主题
               </button>
-            </div>
-            <div className="theme-manager-detail-actions">
               <button type="button" className="theme-manager-btn" disabled={!canUndo} onClick={onUndo}>撤销上一步</button>
               <button type="button" className="theme-manager-btn" disabled={!canUndo} onClick={onRestoreBaseline}>恢复会话基线</button>
               <button type="button" className="theme-manager-btn" onClick={onResetAll}>恢复全部默认</button>
@@ -695,8 +727,21 @@ function ThemeManager({
                   )}
                   {group.id !== 'flow-line' && (
                     <div className="theme-manager-token-list">
+                      {group.id === 'base' && (
+                        <label className="theme-manager-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={preserveToolbarIconOriginalColors}
+                            onChange={(event) => onPreserveToolbarIconOriginalColorsChange?.(event.target.checked)}
+                          />
+                          保留原图标彩色（启用后禁用工具栏图标自定义颜色）
+                        </label>
+                      )}
                       {group.items.map(item => (
-                        <div key={item.id} className="theme-manager-token-row">
+                        <div
+                          key={item.id}
+                          className={`theme-manager-token-row${group.id === 'base' && TOOLBAR_ICON_TOKEN_KEYS.has(item.tokenKey) && preserveToolbarIconOriginalColors ? ' theme-manager-token-row-disabled' : ''}`}
+                        >
                           <span className="theme-manager-token-label">{item.label}</span>
                           <span className="theme-manager-preview-chip" style={{ backgroundColor: tokenValues[item.tokenKey] || '#000000' }} aria-hidden />
                           <input
@@ -704,8 +749,16 @@ function ThemeManager({
                             value={tokenValues[item.tokenKey] || '#000000'}
                             aria-label={`${group.label}-${item.label}`}
                             onChange={(event) => onTokenChange?.(item.tokenKey, event.target.value)}
+                            disabled={group.id === 'base' && TOOLBAR_ICON_TOKEN_KEYS.has(item.tokenKey) && preserveToolbarIconOriginalColors}
                           />
-                          <button type="button" className="theme-manager-btn" onClick={() => onResetToken?.(group.id, item.tokenKey)}>重置</button>
+                          <button
+                            type="button"
+                            className="theme-manager-btn"
+                            onClick={() => onResetToken?.(group.id, item.tokenKey)}
+                            disabled={group.id === 'base' && TOOLBAR_ICON_TOKEN_KEYS.has(item.tokenKey) && preserveToolbarIconOriginalColors}
+                          >
+                            重置
+                          </button>
                         </div>
                       ))}
                     </div>

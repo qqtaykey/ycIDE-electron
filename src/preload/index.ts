@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { normalizeRuntimePlatform } from '../shared/platform'
 import { THEME_CONFIG_VERSION } from '../shared/theme'
+import type { IDESettings } from '../shared/settings'
 import type {
   SaveAsCustomThemeRequest,
   SaveAsCustomThemeResult,
@@ -30,7 +31,7 @@ type ThemeImportPrepareResult =
   | { status: 'ready'; importedTheme: ThemeDefinition; targetThemeId: ThemeId; sourceFilePath: string | null }
 type ThemeImportCommitResult =
   | ({ success: true; importedThemeId: ThemeId; overwritten: boolean } & ThemeLifecycleSyncPayload)
-  | ({ success: false; code: 'invalid_payload' | 'conflict_decision_required' | 'invalid_conflict_decision' | 'duplicate_name' | 'theme_not_found' | 'commit_failed'; message: string; diagnostics?: ThemeImportValidationDiagnostic[] })
+  | ({ success: false; code: 'builtin_readonly' | 'invalid_payload' | 'conflict_decision_required' | 'invalid_conflict_decision' | 'duplicate_name' | 'theme_not_found' | 'commit_failed'; message: string; diagnostics?: ThemeImportValidationDiagnostic[] })
 
 // 向渲染进程安全暴露的 API
 const api = {
@@ -136,6 +137,11 @@ const api = {
       }>
       errors: string[]
     }>,
+  },
+  // 系统设置
+  settings: {
+    get: () => ipcRenderer.invoke('settings:get') as Promise<IDESettings>,
+    save: (partial: Partial<IDESettings>) => ipcRenderer.invoke('settings:save', partial) as Promise<IDESettings>,
   },
   // 主题管理
   theme: {
